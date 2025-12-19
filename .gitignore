@@ -1,9 +1,21 @@
 # Windows reserved filename
 nul
 
+# Dependencies
+node_modules/
+package-lock.json
+
+# Database
+backend/data/*.db
+backend/data/*.db-journal
+
 # Logs
 logs
 *.log
+npm-debug.log*
+
+# Docker
+.dockerignore
 
 # Editor directories and files
 .vscode/*
@@ -18,3 +30,7 @@ logs
 
 # Claude Code
 .claude/
+
+# Build outputs
+dist/
+build/

@@ -1,56 +1,112 @@
-// Storage Service
+// API Configuration
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000'
+    : '/api';
+
+// Storage Service with API integration
 const StorageService = {
-    KEYS: {
-        RECIPES: 'foodPlanner_recipes',
-        WEEK_PLAN: 'foodPlanner_weekPlan'
-    },
-
-    getRecipes() {
-        const data = localStorage.getItem(this.KEYS.RECIPES);
-        return data ? JSON.parse(data) : [];
-    },
-
-    saveRecipes(recipes) {
-        localStorage.setItem(this.KEYS.RECIPES, JSON.stringify(recipes));
-    },
-
-    addRecipe(recipe) {
-        const recipes = this.getRecipes();
-        recipes.push(recipe);
-        this.saveRecipes(recipes);
-    },
-
-    updateRecipe(recipe) {
-        const recipes = this.getRecipes();
-        const index = recipes.findIndex(r => r.id === recipe.id);
-        if (index !== -1) {
-            recipes[index] = recipe;
-            this.saveRecipes(recipes);
+    async getRecipes() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/recipes`);
+            if (!response.ok) throw new Error('Failed to fetch recipes');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching recipes:', error);
+            return [];
         }
     },
 
-    deleteRecipe(id) {
-        const recipes = this.getRecipes();
-        const filtered = recipes.filter(r => r.id !== id);
-        this.saveRecipes(filtered);
+    async addRecipe(recipe) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/recipes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(recipe)
+            });
+            if (!response.ok) throw new Error('Failed to add recipe');
+            return await response.json();
+        } catch (error) {
+            console.error('Error adding recipe:', error);
+            throw error;
+        }
     },
 
-    getRecipeById(id) {
-        const recipes = this.getRecipes();
-        return recipes.find(r => r.id === id);
+    async updateRecipe(recipe) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/recipes/${recipe.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(recipe)
+            });
+            if (!response.ok) throw new Error('Failed to update recipe');
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating recipe:', error);
+            throw error;
+        }
     },
 
-    getWeekPlan() {
-        const data = localStorage.getItem(this.KEYS.WEEK_PLAN);
-        return data ? JSON.parse(data) : null;
+    async deleteRecipe(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/recipes/${id}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Failed to delete recipe');
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting recipe:', error);
+            throw error;
+        }
     },
 
-    saveWeekPlan(weekPlan) {
-        localStorage.setItem(this.KEYS.WEEK_PLAN, JSON.stringify(weekPlan));
+    async getRecipeById(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/recipes/${id}`);
+            if (!response.ok) throw new Error('Failed to fetch recipe');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching recipe:', error);
+            return null;
+        }
     },
 
-    clearWeekPlan() {
-        localStorage.removeItem(this.KEYS.WEEK_PLAN);
+    async getWeekPlan() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/weekplan`);
+            if (!response.ok) throw new Error('Failed to fetch week plan');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching week plan:', error);
+            return null;
+        }
+    },
+
+    async saveWeekPlan(weekPlan) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/weekplan`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(weekPlan)
+            });
+            if (!response.ok) throw new Error('Failed to save week plan');
+            return await response.json();
+        } catch (error) {
+            console.error('Error saving week plan:', error);
+            throw error;
+        }
+    },
+
+    async clearWeekPlan() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/weekplan`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Failed to clear week plan');
+            return await response.json();
+        } catch (error) {
+            console.error('Error clearing week plan:', error);
+            throw error;
+        }
     }
 };
 
@@ -60,15 +116,15 @@ const AppState = {
     recipes: [],
     weekPlan: null,
 
-    init() {
-        this.recipes = StorageService.getRecipes();
-        this.weekPlan = StorageService.getWeekPlan();
+    async init() {
+        this.recipes = await StorageService.getRecipes();
+        this.weekPlan = await StorageService.getWeekPlan();
         if (!this.weekPlan) {
-            this.initializeWeekPlan();
+            await this.initializeWeekPlan();
         }
     },
 
-    initializeWeekPlan() {
+    async initializeWeekPlan() {
         const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
         const startDate = new Date();
 
@@ -86,7 +142,7 @@ const AppState = {
             })
         };
 
-        StorageService.saveWeekPlan(this.weekPlan);
+        await StorageService.saveWeekPlan(this.weekPlan);
     },
 
     setView(view) {
@@ -94,16 +150,16 @@ const AppState = {
         App.render();
     },
 
-    reloadData() {
-        this.recipes = StorageService.getRecipes();
-        this.weekPlan = StorageService.getWeekPlan();
+    async reloadData() {
+        this.recipes = await StorageService.getRecipes();
+        this.weekPlan = await StorageService.getWeekPlan();
     }
 };
 
 // Main App
 const App = {
-    init() {
-        AppState.init();
+    async init() {
+        await AppState.init();
         this.render();
     },
 
@@ -292,9 +348,9 @@ const WeekPlannerView = {
         // Reset week plan
         const resetBtn = document.getElementById('reset-week-btn');
         if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
+            resetBtn.addEventListener('click', async () => {
                 if (confirm('Möchtest du den Wochenplan wirklich zurücksetzen?')) {
-                    AppState.initializeWeekPlan();
+                    await AppState.initializeWeekPlan();
                     App.render();
                 }
             });
@@ -311,10 +367,10 @@ const WeekPlannerView = {
 
         // Remove meal buttons
         document.querySelectorAll('.remove-meal-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 const dayIndex = parseInt(e.target.dataset.day);
                 const mealType = e.target.dataset.meal;
-                this.removeMeal(dayIndex, mealType);
+                await this.removeMeal(dayIndex, mealType);
             });
         });
 
@@ -326,9 +382,9 @@ const WeekPlannerView = {
 
         // Select recipe buttons
         document.querySelectorAll('.select-recipe-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 const recipeId = e.currentTarget.dataset.recipeId;
-                this.assignRecipe(recipeId);
+                await this.assignRecipe(recipeId);
             });
         });
     },
@@ -343,8 +399,8 @@ const WeekPlannerView = {
         if (modal) modal.classList.remove('active');
     },
 
-    assignRecipe(recipeId) {
-        const recipe = StorageService.getRecipeById(recipeId);
+    async assignRecipe(recipeId) {
+        const recipe = await StorageService.getRecipeById(recipeId);
         if (!recipe || this.selectedMealType === null) return;
 
         AppState.weekPlan.days[this.selectedDay].meals[this.selectedMealType] = {
@@ -354,14 +410,14 @@ const WeekPlannerView = {
             mealType: this.selectedMealType
         };
 
-        StorageService.saveWeekPlan(AppState.weekPlan);
+        await StorageService.saveWeekPlan(AppState.weekPlan);
         this.hideRecipeSelector();
         App.render();
     },
 
-    removeMeal(dayIndex, mealType) {
+    async removeMeal(dayIndex, mealType) {
         delete AppState.weekPlan.days[dayIndex].meals[mealType];
-        StorageService.saveWeekPlan(AppState.weekPlan);
+        await StorageService.saveWeekPlan(AppState.weekPlan);
         App.render();
     }
 };
@@ -493,17 +549,17 @@ const RecipeDatabaseView = {
 
         // Edit recipe buttons
         document.querySelectorAll('.edit-recipe-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 const recipeId = e.target.dataset.recipeId;
-                this.editRecipe(recipeId);
+                await this.editRecipe(recipeId);
             });
         });
 
         // Delete recipe buttons
         document.querySelectorAll('.delete-recipe-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 const recipeId = e.target.dataset.recipeId;
-                this.deleteRecipe(recipeId);
+                await this.deleteRecipe(recipeId);
             });
         });
 
@@ -525,9 +581,9 @@ const RecipeDatabaseView = {
         // Recipe form submit
         const form = document.getElementById('recipe-form');
         if (form) {
-            form.addEventListener('submit', (e) => {
+            form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                this.saveRecipe();
+                await this.saveRecipe();
             });
         }
 
@@ -603,22 +659,22 @@ const RecipeDatabaseView = {
         this.editingRecipe = null;
     },
 
-    editRecipe(recipeId) {
-        const recipe = StorageService.getRecipeById(recipeId);
+    async editRecipe(recipeId) {
+        const recipe = await StorageService.getRecipeById(recipeId);
         if (recipe) {
             this.showRecipeForm(recipe);
         }
     },
 
-    deleteRecipe(recipeId) {
+    async deleteRecipe(recipeId) {
         if (confirm('Möchtest du dieses Rezept wirklich löschen?')) {
-            StorageService.deleteRecipe(recipeId);
-            AppState.reloadData();
+            await StorageService.deleteRecipe(recipeId);
+            await AppState.reloadData();
             App.render();
         }
     },
 
-    saveRecipe() {
+    async saveRecipe() {
         const name = document.getElementById('recipe-name').value.trim();
         const category = document.getElementById('recipe-category').value.trim();
         const servings = document.getElementById('recipe-servings').value;
@@ -641,12 +697,12 @@ const RecipeDatabaseView = {
         };
 
         if (this.editingRecipe) {
-            StorageService.updateRecipe(recipe);
+            await StorageService.updateRecipe(recipe);
         } else {
-            StorageService.addRecipe(recipe);
+            await StorageService.addRecipe(recipe);
         }
 
-        AppState.reloadData();
+        await AppState.reloadData();
         this.hideRecipeForm();
         App.render();
     }
@@ -747,7 +803,7 @@ const ShoppingListView = {
         `;
     },
 
-    generateShoppingList() {
+    async generateShoppingList() {
         if (!AppState.weekPlan) {
             this.shoppingList = [];
             return;
@@ -755,10 +811,10 @@ const ShoppingListView = {
 
         const ingredientsMap = new Map();
 
-        AppState.weekPlan.days.forEach(day => {
-            Object.values(day.meals).forEach(meal => {
+        for (const day of AppState.weekPlan.days) {
+            for (const meal of Object.values(day.meals)) {
                 if (meal?.recipeId) {
-                    const recipe = StorageService.getRecipeById(meal.recipeId);
+                    const recipe = await StorageService.getRecipeById(meal.recipeId);
                     if (recipe) {
                         recipe.ingredients.forEach(ingredient => {
                             const key = `${ingredient.name.toLowerCase()}_${ingredient.unit.toLowerCase()}`;
@@ -789,8 +845,8 @@ const ShoppingListView = {
                         });
                     }
                 }
-            });
-        });
+            }
+        }
 
         this.shoppingList = Array.from(ingredientsMap.values()).sort((a, b) =>
             a.name.localeCompare(b.name)
