@@ -1,25 +1,31 @@
-# Node modules
-node_modules
-npm-debug.log
-
-# Git
+# Git files
 .git
 .gitignore
+.gitattributes
 
-# Claude
-.claude
+# Documentation
+README.md
 
-# Development files
-*.md
-!README.md
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
 
 # OS files
 .DS_Store
 Thumbs.db
 
-# Backend specific (only for frontend dockerfile)
-backend/
+# Docker files (nicht ins Image kopieren)
+Dockerfile
+docker-compose.yml
+.dockerignore
 
-# Build artifacts
-dist
-build
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+.cache
