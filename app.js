@@ -456,14 +456,20 @@ const RecipeDatabaseView = {
                                 <p class="text-sm text-gray-600 mb-3">
                                     ${recipe.ingredients.length} Zutat${recipe.ingredients.length !== 1 ? 'en' : ''}
                                 </p>
-                                <div class="flex gap-2">
-                                    <button class="edit-recipe-btn flex-1 px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-sm"
+                                <div class="flex flex-col gap-2">
+                                    <div class="flex gap-2">
+                                        <button class="edit-recipe-btn flex-1 px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-sm"
+                                                data-recipe-id="${recipe.id}">
+                                            Bearbeiten
+                                        </button>
+                                        <button class="delete-recipe-btn px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm"
+                                                data-recipe-id="${recipe.id}">
+                                            Löschen
+                                        </button>
+                                    </div>
+                                    <button class="duplicate-recipe-btn w-full px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
                                             data-recipe-id="${recipe.id}">
-                                        Bearbeiten
-                                    </button>
-                                    <button class="delete-recipe-btn px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm"
-                                            data-recipe-id="${recipe.id}">
-                                        Löschen
+                                        ✓ Duplizieren
                                     </button>
                                 </div>
                             </div>
@@ -558,8 +564,17 @@ const RecipeDatabaseView = {
         // Delete recipe buttons
         document.querySelectorAll('.delete-recipe-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
+            btn.addEventListener('click', async (e) => {
                 const recipeId = e.target.dataset.recipeId;
                 await this.deleteRecipe(recipeId);
+            });
+        });
+
+        // Duplicate recipe buttons
+        document.querySelectorAll('.duplicate-recipe-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const recipeId = e.target.dataset.recipeId;
+                await this.duplicateRecipe(recipeId);
             });
         });
 
@@ -667,11 +682,33 @@ const RecipeDatabaseView = {
     },
 
     async deleteRecipe(recipeId) {
+    async deleteRecipe(recipeId) {
         if (confirm('Möchtest du dieses Rezept wirklich löschen?')) {
+            await StorageService.deleteRecipe(recipeId);
+            await AppState.reloadData();
             await StorageService.deleteRecipe(recipeId);
             await AppState.reloadData();
             App.render();
         }
+    },
+
+    async duplicateRecipe(recipeId) {
+        const recipe = await StorageService.getRecipeById(recipeId);
+        if (!recipe) return;
+
+        // Create duplicate with new ID and modified name
+        const duplicatedRecipe = {
+            ...recipe,
+            id: Date.now().toString(),
+            name: `${recipe.name} (Kopie)`,
+            ingredients: recipe.ingredients.map(ing => ({ ...ing })) // Deep copy ingredients
+        };
+
+        await StorageService.addRecipe(duplicatedRecipe);
+        await AppState.reloadData();
+
+        // Open the duplicated recipe in edit mode
+        this.showRecipeForm(duplicatedRecipe);
     },
 
     async saveRecipe() {

@@ -1,0 +1,25 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Git
+.git
+.gitignore
+
+# Claude
+.claude
+
+# Development files
+*.md
+!README.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backend specific (only for frontend dockerfile)
+backend/
+
+# Build artifacts
+dist
+build
