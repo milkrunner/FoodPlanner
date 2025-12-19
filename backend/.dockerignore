@@ -1,0 +1,14 @@
+# Node modules (will be installed in container)
+node_modules
+
+# Development files
+*.md
+
+# Data directory (will be created in container)
+data/
+
+# Git
+.git
+
+# Logs
+*.log
