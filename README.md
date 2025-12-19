@@ -13,16 +13,19 @@ Eine moderne Web-Anwendung zum Planen deiner Wochenmahlzeiten, Verwalten von Rez
 ## Technologie-Stack
 
 ### Frontend
+
 - **Vanilla JavaScript** (ES6+)
 - **Tailwind CSS** (via CDN) für das Styling
 - **nginx** als Webserver
 
 ### Backend
+
 - **Node.js** mit Express
 - **SQLite** Datenbank
 - **RESTful API**
 
 ### Deployment
+
 - **Docker** & **Docker Compose**
 - **Persistente Datenbank** mit Docker Volumes
 
@@ -114,7 +117,7 @@ Dann öffne [http://localhost:8080](http://localhost:8080)
 
 ## Projektstruktur
 
-```
+```file
 FoodPlanner/
 ├── frontend/
 │   ├── index.html           # Haupt-HTML-Datei
@@ -163,6 +166,7 @@ Daten werden im Browser-LocalStorage gespeichert:
 Das Backend stellt folgende REST-API bereit:
 
 ### Rezepte
+
 - `GET /recipes` - Alle Rezepte abrufen
 - `GET /recipes/:id` - Einzelnes Rezept abrufen
 - `POST /recipes` - Neues Rezept erstellen
@@ -170,11 +174,13 @@ Das Backend stellt folgende REST-API bereit:
 - `DELETE /recipes/:id` - Rezept löschen
 
 ### Wochenplan
+
 - `GET /weekplan` - Aktuellen Wochenplan abrufen
 - `POST /weekplan` - Wochenplan speichern
 - `DELETE /weekplan` - Wochenplan löschen
 
 ### System
+
 - `GET /health` - Health Check
 
 ## Browser-Kompatibilität
