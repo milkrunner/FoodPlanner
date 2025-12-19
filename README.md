@@ -7,43 +7,81 @@ Eine moderne Web-Anwendung zum Planen deiner Wochenmahlzeiten, Verwalten von Rez
 - **Wochenplanung**: Plane deine Mahlzeiten für die gesamte Woche (Frühstück, Mittagessen, Abendessen)
 - **Rezeptdatenbank**: Erstelle und verwalte deine eigenen Rezepte mit Zutaten und Zubereitungsanleitung
 - **Einkaufsliste**: Automatische Generierung einer Einkaufsliste basierend auf deinem Wochenplan
-- **Datenpersistenz**: Alle Daten werden lokal im Browser gespeichert (localStorage)
+- **Datenpersistenz**: SQLite-Datenbank mit Docker Volumes (persistent) oder Browser localStorage
 - **Export-Funktionen**: Einkaufsliste als Textdatei exportieren oder in die Zwischenablage kopieren
 
 ## Technologie-Stack
 
+### Frontend
+
 - **Vanilla JavaScript** (ES6+)
 - **Tailwind CSS** (via CDN) für das Styling
-- **LocalStorage API** für die Datenpersistenz
-- **Kein Build-Prozess erforderlich** - läuft direkt im Browser
+- **nginx** als Webserver
+
+### Backend
+
+- **Node.js** mit Express
+- **SQLite** Datenbank
+- **RESTful API**
+
+### Deployment
+
+- **Docker** & **Docker Compose**
+- **Persistente Datenbank** mit Docker Volumes
 
 ## Installation und Start
 
-### Einfacher Start (ohne Installation)
+### 🐳 Docker Deployment (Empfohlen für Produktion)
 
-Die App benötigt **keine Installation** von Node.js oder npm!
+Die einfachste Methode mit vollständiger Datenpersistenz:
 
-#### Option 1: Direktes Öffnen im Browser
+```bash
+# App starten
+docker-compose up -d
+
+# App aufrufen
+http://localhost
+```
+
+Die App läuft dann auf Port 80. Alle Daten werden persistent in einem Docker Volume gespeichert.
+
+**Weitere Docker Commands:**
+
+```bash
+# Logs ansehen
+docker-compose logs -f
+
+# App stoppen
+docker-compose down
+
+# App neu bauen
+docker-compose up -d --build
+
+# Volumes löschen (⚠️ Löscht alle Daten!)
+docker-compose down -v
+```
+
+### 💻 Lokale Entwicklung
+
+#### Option 1: Mit Backend (empfohlen)
+
+```bash
+# Backend starten
+cd backend
+npm install
+npm start
+
+# In neuem Terminal: Frontend starten
+python -m http.server 8080
+```
+
+Dann öffne [http://localhost:8080](http://localhost:8080)
+
+#### Option 2: Nur Frontend (ohne Persistenz)
 
 Öffne einfach die [index.html](index.html) Datei in deinem Browser (Doppelklick auf die Datei).
 
-#### Option 2: Mit lokalem Webserver (empfohlen)
-
-Für beste Ergebnisse verwende einen lokalen Webserver:
-
-Mit Python (falls installiert):
-
-```bash
-python -m http.server 5173
-```
-
-Dann öffne [http://localhost:5173](http://localhost:5173) im Browser.
-
-Alternativ mit Node.js (falls vorhanden):
-
-```bash
-npx serve
-```
+⚠️ **Achtung**: Ohne Backend werden Daten nur im Browser-LocalStorage gespeichert und gehen bei Cache-Löschung verloren.
 
 ## Verwendung
 
@@ -81,26 +119,69 @@ npx serve
 
 ```file
 FoodPlanner/
-├── index.html           # Haupt-HTML-Datei
-├── app.js               # Komplette App-Logik
-└── README.md            # Diese Datei
+├── frontend/
+│   ├── index.html           # Haupt-HTML-Datei
+│   ├── app.js               # Frontend JavaScript
+│   ├── nginx.conf           # Nginx Konfiguration
+│   └── Dockerfile           # Frontend Docker Image
+├── backend/
+│   ├── server.js            # Express API Server
+│   ├── package.json         # Backend Dependencies
+│   ├── Dockerfile           # Backend Docker Image
+│   └── data/                # SQLite Datenbank (Docker Volume)
+│       └── foodplanner.db
+├── docker-compose.yml       # Docker Orchestrierung
+└── README.md
 ```
 
-Die komplette Anwendung besteht aus nur 2 Dateien - extrem einfach!
+## Datenpersistenz
 
-## Datenmodell
+### Mit Docker (Produktion)
 
-Die App verwendet folgende Hauptdatentypen:
+Alle Daten werden in einer **SQLite-Datenbank** gespeichert, die in einem **Docker Volume** (`foodplanner-data`) liegt:
 
-- **Recipe**: Rezeptinformationen mit Zutaten
-- **WeekPlan**: Wochenplan mit 7 Tagen
-- **DayPlan**: Tagesplan mit Mahlzeiten
-- **ShoppingListItem**: Einkaufslistenartikel
+- ✅ **Persistent**: Daten bleiben nach Container-Neustarts erhalten
+- ✅ **Backup-fähig**: Volume kann einfach gesichert werden
+- ✅ **Sicher**: Daten gehen nicht verloren
 
-Alle Daten werden im LocalStorage des Browsers gespeichert unter:
+**Daten sichern:**
 
-- `foodPlanner_recipes` - Rezepte
-- `foodPlanner_weekPlan` - Aktueller Wochenplan
+```bash
+# Volume-Backup erstellen
+docker run --rm -v foodplanner-data:/data -v $(pwd):/backup alpine tar czf /backup/foodplanner-backup.tar.gz /data
+
+# Backup wiederherstellen
+docker run --rm -v foodplanner-data:/data -v $(pwd):/backup alpine tar xzf /backup/foodplanner-backup.tar.gz -C /
+```
+
+### Ohne Docker (Entwicklung)
+
+Daten werden im Browser-LocalStorage gespeichert:
+
+- ⚠️ **Temporär**: Gehen bei Cache-Löschung verloren
+- ⚠️ **Browser-gebunden**: Nicht zwischen Geräten synchronisiert
+
+## API Endpoints
+
+Das Backend stellt folgende REST-API bereit:
+
+### Rezepte
+
+- `GET /recipes` - Alle Rezepte abrufen
+- `GET /recipes/:id` - Einzelnes Rezept abrufen
+- `POST /recipes` - Neues Rezept erstellen
+- `PUT /recipes/:id` - Rezept aktualisieren
+- `DELETE /recipes/:id` - Rezept löschen
+
+### Wochenplan
+
+- `GET /weekplan` - Aktuellen Wochenplan abrufen
+- `POST /weekplan` - Wochenplan speichern
+- `DELETE /weekplan` - Wochenplan löschen
+
+### System
+
+- `GET /health` - Health Check
 
 ## Browser-Kompatibilität
 
