@@ -22,4 +22,5 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./app.js:/usr/share/nginx/html/app.js:ro
     restart: unless-stopped

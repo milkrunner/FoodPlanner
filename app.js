@@ -3,6 +3,44 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
     ? 'http://localhost:3000'
     : '/api';
 
+// Dark Mode Manager
+const DarkMode = {
+    init() {
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+            this.enable();
+        } else {
+            this.disable();
+        }
+    },
+
+    toggle() {
+        if (document.documentElement.classList.contains('dark')) {
+            this.disable();
+        } else {
+            this.enable();
+        }
+    },
+
+    enable() {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+    },
+
+    disable() {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+        localStorage.setItem('theme', 'light');
+    },
+
+    isDark() {
+        return document.documentElement.classList.contains('dark');
+    }
+};
+
 // Storage Service with API integration
 const StorageService = {
     async getRecipes() {
@@ -159,6 +197,7 @@ const AppState = {
 // Main App
 const App = {
     async init() {
+        DarkMode.init();
         await AppState.init();
         this.render();
     },
@@ -176,11 +215,25 @@ const App = {
     },
 
     renderHeader() {
+        const isDark = document.documentElement.classList.contains('dark');
+        const sunIconClass = isDark ? 'hidden' : '';
+        const moonIconClass = isDark ? '' : 'hidden';
+
         return `
-            <header class="bg-white shadow-md">
+            <header class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-200">
                 <div class="container mx-auto px-4 py-4">
-                    <h1 class="text-3xl font-bold text-gray-800">Food Planner</h1>
-                    <p class="text-gray-600">Dein persönlicher Essenswochenplaner</p>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Food Planner</h1>
+                            <p class="text-gray-600 dark:text-gray-300">Dein persönlicher Essenswochenplaner</p>
+                        </div>
+                        <button id="dark-mode-toggle" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Dark Mode umschalten">
+                            <svg class="w-6 h-6 text-gray-800 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path class="${sunIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                <path class="${moonIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </header>
         `;
@@ -194,15 +247,15 @@ const App = {
         ];
 
         return `
-            <nav class="bg-white border-b">
+            <nav class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 transition-colors duration-200">
                 <div class="container mx-auto px-4">
                     <div class="flex space-x-1">
                         ${tabs.map(tab => `
                             <button
                                 class="nav-btn px-6 py-3 font-medium transition-colors ${
                                     AppState.currentView === tab.id
-                                        ? 'text-blue-600 border-b-2 border-blue-600'
-                                        : 'text-gray-600 hover:text-blue-600'
+                                        ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                                        : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
                                 }"
                                 data-view="${tab.id}"
                             >
@@ -229,6 +282,15 @@ const App = {
     },
 
     attachEventListeners() {
+        // Dark mode toggle
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        if (darkModeToggle) {
+            darkModeToggle.addEventListener('click', () => {
+                DarkMode.toggle();
+                App.render();
+            });
+        }
+
         // Navigation
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -255,7 +317,7 @@ const WeekPlannerView = {
 
     render() {
         if (!AppState.weekPlan) {
-            return '<div>Lade Wochenplan...</div>';
+            return '<div class="text-gray-800 dark:text-gray-200">Lade Wochenplan...</div>';
         }
 
         const mealTypes = ['Frühstück', 'Mittagessen', 'Abendessen'];
@@ -263,25 +325,25 @@ const WeekPlannerView = {
         return `
             <div class="space-y-6">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-2xl font-bold text-gray-800">Wochenplan</h2>
-                    <button id="reset-week-btn" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Wochenplan</h2>
+                    <button id="reset-week-btn" class="px-4 py-2 bg-red-500 dark:bg-red-600 text-white rounded hover:bg-red-600 dark:hover:bg-red-700 transition-colors">
                         Plan zurücksetzen
                     </button>
                 </div>
 
                 <div class="grid gap-4">
                     ${AppState.weekPlan.days.map((day, dayIndex) => `
-                        <div class="bg-white rounded-lg shadow p-4">
-                            <h3 class="text-xl font-semibold text-gray-800 mb-3">${day.dayName}</h3>
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-3">${day.dayName}</h3>
                             <div class="grid md:grid-cols-3 gap-3">
                                 ${mealTypes.map(mealType => {
                                     const meal = day.meals[mealType];
                                     return `
-                                        <div class="border rounded p-3">
+                                        <div class="border dark:border-gray-700 rounded p-3">
                                             <div class="flex justify-between items-center mb-2">
-                                                <h4 class="font-medium text-gray-700">${mealType}</h4>
+                                                <h4 class="font-medium text-gray-700 dark:text-gray-300">${mealType}</h4>
                                                 ${meal ? `
-                                                    <button class="remove-meal-btn text-red-500 hover:text-red-700 text-sm"
+                                                    <button class="remove-meal-btn text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 text-sm"
                                                             data-day="${dayIndex}"
                                                             data-meal="${mealType}">
                                                         ✕
@@ -289,11 +351,11 @@ const WeekPlannerView = {
                                                 ` : ''}
                                             </div>
                                             ${meal ? `
-                                                <div class="bg-blue-50 p-2 rounded">
-                                                    <p class="text-sm text-gray-800">${meal.recipeName}</p>
+                                                <div class="bg-blue-50 dark:bg-blue-900/30 p-2 rounded">
+                                                    <p class="text-sm text-gray-800 dark:text-gray-200">${meal.recipeName}</p>
                                                 </div>
                                             ` : `
-                                                <button class="add-meal-btn w-full py-2 border-2 border-dashed border-gray-300 rounded text-gray-500 hover:border-blue-400 hover:text-blue-500 transition-colors"
+                                                <button class="add-meal-btn w-full py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded text-gray-500 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
                                                         data-day="${dayIndex}"
                                                         data-meal="${mealType}">
                                                     + Rezept hinzufügen
@@ -315,25 +377,25 @@ const WeekPlannerView = {
     renderRecipeSelector() {
         return `
             <div id="recipe-selector-modal" class="modal">
-                <div class="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
-                    <div class="p-4 border-b flex justify-between items-center">
-                        <h3 class="text-xl font-semibold">Rezept auswählen</h3>
-                        <button id="close-recipe-selector" class="text-gray-500 hover:text-gray-700 text-2xl">
+                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Rezept auswählen</h3>
+                        <button id="close-recipe-selector" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
                             ✕
                         </button>
                     </div>
                     <div class="p-4 overflow-y-auto max-h-[60vh]">
                         ${AppState.recipes.length === 0 ? `
-                            <p class="text-gray-500 text-center py-8">
+                            <p class="text-gray-500 dark:text-gray-400 text-center py-8">
                                 Noch keine Rezepte vorhanden. Erstelle zuerst Rezepte in der Rezeptdatenbank.
                             </p>
                         ` : `
                             <div class="grid gap-2">
                                 ${AppState.recipes.map(recipe => `
-                                    <button class="select-recipe-btn text-left p-3 border rounded hover:bg-blue-50 hover:border-blue-400 transition-colors"
+                                    <button class="select-recipe-btn text-left p-3 border dark:border-gray-700 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
                                             data-recipe-id="${recipe.id}">
-                                        <p class="font-medium">${recipe.name}</p>
-                                        ${recipe.category ? `<p class="text-sm text-gray-600">${recipe.category}</p>` : ''}
+                                        <p class="font-medium text-gray-800 dark:text-white">${recipe.name}</p>
+                                        ${recipe.category ? `<p class="text-sm text-gray-600 dark:text-gray-400">${recipe.category}</p>` : ''}
                                     </button>
                                 `).join('')}
                             </div>
@@ -433,7 +495,7 @@ const RecipeDatabaseView = {
 
         return `
             <div class="space-y-6">
-                <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                <div class="flex justify-between items-center">
                     <h2 class="text-2xl font-bold text-gray-800">Rezeptdatenbank</h2>
                     <button id="new-recipe-btn" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
                         + Neues Rezept
@@ -470,9 +532,9 @@ const RecipeDatabaseView = {
                 ` : ''}
 
                 ${AppState.recipes.length === 0 ? `
-                    <div class="bg-white rounded-lg shadow p-8 text-center">
-                        <p class="text-gray-500">Noch keine Rezepte vorhanden.</p>
-                        <p class="text-gray-400 text-sm mt-2">Erstelle dein erstes Rezept!</p>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center transition-colors duration-200">
+                        <p class="text-gray-500 dark:text-gray-400">Noch keine Rezepte vorhanden.</p>
+                        <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">Erstelle dein erstes Rezept!</p>
                     </div>
                 ` : filteredRecipes.length === 0 ? `
                     <div class="bg-white rounded-lg shadow p-8 text-center">
@@ -481,30 +543,30 @@ const RecipeDatabaseView = {
                     </div>
                 ` : `
                     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        ${filteredRecipes.map(recipe => `
+                        ${AppState.recipes.map(recipe => `
                             <div class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-2">${recipe.name}</h3>
                                 ${recipe.category ? `
-                                    <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded mb-2">
+                                    <span class="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs rounded mb-2">
                                         ${recipe.category}
                                     </span>
                                 ` : ''}
-                                ${recipe.servings ? `<p class="text-sm text-gray-600 mb-2">Portionen: ${recipe.servings}</p>` : ''}
-                                <p class="text-sm text-gray-600 mb-3">
+                                ${recipe.servings ? `<p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Portionen: ${recipe.servings}</p>` : ''}
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                                     ${recipe.ingredients.length} Zutat${recipe.ingredients.length !== 1 ? 'en' : ''}
                                 </p>
                                 <div class="flex flex-col gap-2">
                                     <div class="flex gap-2">
-                                        <button class="edit-recipe-btn flex-1 px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors text-sm"
+                                        <button class="edit-recipe-btn flex-1 px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm"
                                                 data-recipe-id="${recipe.id}">
                                             Bearbeiten
                                         </button>
-                                        <button class="delete-recipe-btn px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm"
+                                        <button class="delete-recipe-btn px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors text-sm"
                                                 data-recipe-id="${recipe.id}">
                                             Löschen
                                         </button>
                                     </div>
-                                    <button class="duplicate-recipe-btn w-full px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
+                                    <button class="duplicate-recipe-btn w-full px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm"
                                             data-recipe-id="${recipe.id}">
                                         ✓ Duplizieren
                                     </button>
@@ -522,40 +584,40 @@ const RecipeDatabaseView = {
     renderRecipeForm() {
         return `
             <div id="recipe-form-modal" class="modal">
-                <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden">
-                    <div class="p-4 border-b flex justify-between items-center">
-                        <h3 class="text-xl font-semibold">
+                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden">
+                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">
                             ${this.editingRecipe ? 'Rezept bearbeiten' : 'Neues Rezept'}
                         </h3>
-                        <button id="close-recipe-form" class="text-gray-500 hover:text-gray-700 text-2xl">
+                        <button id="close-recipe-form" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
                             ✕
                         </button>
                     </div>
                     <form id="recipe-form" class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Rezeptname *</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rezeptname *</label>
                                 <input type="text" id="recipe-name" required
-                                       class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                       class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                             </div>
 
                             <div class="grid md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Kategorie</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategorie</label>
                                     <input type="text" id="recipe-category" placeholder="z.B. Hauptgericht, Dessert"
-                                           class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                           class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Portionen</label>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Portionen</label>
                                     <input type="number" id="recipe-servings" min="1"
-                                           class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                           class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                                 </div>
                             </div>
 
                             <div>
                                 <div class="flex justify-between items-center mb-2">
-                                    <label class="block text-sm font-medium text-gray-700">Zutaten</label>
-                                    <button type="button" id="add-ingredient-btn" class="text-sm text-blue-600 hover:text-blue-700">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Zutaten</label>
+                                    <button type="button" id="add-ingredient-btn" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
                                         + Zutat hinzufügen
                                     </button>
                                 </div>
@@ -563,17 +625,17 @@ const RecipeDatabaseView = {
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Zubereitung</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Zubereitung</label>
                                 <textarea id="recipe-instructions" rows="5" placeholder="Beschreibe die Zubereitungsschritte..."
-                                          class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                                          class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"></textarea>
                             </div>
                         </div>
 
                         <div class="flex gap-3 mt-6">
-                            <button type="submit" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                            <button type="submit" class="flex-1 px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
                                 ${this.editingRecipe ? 'Aktualisieren' : 'Erstellen'}
                             </button>
-                            <button type="button" id="cancel-recipe-form" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors">
+                            <button type="button" id="cancel-recipe-form" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                                 Abbrechen
                             </button>
                         </div>
@@ -618,7 +680,6 @@ const RecipeDatabaseView = {
 
         // Delete recipe buttons
         document.querySelectorAll('.delete-recipe-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
             btn.addEventListener('click', async (e) => {
                 const recipeId = e.target.dataset.recipeId;
                 await this.deleteRecipe(recipeId);
@@ -696,12 +757,12 @@ const RecipeDatabaseView = {
         container.innerHTML = this.ingredients.map((ing, index) => `
             <div class="flex gap-2 mb-2">
                 <input type="text" placeholder="Zutat" value="${ing.name}" data-index="${index}" data-field="name"
-                       class="ingredient-input flex-1 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="ingredient-input flex-1 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                 <input type="text" placeholder="Menge" value="${ing.amount}" data-index="${index}" data-field="amount"
-                       class="ingredient-input w-24 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="ingredient-input w-24 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                 <input type="text" placeholder="Einheit" value="${ing.unit}" data-index="${index}" data-field="unit"
-                       class="ingredient-input w-24 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button type="button" class="remove-ingredient-btn px-3 py-2 text-red-600 hover:text-red-700" data-index="${index}">
+                       class="ingredient-input w-24 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                <button type="button" class="remove-ingredient-btn px-3 py-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" data-index="${index}">
                     ✕
                 </button>
             </div>
@@ -766,10 +827,7 @@ const RecipeDatabaseView = {
     },
 
     async deleteRecipe(recipeId) {
-    async deleteRecipe(recipeId) {
         if (confirm('Möchtest du dieses Rezept wirklich löschen?')) {
-            await StorageService.deleteRecipe(recipeId);
-            await AppState.reloadData();
             await StorageService.deleteRecipe(recipeId);
             await AppState.reloadData();
             App.render();
@@ -849,9 +907,9 @@ const ShoppingListView = {
 
         if (this.shoppingList.length === 0) {
             return `
-                <div class="bg-white rounded-lg shadow p-8 text-center">
-                    <p class="text-gray-500">Keine Zutaten im Wochenplan.</p>
-                    <p class="text-gray-400 text-sm mt-2">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center transition-colors duration-200">
+                    <p class="text-gray-500 dark:text-gray-400">Keine Zutaten im Wochenplan.</p>
+                    <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">
                         Füge Rezepte zu deinem Wochenplan hinzu, um eine Einkaufsliste zu erstellen.
                     </p>
                 </div>
@@ -865,46 +923,46 @@ const ShoppingListView = {
             <div class="space-y-6">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-800">Einkaufsliste</h2>
-                        <p class="text-sm text-gray-600 mt-1">
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Einkaufsliste</h2>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             ${checkedCount} von ${this.shoppingList.length} Artikel${this.shoppingList.length !== 1 ? 'n' : ''} abgehakt
                         </p>
                     </div>
                     <div class="flex gap-2">
-                        <button id="copy-list-btn" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors">
+                        <button id="copy-list-btn" class="px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-700 transition-colors">
                             Kopieren
                         </button>
-                        <button id="export-list-btn" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                        <button id="export-list-btn" class="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
                             Exportieren
                         </button>
                         ${checkedCount > 0 ? `
-                            <button id="clear-checked-btn" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
+                            <button id="clear-checked-btn" class="px-4 py-2 bg-red-500 dark:bg-red-600 text-white rounded hover:bg-red-600 dark:hover:bg-red-700 transition-colors">
                                 Abgehakte entfernen
                             </button>
                         ` : ''}
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow p-4">
-                    <div class="w-full bg-gray-200 rounded-full h-3">
-                        <div class="bg-green-500 h-3 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                        <div class="bg-green-500 dark:bg-green-600 h-3 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-lg shadow">
-                    <div class="divide-y">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 transition-colors duration-200">
+                    <div class="divide-y dark:divide-gray-700">
                         ${this.shoppingList.map((item, index) => `
-                            <div class="p-4 hover:bg-gray-50 transition-colors cursor-pointer ${item.checked ? 'opacity-50' : ''}"
+                            <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${item.checked ? 'opacity-50' : ''}"
                                  data-item-index="${index}">
                                 <div class="flex items-start gap-3">
                                     <input type="checkbox" ${item.checked ? 'checked' : ''}
-                                           class="item-checkbox mt-1 w-5 h-5 cursor-pointer"
+                                           class="item-checkbox mt-1 w-5 h-5 cursor-pointer accent-blue-500 dark:accent-blue-400"
                                            data-item-index="${index}">
                                     <div class="flex-1">
-                                        <p class="font-medium ${item.checked ? 'line-through' : ''}">
+                                        <p class="font-medium text-gray-800 dark:text-white ${item.checked ? 'line-through' : ''}">
                                             ${item.amount} ${item.unit} ${item.name}
                                         </p>
-                                        <p class="text-sm text-gray-500 mt-1">
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                             Für: ${item.recipeNames.join(', ')}
                                         </p>
                                     </div>
@@ -914,8 +972,8 @@ const ShoppingListView = {
                     </div>
                 </div>
 
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p class="text-sm text-blue-800">
+                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 transition-colors duration-200">
+                    <p class="text-sm text-blue-800 dark:text-blue-300">
                         <strong>Tipp:</strong> Klicke auf einen Artikel, um ihn als erledigt zu markieren.
                         Du kannst die Liste exportieren oder in die Zwischenablage kopieren.
                     </p>
