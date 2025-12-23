@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: foodplanner-backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/usr/src/app
+    environment:
+      NODE_ENV: development
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:latest
+    container_name: foodplanner-nginx
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+    restart: unless-stopped
