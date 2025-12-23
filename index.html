@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Food Planner - Essenswochenplaner</title>
+    <script>
+        tailwind = { config: { darkMode: 'class' } }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -25,9 +28,12 @@
             justify-content: center;
             padding: 1rem;
         }
+        .dark .modal {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
     </style>
 </head>
-<body>
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
     <div id="app"></div>
     <script src="app.js"></script>
 </body>
