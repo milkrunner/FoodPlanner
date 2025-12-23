@@ -488,27 +488,64 @@ const WeekPlannerView = {
 const RecipeDatabaseView = {
     editingRecipe: null,
     ingredients: [{ name: '', amount: '', unit: '' }],
+    searchQuery: '',
 
     render() {
+        const filteredRecipes = this.filterRecipes();
+
         return `
             <div class="space-y-6">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Rezeptdatenbank</h2>
-                    <button id="new-recipe-btn" class="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
+                    <h2 class="text-2xl font-bold text-gray-800">Rezeptdatenbank</h2>
+                    <button id="new-recipe-btn" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
                         + Neues Rezept
                     </button>
                 </div>
+
+                ${AppState.recipes.length > 0 ? `
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <div class="relative">
+                            <input
+                                type="text"
+                                id="recipe-search-input"
+                                value="${this.searchQuery}"
+                                placeholder="Rezepte durchsuchen (Name, Kategorie, Zutaten)..."
+                                class="w-full px-4 py-2 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            ${this.searchQuery ? `
+                                <button id="clear-search-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            ` : ''}
+                        </div>
+                        ${this.searchQuery ? `
+                            <p class="text-sm text-gray-600 mt-2">
+                                ${filteredRecipes.length} von ${AppState.recipes.length} Rezept${filteredRecipes.length !== 1 ? 'en' : ''} gefunden
+                            </p>
+                        ` : ''}
+                    </div>
+                ` : ''}
 
                 ${AppState.recipes.length === 0 ? `
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center transition-colors duration-200">
                         <p class="text-gray-500 dark:text-gray-400">Noch keine Rezepte vorhanden.</p>
                         <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">Erstelle dein erstes Rezept!</p>
                     </div>
+                ` : filteredRecipes.length === 0 ? `
+                    <div class="bg-white rounded-lg shadow p-8 text-center">
+                        <p class="text-gray-500">Keine Rezepte gefunden.</p>
+                        <p class="text-gray-400 text-sm mt-2">Versuche einen anderen Suchbegriff.</p>
+                    </div>
                 ` : `
                     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                         ${AppState.recipes.map(recipe => `
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200">
-                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">${recipe.name}</h3>
+                            <div class="bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-2">${recipe.name}</h3>
                                 ${recipe.category ? `
                                     <span class="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs rounded mb-2">
                                         ${recipe.category}
@@ -609,6 +646,24 @@ const RecipeDatabaseView = {
     },
 
     attachEventListeners() {
+        // Search input
+        const searchInput = document.getElementById('recipe-search-input');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.searchQuery = e.target.value;
+                App.render();
+            });
+        }
+
+        // Clear search button
+        const clearSearchBtn = document.getElementById('clear-search-btn');
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => {
+                this.searchQuery = '';
+                App.render();
+            });
+        }
+
         // New recipe button
         const newBtn = document.getElementById('new-recipe-btn');
         if (newBtn) {
@@ -664,6 +719,35 @@ const RecipeDatabaseView = {
         }
 
         this.renderIngredients();
+    },
+
+    filterRecipes() {
+        if (!this.searchQuery.trim()) {
+            return AppState.recipes;
+        }
+
+        const query = this.searchQuery.toLowerCase().trim();
+
+        return AppState.recipes.filter(recipe => {
+            // Search in recipe name
+            if (recipe.name.toLowerCase().includes(query)) {
+                return true;
+            }
+
+            // Search in category
+            if (recipe.category && recipe.category.toLowerCase().includes(query)) {
+                return true;
+            }
+
+            // Search in ingredients
+            if (recipe.ingredients && recipe.ingredients.some(ingredient =>
+                ingredient.name.toLowerCase().includes(query)
+            )) {
+                return true;
+            }
+
+            return false;
+        });
     },
 
     renderIngredients() {
