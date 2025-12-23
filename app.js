@@ -3,6 +3,82 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
     ? 'http://localhost:3000'
     : '/api';
 
+// Toast Notification Manager
+const Toast = {
+    show(message, options = {}) {
+        const { duration = 10000, showUndo = false, onUndo = null } = options;
+
+        // Remove existing toast
+        const existingToast = document.getElementById('toast-notification');
+        if (existingToast) existingToast.remove();
+
+        // Create toast
+        const toast = document.createElement('div');
+        toast.id = 'toast-notification';
+        toast.className = 'fixed bottom-4 right-4 bg-gray-800 dark:bg-gray-700 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-4 z-50 animate-slide-up';
+
+        toast.innerHTML = `
+            <span class="flex-1">${message}</span>
+            ${showUndo ? `
+                <button id="toast-undo-btn" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded transition-colors font-medium">
+                    Rückgängig
+                </button>
+            ` : ''}
+            <button id="toast-close-btn" class="text-gray-400 hover:text-white text-xl">✕</button>
+        `;
+
+        document.body.appendChild(toast);
+
+        // Attach event listeners
+        const closeBtn = toast.querySelector('#toast-close-btn');
+        const undoBtn = toast.querySelector('#toast-undo-btn');
+
+        const close = () => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 200);
+        };
+
+        closeBtn.addEventListener('click', close);
+
+        if (undoBtn && onUndo) {
+            undoBtn.addEventListener('click', () => {
+                onUndo();
+                close();
+            });
+        }
+
+        // Auto close after duration
+        setTimeout(close, duration);
+    }
+};
+
+// Action History Manager
+const ActionHistory = {
+    history: [],
+    maxHistory: 10,
+
+    addAction(action) {
+        this.history.unshift(action);
+        if (this.history.length > this.maxHistory) {
+            this.history.pop();
+        }
+    },
+
+    undo() {
+        if (this.history.length === 0) return;
+
+        const action = this.history.shift();
+        if (action && action.undo) {
+            action.undo();
+            Toast.show(action.undoMessage || 'Aktion rückgängig gemacht');
+        }
+    },
+
+    clear() {
+        this.history = [];
+    }
+};
+
 // Dark Mode Manager
 const DarkMode = {
     init() {
@@ -200,6 +276,17 @@ const App = {
         DarkMode.init();
         await AppState.init();
         this.render();
+        this.setupKeyboardShortcuts();
+    },
+
+    setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Z or Cmd+Z for undo
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                ActionHistory.undo();
+            }
+        });
     },
 
     render() {
@@ -412,8 +499,23 @@ const WeekPlannerView = {
         if (resetBtn) {
             resetBtn.addEventListener('click', async () => {
                 if (confirm('Möchtest du den Wochenplan wirklich zurücksetzen?')) {
+                    // Save current week plan before resetting
+                    const oldWeekPlan = JSON.parse(JSON.stringify(AppState.weekPlan));
+
+                    // Reset week plan
                     await AppState.initializeWeekPlan();
                     App.render();
+
+                    // Show toast with undo option
+                    Toast.show('Wochenplan zurückgesetzt', {
+                        showUndo: true,
+                        onUndo: async () => {
+                            await StorageService.saveWeekPlan(oldWeekPlan);
+                            await AppState.reloadData();
+                            App.render();
+                            Toast.show('Wochenplan wiederhergestellt');
+                        }
+                    });
                 }
             });
         }
@@ -828,9 +930,25 @@ const RecipeDatabaseView = {
 
     async deleteRecipe(recipeId) {
         if (confirm('Möchtest du dieses Rezept wirklich löschen?')) {
+            // Get recipe data before deleting
+            const recipe = await StorageService.getRecipeById(recipeId);
+            if (!recipe) return;
+
+            // Delete recipe
             await StorageService.deleteRecipe(recipeId);
             await AppState.reloadData();
             App.render();
+
+            // Show toast with undo option
+            Toast.show(`Rezept "${recipe.name}" gelöscht`, {
+                showUndo: true,
+                onUndo: async () => {
+                    await StorageService.addRecipe(recipe);
+                    await AppState.reloadData();
+                    App.render();
+                    Toast.show(`Rezept "${recipe.name}" wiederhergestellt`);
+                }
+            });
         }
     },
 
