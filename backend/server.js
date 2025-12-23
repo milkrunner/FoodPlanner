@@ -46,6 +46,7 @@ function initDatabase() {
                 name TEXT NOT NULL,
                 amount TEXT NOT NULL,
                 unit TEXT NOT NULL,
+                category TEXT DEFAULT 'Sonstiges',
                 FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
             )
         `);
@@ -70,6 +71,16 @@ function initDatabase() {
                 FOREIGN KEY (week_plan_id) REFERENCES week_plans(id) ON DELETE CASCADE
             )
         `);
+
+        // Add category column to existing ingredients tables (migration)
+        db.run(`
+            ALTER TABLE ingredients ADD COLUMN category TEXT DEFAULT 'Sonstiges'
+        `, (err) => {
+            // Ignore error if column already exists
+            if (err && !err.message.includes('duplicate column')) {
+                console.error('Migration warning:', err.message);
+            }
+        });
 
         // Meals table
         db.run(`
@@ -101,7 +112,7 @@ app.get('/recipes', (req, res) => {
         const promises = recipes.map(recipe => {
             return new Promise((resolve, reject) => {
                 db.all(
-                    'SELECT name, amount, unit FROM ingredients WHERE recipe_id = ?',
+                    'SELECT name, amount, unit, category FROM ingredients WHERE recipe_id = ?',
                     [recipe.id],
                     (err, ingredients) => {
                         if (err) reject(err);
@@ -128,7 +139,7 @@ app.get('/recipes/:id', (req, res) => {
         }
 
         db.all(
-            'SELECT name, amount, unit FROM ingredients WHERE recipe_id = ?',
+            'SELECT name, amount, unit, category FROM ingredients WHERE recipe_id = ?',
             [recipe.id],
             (err, ingredients) => {
                 if (err) {
@@ -154,9 +165,9 @@ app.post('/recipes', (req, res) => {
 
             // Insert ingredients
             if (ingredients && ingredients.length > 0) {
-                const stmt = db.prepare('INSERT INTO ingredients (recipe_id, name, amount, unit) VALUES (?, ?, ?, ?)');
+                const stmt = db.prepare('INSERT INTO ingredients (recipe_id, name, amount, unit, category) VALUES (?, ?, ?, ?, ?)');
                 ingredients.forEach(ing => {
-                    stmt.run(id, ing.name, ing.amount, ing.unit);
+                    stmt.run(id, ing.name, ing.amount, ing.unit, ing.category || 'Sonstiges');
                 });
                 stmt.finalize();
             }
@@ -186,9 +197,9 @@ app.put('/recipes/:id', (req, res) => {
 
                 // Insert new ingredients
                 if (ingredients && ingredients.length > 0) {
-                    const stmt = db.prepare('INSERT INTO ingredients (recipe_id, name, amount, unit) VALUES (?, ?, ?, ?)');
+                    const stmt = db.prepare('INSERT INTO ingredients (recipe_id, name, amount, unit, category) VALUES (?, ?, ?, ?, ?)');
                     ingredients.forEach(ing => {
-                        stmt.run(req.params.id, ing.name, ing.amount, ing.unit);
+                        stmt.run(req.params.id, ing.name, ing.amount, ing.unit, ing.category || 'Sonstiges');
                     });
                     stmt.finalize();
                 }

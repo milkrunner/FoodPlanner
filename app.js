@@ -609,8 +609,9 @@ const WeekPlannerView = {
 // Recipe Database View
 const RecipeDatabaseView = {
     editingRecipe: null,
-    ingredients: [{ name: '', amount: '', unit: '' }],
+    ingredients: [{ name: '', amount: '', unit: '', category: 'Sonstiges' }],
     searchQuery: '',
+    categories: ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'],
 
     render() {
         const filteredRecipes = this.filterRecipes();
@@ -826,7 +827,7 @@ const RecipeDatabaseView = {
         const addIngBtn = document.getElementById('add-ingredient-btn');
         if (addIngBtn) {
             addIngBtn.addEventListener('click', () => {
-                this.ingredients.push({ name: '', amount: '', unit: '' });
+                this.ingredients.push({ name: '', amount: '', unit: '', category: 'Sonstiges' });
                 this.renderIngredients();
             });
         }
@@ -881,9 +882,15 @@ const RecipeDatabaseView = {
                 <input type="text" placeholder="Zutat" value="${ing.name}" data-index="${index}" data-field="name"
                        class="ingredient-input flex-1 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                 <input type="text" placeholder="Menge" value="${ing.amount}" data-index="${index}" data-field="amount"
-                       class="ingredient-input w-24 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                       class="ingredient-input w-20 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                 <input type="text" placeholder="Einheit" value="${ing.unit}" data-index="${index}" data-field="unit"
-                       class="ingredient-input w-24 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                       class="ingredient-input w-20 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                <select data-index="${index}" data-field="category"
+                        class="ingredient-input w-40 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                    ${this.categories.map(cat => `
+                        <option value="${cat}" ${(ing.category || 'Sonstiges') === cat ? 'selected' : ''}>${cat}</option>
+                    `).join('')}
+                </select>
                 <button type="button" class="remove-ingredient-btn px-3 py-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" data-index="${index}">
                     ✕
                 </button>
@@ -892,7 +899,8 @@ const RecipeDatabaseView = {
 
         // Attach ingredient input listeners
         document.querySelectorAll('.ingredient-input').forEach(input => {
-            input.addEventListener('input', (e) => {
+            const eventType = input.tagName === 'SELECT' ? 'change' : 'input';
+            input.addEventListener(eventType, (e) => {
                 const index = parseInt(e.target.dataset.index);
                 const field = e.target.dataset.field;
                 this.ingredients[index][field] = e.target.value;
@@ -905,7 +913,7 @@ const RecipeDatabaseView = {
                 const index = parseInt(e.target.dataset.index);
                 this.ingredients.splice(index, 1);
                 if (this.ingredients.length === 0) {
-                    this.ingredients = [{ name: '', amount: '', unit: '' }];
+                    this.ingredients = [{ name: '', amount: '', unit: '', category: 'Sonstiges' }];
                 }
                 this.renderIngredients();
             });
@@ -916,9 +924,11 @@ const RecipeDatabaseView = {
         this.editingRecipe = recipe;
 
         if (recipe) {
-            this.ingredients = recipe.ingredients.length > 0 ? [...recipe.ingredients] : [{ name: '', amount: '', unit: '' }];
+            this.ingredients = recipe.ingredients.length > 0 ?
+                recipe.ingredients.map(ing => ({ ...ing, category: ing.category || 'Sonstiges' })) :
+                [{ name: '', amount: '', unit: '', category: 'Sonstiges' }];
         } else {
-            this.ingredients = [{ name: '', amount: '', unit: '' }];
+            this.ingredients = [{ name: '', amount: '', unit: '', category: 'Sonstiges' }];
         }
 
         App.render();
@@ -1030,6 +1040,7 @@ const RecipeDatabaseView = {
 // Shopping List View
 const ShoppingListView = {
     shoppingList: [],
+    collapsedCategories: new Set(),
 
     render() {
         this.generateShoppingList();
@@ -1089,15 +1100,66 @@ const ShoppingListView = {
                     </div>
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 transition-colors duration-200">
-                    <div class="divide-y dark:divide-gray-700">
-                        ${this.shoppingList.map((item, index) => `
+                ${this.renderCategorizedList()}
+
+                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 transition-colors duration-200">
+                    <p class="text-sm text-blue-800 dark:text-blue-300">
+                        <strong>Tipp:</strong> Klicke auf einen Artikel, um ihn als erledigt zu markieren.
+                        Du kannst die Liste exportieren oder in die Zwischenablage kopieren.
+                    </p>
+                </div>
+            </div>
+        `;
+    },
+
+    renderCategorizedList() {
+        const categories = ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'];
+
+        // Group items by category
+        const itemsByCategory = {};
+        categories.forEach(cat => itemsByCategory[cat] = []);
+
+        this.shoppingList.forEach((item, index) => {
+            const category = item.category || 'Sonstiges';
+            if (!itemsByCategory[category]) {
+                itemsByCategory['Sonstiges'].push({ ...item, index });
+            } else {
+                itemsByCategory[category].push({ ...item, index });
+            }
+        });
+
+        // Render each category
+        return categories.map(category => {
+            const items = itemsByCategory[category];
+            if (items.length === 0) return '';
+
+            const isCollapsed = this.collapsedCategories.has(category);
+            const checkedCount = items.filter(item => item.checked).length;
+
+            return `
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 transition-colors duration-200 mb-4">
+                    <div class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                         data-category="${category}">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}"
+                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">${category}</h3>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">
+                                (${checkedCount}/${items.length})
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="divide-y dark:divide-gray-700 ${isCollapsed ? 'hidden' : ''}">
+                        ${items.map(item => `
                             <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${item.checked ? 'opacity-50' : ''}"
-                                 data-item-index="${index}">
+                                 data-item-index="${item.index}">
                                 <div class="flex items-start gap-3">
                                     <input type="checkbox" ${item.checked ? 'checked' : ''}
                                            class="item-checkbox mt-1 w-5 h-5 cursor-pointer accent-blue-500 dark:accent-blue-400"
-                                           data-item-index="${index}">
+                                           data-item-index="${item.index}">
                                     <div class="flex-1">
                                         <p class="font-medium text-gray-800 dark:text-white ${item.checked ? 'line-through' : ''}">
                                             ${item.amount} ${item.unit} ${item.name}
@@ -1111,15 +1173,8 @@ const ShoppingListView = {
                         `).join('')}
                     </div>
                 </div>
-
-                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 transition-colors duration-200">
-                    <p class="text-sm text-blue-800 dark:text-blue-300">
-                        <strong>Tipp:</strong> Klicke auf einen Artikel, um ihn als erledigt zu markieren.
-                        Du kannst die Liste exportieren oder in die Zwischenablage kopieren.
-                    </p>
-                </div>
-            </div>
-        `;
+            `;
+        }).join('');
     },
 
     async generateShoppingList() {
@@ -1157,6 +1212,7 @@ const ShoppingListView = {
                                     name: ingredient.name,
                                     amount: ingredient.amount,
                                     unit: ingredient.unit,
+                                    category: ingredient.category || 'Sonstiges',
                                     checked: false,
                                     recipeNames: [recipe.name]
                                 });
@@ -1173,6 +1229,19 @@ const ShoppingListView = {
     },
 
     attachEventListeners() {
+        // Category collapse/expand
+        document.querySelectorAll('[data-category]').forEach(header => {
+            header.addEventListener('click', (e) => {
+                const category = e.currentTarget.dataset.category;
+                if (this.collapsedCategories.has(category)) {
+                    this.collapsedCategories.delete(category);
+                } else {
+                    this.collapsedCategories.add(category);
+                }
+                App.render();
+            });
+        });
+
         // Toggle checkboxes
         document.querySelectorAll('.item-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
