@@ -6,16 +6,26 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
 // Toast Notification Manager
 const Toast = {
     show(message, options = {}) {
-        const { duration = 10000, showUndo = false, onUndo = null } = options;
+        const {
+            duration = options.showUndo ? 10000 : 3000,
+            showUndo = false,
+            onUndo = null,
+            type = 'default' // 'default', 'success', 'error'
+        } = options;
 
         // Remove existing toast
         const existingToast = document.getElementById('toast-notification');
         if (existingToast) existingToast.remove();
 
+        // Determine background color based on type
+        let bgColor = 'bg-gray-800 dark:bg-gray-700';
+        if (type === 'success') bgColor = 'bg-green-600 dark:bg-green-700';
+        if (type === 'error') bgColor = 'bg-red-600 dark:bg-red-700';
+
         // Create toast
         const toast = document.createElement('div');
         toast.id = 'toast-notification';
-        toast.className = 'fixed bottom-4 right-4 bg-gray-800 dark:bg-gray-700 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-4 z-50 animate-slide-up';
+        toast.className = `fixed bottom-4 right-4 ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-4 z-50 animate-slide-up`;
 
         toast.innerHTML = `
             <span class="flex-1">${message}</span>
@@ -24,7 +34,7 @@ const Toast = {
                     Rückgängig
                 </button>
             ` : ''}
-            <button id="toast-close-btn" class="text-gray-400 hover:text-white text-xl">✕</button>
+            <button id="toast-close-btn" class="text-gray-200 hover:text-white text-xl">✕</button>
         `;
 
         document.body.appendChild(toast);
@@ -49,6 +59,14 @@ const Toast = {
 
         // Auto close after duration
         setTimeout(close, duration);
+    },
+
+    success(message) {
+        this.show(message, { type: 'success' });
+    },
+
+    error(message) {
+        this.show(message, { type: 'error' });
     }
 };
 
@@ -577,6 +595,8 @@ const WeekPlannerView = {
         await StorageService.saveWeekPlan(AppState.weekPlan);
         this.hideRecipeSelector();
         App.render();
+
+        Toast.success('Wochenplan aktualisiert ✓');
     },
 
     async removeMeal(dayIndex, mealType) {
@@ -978,7 +998,7 @@ const RecipeDatabaseView = {
         const instructions = document.getElementById('recipe-instructions').value.trim();
 
         if (!name) {
-            alert('Bitte gib einen Rezeptnamen ein.');
+            Toast.error('Bitte gib einen Rezeptnamen ein.');
             return;
         }
 
@@ -995,8 +1015,10 @@ const RecipeDatabaseView = {
 
         if (this.editingRecipe) {
             await StorageService.updateRecipe(recipe);
+            Toast.success(`Rezept "${name}" aktualisiert ✓`);
         } else {
             await StorageService.addRecipe(recipe);
+            Toast.success(`Rezept "${name}" gespeichert ✓`);
         }
 
         await AppState.reloadData();
@@ -1200,7 +1222,7 @@ const ShoppingListView = {
             .join('\n');
 
         navigator.clipboard.writeText(text).then(() => {
-            alert('Einkaufsliste in die Zwischenablage kopiert!');
+            Toast.success('In Zwischenablage kopiert ✓');
         });
     },
 
