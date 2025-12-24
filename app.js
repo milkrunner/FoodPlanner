@@ -1014,8 +1014,14 @@ const WeekPlannerView = {
 const RecipeDatabaseView = {
     editingRecipe: null,
     ingredients: [{ name: '', amount: '', unit: '', category: 'Sonstiges' }],
+    tags: [],
     searchQuery: '',
     categories: ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'],
+    availableTags: ['vegetarisch', 'vegan', 'glutenfrei', 'laktosefrei', 'schnell', 'günstig', 'meal-prep', 'Frühling', 'Sommer', 'Herbst', 'Winter'],
+    scalingRecipe: null,
+    scaledIngredients: null,
+    newServings: null,
+    isScaling: false,
 
     render() {
         const filteredRecipes = this.filterRecipes();
@@ -1083,6 +1089,12 @@ const RecipeDatabaseView = {
                                     ${recipe.ingredients.length} Zutat${recipe.ingredients.length !== 1 ? 'en' : ''}
                                 </p>
                                 <div class="flex flex-col gap-2">
+                                    ${recipe.servings && recipe.ingredients.length > 0 ? `
+                                        <button class="scale-portions-btn w-full px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors text-sm"
+                                                data-recipe-id="${recipe.id}">
+                                            🔢 Portionen anpassen
+                                        </button>
+                                    ` : ''}
                                     <div class="flex gap-2">
                                         <button class="edit-recipe-btn flex-1 px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm"
                                                 data-recipe-id="${recipe.id}">
@@ -1104,6 +1116,7 @@ const RecipeDatabaseView = {
                 `}
 
                 ${this.renderRecipeForm()}
+                ${this.renderPortionScalingModal()}
             </div>
         `;
     },
@@ -1221,6 +1234,30 @@ const RecipeDatabaseView = {
             });
         });
 
+        // Scale portions buttons
+        document.querySelectorAll('.scale-portions-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const recipeId = e.target.dataset.recipeId;
+                await this.showPortionScaling(recipeId);
+            });
+        });
+
+        // Portion scaling modal listeners
+        const closeScalingBtn = document.getElementById('close-portion-scaling');
+        if (closeScalingBtn) {
+            closeScalingBtn.addEventListener('click', () => this.hidePortionScaling());
+        }
+
+        const calculateBtn = document.getElementById('calculate-portions-btn');
+        if (calculateBtn) {
+            calculateBtn.addEventListener('click', async () => {
+                const newServings = parseInt(document.getElementById('new-servings-input').value);
+                if (newServings && newServings > 0) {
+                    await this.calculateScaledPortions(newServings);
+                }
+            });
+        }
+
         // Form close buttons
         const closeBtn = document.getElementById('close-recipe-form');
         const cancelBtn = document.getElementById('cancel-recipe-form');
@@ -1322,6 +1359,88 @@ const RecipeDatabaseView = {
                 this.renderIngredients();
             });
         });
+    },
+
+    renderPortionScalingModal() {
+        if (!this.scalingRecipe) return '';
+
+        return `
+            <div id="portion-scaling-modal" class="modal active">
+                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">
+                            Portionen anpassen - ${this.scalingRecipe.name}
+                        </h3>
+                        <button id="close-portion-scaling" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                            ✕
+                        </button>
+                    </div>
+                    <div class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                        <div class="space-y-6">
+                            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                                <p class="text-sm text-blue-800 dark:text-blue-300">
+                                    Original: <strong>${this.scalingRecipe.servings} Portionen</strong>
+                                </p>
+                                <div class="mt-3">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Neue Portionsanzahl:
+                                    </label>
+                                    <input type="number" id="new-servings-input" min="1" value="${this.newServings || this.scalingRecipe.servings}"
+                                           class="w-full px-4 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                </div>
+                                <button id="calculate-portions-btn"
+                                        class="mt-3 w-full px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors ${this.isScaling ? 'opacity-50 cursor-not-allowed' : ''}"
+                                        ${this.isScaling ? 'disabled' : ''}>
+                                    ${this.isScaling ? 'Berechne...' : '🤖 Mengen berechnen'}
+                                </button>
+                            </div>
+
+                            ${this.scaledIngredients ? `
+                                <div>
+                                    <h4 class="font-semibold text-gray-800 dark:text-white mb-3">
+                                        Angepasste Zutaten (${this.newServings} Portionen):
+                                    </h4>
+                                    <div class="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4 space-y-2">
+                                        ${this.scaledIngredients.map(ing => `
+                                            <div class="flex justify-between items-center py-2 border-b dark:border-gray-700 last:border-0">
+                                                <span class="text-gray-800 dark:text-gray-200">${ing.name}</span>
+                                                <span class="font-medium text-green-600 dark:text-green-400">
+                                                    ${ing.amount} ${ing.unit}
+                                                </span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    <div class="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                                        <p class="text-sm text-green-800 dark:text-green-300">
+                                            ✓ Die Mengen wurden intelligent gerundet und optimiert.
+                                        </p>
+                                        <p class="text-xs text-green-700 dark:text-green-400 mt-1">
+                                            Hinweis: Die Original-Portionen bleiben in der Datenbank gespeichert.
+                                        </p>
+                                    </div>
+                                </div>
+                            ` : `
+                                <div class="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
+                                    <h4 class="font-semibold text-gray-800 dark:text-white mb-3">
+                                        Aktuelle Zutaten (${this.scalingRecipe.servings} Portionen):
+                                    </h4>
+                                    <div class="space-y-2">
+                                        ${this.scalingRecipe.ingredients.map(ing => `
+                                            <div class="flex justify-between items-center py-2 border-b dark:border-gray-700 last:border-0">
+                                                <span class="text-gray-800 dark:text-gray-200">${ing.name}</span>
+                                                <span class="text-gray-600 dark:text-gray-400">
+                                                    ${ing.amount} ${ing.unit}
+                                                </span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     },
 
     showRecipeForm(recipe = null) {
@@ -1438,6 +1557,62 @@ const RecipeDatabaseView = {
         await AppState.reloadData();
         this.hideRecipeForm();
         App.render();
+    },
+
+    async showPortionScaling(recipeId) {
+        const recipe = await StorageService.getRecipeById(recipeId);
+        if (recipe) {
+            this.scalingRecipe = recipe;
+            this.newServings = recipe.servings;
+            this.scaledIngredients = null;
+            this.isScaling = false;
+            App.render();
+        }
+    },
+
+    hidePortionScaling() {
+        this.scalingRecipe = null;
+        this.scaledIngredients = null;
+        this.newServings = null;
+        this.isScaling = false;
+        App.render();
+    },
+
+    async calculateScaledPortions(newServings) {
+        if (!this.scalingRecipe || !newServings) return;
+
+        this.isScaling = true;
+        this.newServings = newServings;
+        App.render();
+
+        try {
+            const response = await fetch('http://localhost:3000/ai/scale-portions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ingredients: this.scalingRecipe.ingredients,
+                    originalServings: this.scalingRecipe.servings,
+                    newServings: newServings
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to scale portions');
+            }
+
+            const data = await response.json();
+            this.scaledIngredients = data.ingredients;
+            this.isScaling = false;
+            App.render();
+        } catch (error) {
+            console.error('Error scaling portions:', error);
+            Toast.error('Fehler beim Skalieren der Portionen: ' + error.message);
+            this.isScaling = false;
+            App.render();
+        }
     }
 };
 
