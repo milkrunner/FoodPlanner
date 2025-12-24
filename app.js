@@ -239,6 +239,72 @@ const StorageService = {
             console.error('Error clearing week plan:', error);
             throw error;
         }
+    },
+
+    // Template methods
+    async getTemplates() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/weekplan/templates`);
+            if (!response.ok) throw new Error('Failed to fetch templates');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching templates:', error);
+            return [];
+        }
+    },
+
+    async getTemplateById(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/weekplan/templates/${id}`);
+            if (!response.ok) throw new Error('Failed to fetch template');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching template:', error);
+            return null;
+        }
+    },
+
+    async saveTemplate(template) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/weekplan/templates`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(template)
+            });
+            if (!response.ok) throw new Error('Failed to save template');
+            return await response.json();
+        } catch (error) {
+            console.error('Error saving template:', error);
+            throw error;
+        }
+    },
+
+    async updateTemplate(id, template) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/weekplan/templates/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(template)
+            });
+            if (!response.ok) throw new Error('Failed to update template');
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating template:', error);
+            throw error;
+        }
+    },
+
+    async deleteTemplate(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/weekplan/templates/${id}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Failed to delete template');
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting template:', error);
+            throw error;
+        }
     }
 };
 
@@ -434,11 +500,19 @@ const WeekPlannerView = {
 
         return `
             <div class="space-y-6">
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center flex-wrap gap-3">
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Wochenplan</h2>
-                    <button id="reset-week-btn" class="px-4 py-2 bg-red-500 dark:bg-red-600 text-white rounded hover:bg-red-600 dark:hover:bg-red-700 transition-colors">
-                        Plan zurücksetzen
-                    </button>
+                    <div class="flex gap-2 flex-wrap">
+                        <button id="save-template-btn" class="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
+                            💾 Als Vorlage speichern
+                        </button>
+                        <button id="load-template-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors">
+                            📂 Aus Vorlage laden
+                        </button>
+                        <button id="reset-week-btn" class="px-4 py-2 bg-red-500 dark:bg-red-600 text-white rounded hover:bg-red-600 dark:hover:bg-red-700 transition-colors">
+                            🗑️ Zurücksetzen
+                        </button>
+                    </div>
                 </div>
 
                 <div class="grid gap-4">
@@ -480,6 +554,69 @@ const WeekPlannerView = {
                 </div>
 
                 ${this.renderRecipeSelector()}
+                ${this.renderSaveTemplateModal()}
+                ${this.renderLoadTemplateModal()}
+            </div>
+        `;
+    },
+
+    renderSaveTemplateModal() {
+        return `
+            <div id="save-template-modal" class="modal">
+                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Vorlage speichern</h3>
+                        <button id="close-save-template" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                            ✕
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Name der Vorlage *
+                            </label>
+                            <input type="text" id="template-name-input"
+                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                   placeholder="z.B. Standardwoche, Sommerwoche..."
+                                   required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Beschreibung (optional)
+                            </label>
+                            <textarea id="template-description-input"
+                                      class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                      rows="3"
+                                      placeholder="Beschreibe diese Vorlage..."></textarea>
+                        </div>
+                        <div class="flex gap-2 justify-end">
+                            <button id="cancel-save-template" class="px-4 py-2 border dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                Abbrechen
+                            </button>
+                            <button id="confirm-save-template" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                                Speichern
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderLoadTemplateModal() {
+        return `
+            <div id="load-template-modal" class="modal">
+                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Vorlage laden</h3>
+                        <button id="close-load-template" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                            ✕
+                        </button>
+                    </div>
+                    <div id="templates-list" class="p-4 overflow-y-auto max-h-[60vh]">
+                        <p class="text-gray-500 dark:text-gray-400 text-center py-8">Lade Vorlagen...</p>
+                    </div>
+                </div>
             </div>
         `;
     },
@@ -574,6 +711,40 @@ const WeekPlannerView = {
                 await this.assignRecipe(recipeId);
             });
         });
+
+        // Save template button
+        const saveTemplateBtn = document.getElementById('save-template-btn');
+        if (saveTemplateBtn) {
+            saveTemplateBtn.addEventListener('click', () => this.showSaveTemplateModal());
+        }
+
+        // Load template button
+        const loadTemplateBtn = document.getElementById('load-template-btn');
+        if (loadTemplateBtn) {
+            loadTemplateBtn.addEventListener('click', () => this.showLoadTemplateModal());
+        }
+
+        // Save template modal events
+        const closeSaveTemplate = document.getElementById('close-save-template');
+        if (closeSaveTemplate) {
+            closeSaveTemplate.addEventListener('click', () => this.hideSaveTemplateModal());
+        }
+
+        const cancelSaveTemplate = document.getElementById('cancel-save-template');
+        if (cancelSaveTemplate) {
+            cancelSaveTemplate.addEventListener('click', () => this.hideSaveTemplateModal());
+        }
+
+        const confirmSaveTemplate = document.getElementById('confirm-save-template');
+        if (confirmSaveTemplate) {
+            confirmSaveTemplate.addEventListener('click', () => this.saveAsTemplate());
+        }
+
+        // Load template modal events
+        const closeLoadTemplate = document.getElementById('close-load-template');
+        if (closeLoadTemplate) {
+            closeLoadTemplate.addEventListener('click', () => this.hideLoadTemplateModal());
+        }
     },
 
     showRecipeSelector() {
@@ -608,6 +779,181 @@ const WeekPlannerView = {
         delete AppState.weekPlan.days[dayIndex].meals[mealType];
         await StorageService.saveWeekPlan(AppState.weekPlan);
         App.render();
+    },
+
+    // Template methods
+    showSaveTemplateModal() {
+        const modal = document.getElementById('save-template-modal');
+        if (modal) modal.classList.add('active');
+    },
+
+    hideSaveTemplateModal() {
+        const modal = document.getElementById('save-template-modal');
+        if (modal) modal.classList.remove('active');
+        // Clear inputs
+        document.getElementById('template-name-input').value = '';
+        document.getElementById('template-description-input').value = '';
+    },
+
+    async saveAsTemplate() {
+        const nameInput = document.getElementById('template-name-input');
+        const descriptionInput = document.getElementById('template-description-input');
+
+        const name = nameInput.value.trim();
+        if (!name) {
+            Toast.error('Bitte gib einen Namen für die Vorlage ein');
+            return;
+        }
+
+        // Check if week plan has any meals
+        const hasMeals = AppState.weekPlan.days.some(day =>
+            Object.keys(day.meals || {}).length > 0
+        );
+
+        if (!hasMeals) {
+            Toast.error('Der Wochenplan ist leer. Füge zuerst Rezepte hinzu.');
+            return;
+        }
+
+        const template = {
+            id: Date.now().toString(),
+            name: name,
+            description: descriptionInput.value.trim(),
+            templateData: {
+                days: AppState.weekPlan.days
+            }
+        };
+
+        try {
+            await StorageService.saveTemplate(template);
+            this.hideSaveTemplateModal();
+            Toast.success(`Vorlage "${name}" gespeichert ✓`);
+        } catch (error) {
+            Toast.error('Fehler beim Speichern der Vorlage');
+            console.error(error);
+        }
+    },
+
+    async showLoadTemplateModal() {
+        const modal = document.getElementById('load-template-modal');
+        if (modal) modal.classList.add('active');
+
+        // Load templates
+        const templates = await StorageService.getTemplates();
+        const templatesList = document.getElementById('templates-list');
+
+        if (!templates || templates.length === 0) {
+            templatesList.innerHTML = `
+                <p class="text-gray-500 dark:text-gray-400 text-center py-8">
+                    Noch keine Vorlagen vorhanden.<br>
+                    Speichere deinen aktuellen Wochenplan als Vorlage!
+                </p>
+            `;
+            return;
+        }
+
+        templatesList.innerHTML = `
+            <div class="space-y-3">
+                ${templates.map(template => `
+                    <div class="border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-800 dark:text-white">${template.name}</h4>
+                                ${template.description ? `
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${template.description}</p>
+                                ` : ''}
+                                <p class="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                                    Erstellt: ${new Date(template.createdAt).toLocaleDateString('de-DE')}
+                                </p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="load-template-btn px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-sm"
+                                        data-template-id="${template.id}">
+                                    Laden
+                                </button>
+                                <button class="delete-template-btn px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
+                                        data-template-id="${template.id}">
+                                    Löschen
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        // Attach event listeners for load and delete buttons
+        document.querySelectorAll('.load-template-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const templateId = e.target.dataset.templateId;
+                await this.loadFromTemplate(templateId);
+            });
+        });
+
+        document.querySelectorAll('.delete-template-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const templateId = e.target.dataset.templateId;
+                await this.deleteTemplate(templateId);
+            });
+        });
+    },
+
+    hideLoadTemplateModal() {
+        const modal = document.getElementById('load-template-modal');
+        if (modal) modal.classList.remove('active');
+    },
+
+    async loadFromTemplate(templateId) {
+        if (!confirm('Möchtest du den aktuellen Wochenplan mit dieser Vorlage überschreiben?')) {
+            return;
+        }
+
+        try {
+            const template = await StorageService.getTemplateById(templateId);
+            if (!template) {
+                Toast.error('Vorlage nicht gefunden');
+                return;
+            }
+
+            // Save current plan for undo
+            const oldWeekPlan = JSON.parse(JSON.stringify(AppState.weekPlan));
+
+            // Apply template to current week plan
+            AppState.weekPlan.days = template.templateData.days;
+
+            await StorageService.saveWeekPlan(AppState.weekPlan);
+            this.hideLoadTemplateModal();
+            App.render();
+
+            Toast.show(`Vorlage "${template.name}" geladen`, {
+                showUndo: true,
+                onUndo: async () => {
+                    await StorageService.saveWeekPlan(oldWeekPlan);
+                    await AppState.reloadData();
+                    App.render();
+                    Toast.show('Vorlage rückgängig gemacht');
+                }
+            });
+        } catch (error) {
+            Toast.error('Fehler beim Laden der Vorlage');
+            console.error(error);
+        }
+    },
+
+    async deleteTemplate(templateId) {
+        if (!confirm('Möchtest du diese Vorlage wirklich löschen?')) {
+            return;
+        }
+
+        try {
+            await StorageService.deleteTemplate(templateId);
+            Toast.success('Vorlage gelöscht');
+            // Refresh the modal
+            await this.showLoadTemplateModal();
+        } catch (error) {
+            Toast.error('Fehler beim Löschen der Vorlage');
+            console.error(error);
+        }
     }
 };
 
