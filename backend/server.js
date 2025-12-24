@@ -673,6 +673,132 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
     }
 });
 
+// AI-based ingredient categorization
+app.post('/ai/categorize-ingredient', async (req, res) => {
+    try {
+        const { ingredientName } = req.body;
+
+        if (!ingredientName) {
+            return res.status(400).json({ error: 'Missing required field: ingredientName' });
+        }
+
+        const categories = ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'];
+
+        // Rule-based fallback categorization (fast, works offline)
+        const ruleBased = categorizeIngredientRuleBased(ingredientName.toLowerCase());
+
+        // If Gemini is not available, use rule-based only
+        if (!genAI) {
+            return res.json({ category: ruleBased, source: 'rule-based' });
+        }
+
+        // Try AI categorization
+        try {
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+            const prompt = `Kategorisiere die folgende Zutat in genau eine der folgenden Kategorien:
+
+Kategorien:
+- Obst & Gemüse
+- Milchprodukte
+- Fleisch & Fisch
+- Trockenwaren
+- Tiefkühl
+- Sonstiges
+
+Zutat: "${ingredientName}"
+
+WICHTIG: Antworte NUR mit dem Namen der Kategorie, ohne zusätzlichen Text oder Erklärungen.`;
+
+            const result = await model.generateContent(prompt);
+            const response = result.response;
+            const text = response.text().trim();
+
+            // Validate that response is one of the valid categories
+            if (categories.includes(text)) {
+                return res.json({ category: text, source: 'ai' });
+            } else {
+                // AI returned invalid category, use rule-based
+                return res.json({ category: ruleBased, source: 'rule-based-fallback' });
+            }
+        } catch (aiError) {
+            console.error('AI categorization error:', aiError);
+            // AI failed, use rule-based
+            return res.json({ category: ruleBased, source: 'rule-based-fallback' });
+        }
+    } catch (error) {
+        console.error('Categorization error:', error);
+        res.status(500).json({
+            error: 'Failed to categorize ingredient',
+            details: error.message
+        });
+    }
+});
+
+// Rule-based ingredient categorization function
+function categorizeIngredientRuleBased(ingredient) {
+    const lowerIngredient = ingredient.toLowerCase();
+
+    // Obst & Gemüse
+    const fruitsVeggies = [
+        'apfel', 'birne', 'banane', 'orange', 'zitrone', 'erdbeere', 'himbeere', 'blaubeere', 'traube', 'melone',
+        'tomate', 'gurke', 'paprika', 'zwiebel', 'knoblauch', 'kartoffel', 'karotte', 'möhre', 'salat', 'spinat',
+        'brokkoli', 'blumenkohl', 'kohl', 'zucchini', 'aubergine', 'kürbis', 'sellerie', 'lauch', 'radieschen',
+        'pilz', 'champignon', 'petersilie', 'basilikum', 'thymian', 'rosmarin', 'koriander', 'schnittlauch',
+        'avocado', 'mango', 'ananas', 'kiwi', 'pfirsich', 'pflaume', 'kirsche', 'gemüse', 'obst', 'salat'
+    ];
+
+    // Milchprodukte
+    const dairy = [
+        'milch', 'sahne', 'butter', 'käse', 'joghurt', 'quark', 'schmand', 'crème', 'mascarpone',
+        'mozzarella', 'parmesan', 'gouda', 'feta', 'ricotta', 'frischkäse', 'schlagsahne'
+    ];
+
+    // Fleisch & Fisch
+    const meatFish = [
+        'fleisch', 'huhn', 'hähnchen', 'pute', 'rind', 'schwein', 'lamm', 'hack', 'wurst', 'schinken',
+        'speck', 'fisch', 'lachs', 'thunfisch', 'forelle', 'kabeljau', 'garnele', 'shrimp', 'muschel',
+        'steak', 'schnitzel', 'filet', 'bacon', 'salami'
+    ];
+
+    // Trockenwaren
+    const dryGoods = [
+        'mehl', 'zucker', 'salz', 'pfeffer', 'reis', 'nudel', 'pasta', 'spaghetti', 'linsen', 'bohnen',
+        'kichererbsen', 'hafer', 'müsli', 'cornflakes', 'honig', 'marmelade', 'öl', 'essig', 'gewürz',
+        'backpulver', 'hefe', 'vanille', 'zimt', 'kakao', 'schokolade', 'nuss', 'mandel', 'walnuss',
+        'haselnuss', 'rosine', 'dattel', 'couscous', 'quinoa', 'bulgur', 'kaffee', 'tee'
+    ];
+
+    // Tiefkühl
+    const frozen = [
+        'tiefkühl', 'gefroren', 'tk-', 'erbsen', 'mais', 'eis', 'eiscreme'
+    ];
+
+    // Check each category
+    for (const fruit of fruitsVeggies) {
+        if (lowerIngredient.includes(fruit)) return 'Obst & Gemüse';
+    }
+
+    for (const d of dairy) {
+        if (lowerIngredient.includes(d)) return 'Milchprodukte';
+    }
+
+    for (const m of meatFish) {
+        if (lowerIngredient.includes(m)) return 'Fleisch & Fisch';
+    }
+
+    for (const f of frozen) {
+        if (lowerIngredient.includes(f)) return 'Tiefkühl';
+    }
+
+    for (const dry of dryGoods) {
+        if (lowerIngredient.includes(dry)) return 'Trockenwaren';
+    }
+
+    // Default to Sonstiges
+    return 'Sonstiges';
+}
+
 // AI-based portion scaling
 app.post('/ai/scale-portions', async (req, res) => {
     if (!genAI) {

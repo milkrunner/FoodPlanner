@@ -1015,7 +1015,6 @@ const RecipeDatabaseView = {
     editingRecipe: null,
     ingredients: [{ name: '', amount: '', unit: '', category: 'Sonstiges' }],
     tags: [],
-    tags: [],
     searchQuery: '',
     selectedTags: [],
     categories: ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'],
@@ -1024,6 +1023,7 @@ const RecipeDatabaseView = {
     scaledIngredients: null,
     newServings: null,
     isScaling: false,
+    categoryCache: new Map(), // Local cache for ingredient categories
 
     render() {
         const filteredRecipes = this.filterRecipes();
