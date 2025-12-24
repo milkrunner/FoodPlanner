@@ -8,6 +8,7 @@ services:
       - "3000:3000"
     volumes:
       - ./backend:/app
+      # Prevent host node_modules from overwriting container dependencies
       - /app/node_modules
       - backend-data:/app/data
     environment:

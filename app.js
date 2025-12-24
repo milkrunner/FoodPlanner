@@ -1275,8 +1275,13 @@ const AIRecipeGeneratorView = {
             }
 
             const data = await response.json();
-            this.generatedRecipes = data.recipes;
-            Toast.success(`${data.recipes.length} Rezepte erfolgreich generiert! ✨`);
+            const recipes = Array.isArray(data.recipes) ? data.recipes : [];
+            this.generatedRecipes = recipes;
+            if (recipes.length > 0) {
+                Toast.success(`${recipes.length} Rezepte erfolgreich generiert! ✨`);
+            } else {
+                Toast.show('Es konnten keine Rezepte generiert werden.', { type: 'default' });
+            }
         } catch (error) {
             console.error('Error generating recipes:', error);
             Toast.error(error.message || 'Fehler beim Generieren der Rezepte');
