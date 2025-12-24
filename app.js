@@ -1723,11 +1723,22 @@ const ShoppingListView = {
 
         if (this.shoppingList.length === 0) {
             return `
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center transition-colors duration-200">
-                    <p class="text-gray-500 dark:text-gray-400">Keine Zutaten im Wochenplan.</p>
-                    <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">
-                        Füge Rezepte zu deinem Wochenplan hinzu, um eine Einkaufsliste zu erstellen.
-                    </p>
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center flex-wrap gap-3">
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Einkaufsliste</h2>
+                        <button id="add-manual-item-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors">
+                            + Artikel hinzufügen
+                        </button>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center transition-colors duration-200">
+                        <p class="text-gray-500 dark:text-gray-400">Keine Zutaten im Wochenplan.</p>
+                        <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">
+                            Füge Rezepte zu deinem Wochenplan hinzu oder klicke auf "Artikel hinzufügen", um manuelle Einträge zu erstellen.
+                        </p>
+                    </div>
+
+                    ${this.renderAddManualItemModal()}
                 </div>
             `;
         }
