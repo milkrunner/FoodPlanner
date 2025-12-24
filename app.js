@@ -1014,8 +1014,11 @@ const WeekPlannerView = {
 const RecipeDatabaseView = {
     editingRecipe: null,
     ingredients: [{ name: '', amount: '', unit: '', category: 'Sonstiges' }],
+    tags: [],
     searchQuery: '',
+    selectedTags: [],
     categories: ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'],
+    availableTags: ['vegetarisch', 'vegan', 'glutenfrei', 'laktosefrei', 'schnell', 'günstig', 'meal-prep', 'Frühling', 'Sommer', 'Herbst', 'Winter'],
 
     render() {
         const filteredRecipes = this.filterRecipes();
@@ -1077,6 +1080,15 @@ const RecipeDatabaseView = {
                                     <span class="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs rounded mb-2">
                                         ${recipe.category}
                                     </span>
+                                ` : ''}
+                                ${recipe.tags && recipe.tags.length > 0 ? `
+                                    <div class="flex flex-wrap gap-1 mb-2">
+                                        ${recipe.tags.map(tag => `
+                                            <span class="px-2 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs rounded-full">
+                                                ${tag}
+                                            </span>
+                                        `).join('')}
+                                    </div>
                                 ` : ''}
                                 ${recipe.servings ? `<p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Portionen: ${recipe.servings}</p>` : ''}
                                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -1149,6 +1161,26 @@ const RecipeDatabaseView = {
                                     </button>
                                 </div>
                                 <div id="ingredients-container"></div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags</label>
+                                <div class="flex flex-wrap gap-2 mb-2" id="selected-tags-container">
+                                    ${this.tags.map(tag => `
+                                        <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-full text-sm">
+                                            ${tag}
+                                            <button type="button" class="remove-tag-btn hover:text-blue-600 dark:hover:text-blue-200" data-tag="${tag}">✕</button>
+                                        </span>
+                                    `).join('')}
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    ${this.availableTags.map(tag => `
+                                        <button type="button" class="add-tag-btn px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors ${this.tags.includes(tag) ? 'opacity-50 cursor-not-allowed' : ''}"
+                                                data-tag="${tag}" ${this.tags.includes(tag) ? 'disabled' : ''}>
+                                            + ${tag}
+                                        </button>
+                                    `).join('')}
+                                </div>
                             </div>
 
                             <div>
@@ -1331,8 +1363,10 @@ const RecipeDatabaseView = {
             this.ingredients = recipe.ingredients.length > 0 ?
                 recipe.ingredients.map(ing => ({ ...ing, category: ing.category || 'Sonstiges' })) :
                 [{ name: '', amount: '', unit: '', category: 'Sonstiges' }];
+            this.tags = recipe.tags || [];
         } else {
             this.ingredients = [{ name: '', amount: '', unit: '', category: 'Sonstiges' }];
+            this.tags = [];
         }
 
         App.render();
@@ -1345,6 +1379,28 @@ const RecipeDatabaseView = {
             document.getElementById('recipe-instructions').value = recipe.instructions || '';
         }
 
+        // Attach all form event listeners after render
+        // Recipe form submit
+        const form = document.getElementById('recipe-form');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.saveRecipe();
+            });
+        }
+
+        // Add ingredient button
+        const addIngBtn = document.getElementById('add-ingredient-btn');
+        if (addIngBtn) {
+            addIngBtn.addEventListener('click', () => {
+                this.ingredients.push({ name: '', amount: '', unit: '', category: 'Sonstiges' });
+                this.renderIngredients();
+            });
+        }
+
+        // Attach tag event listeners
+        this.attachTagEventListeners();
+
         const modal = document.getElementById('recipe-form-modal');
         if (modal) modal.classList.add('active');
     },
@@ -1353,6 +1409,67 @@ const RecipeDatabaseView = {
         const modal = document.getElementById('recipe-form-modal');
         if (modal) modal.classList.remove('active');
         this.editingRecipe = null;
+        this.tags = [];
+    },
+
+    updateTagsUI() {
+        // Update selected tags container
+        const selectedTagsContainer = document.getElementById('selected-tags-container');
+        if (selectedTagsContainer) {
+            selectedTagsContainer.innerHTML = this.tags.map(tag => `
+                <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-full text-sm">
+                    ${tag}
+                    <button type="button" class="remove-tag-btn hover:text-blue-600 dark:hover:text-blue-200" data-tag="${tag}">✕</button>
+                </span>
+            `).join('');
+        }
+
+        // Update available tags buttons
+        document.querySelectorAll('.add-tag-btn').forEach(btn => {
+            const tag = btn.dataset.tag;
+            const isSelected = this.tags.includes(tag);
+            if (isSelected) {
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                btn.disabled = true;
+            } else {
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.disabled = false;
+            }
+        });
+
+        // Re-attach event listeners for remove buttons
+        document.querySelectorAll('.remove-tag-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tag = e.target.dataset.tag;
+                this.tags = this.tags.filter(t => t !== tag);
+                this.updateTagsUI();
+            });
+        });
+    },
+
+    attachTagEventListeners() {
+        // Add tag buttons
+        document.querySelectorAll('.add-tag-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tag = e.target.dataset.tag;
+                if (!this.tags.includes(tag)) {
+                    this.tags.push(tag);
+                    this.updateTagsUI();
+                }
+            });
+        });
+
+        // Remove tag buttons (initial setup)
+        document.querySelectorAll('.remove-tag-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tag = e.target.dataset.tag;
+                this.tags = this.tags.filter(t => t !== tag);
+                this.updateTagsUI();
+            });
+        });
     },
 
     async editRecipe(recipeId) {
@@ -1424,7 +1541,8 @@ const RecipeDatabaseView = {
             category: category || undefined,
             servings: servings ? parseInt(servings) : undefined,
             instructions: instructions || undefined,
-            ingredients: validIngredients
+            ingredients: validIngredients,
+            tags: this.tags
         };
 
         if (this.editingRecipe) {
