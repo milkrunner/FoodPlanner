@@ -305,6 +305,59 @@ const StorageService = {
             console.error('Error deleting template:', error);
             throw error;
         }
+    },
+
+    // Manual shopping items methods
+    async getManualShoppingItems() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/shopping/manual`);
+            if (!response.ok) throw new Error('Failed to fetch manual shopping items');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching manual shopping items:', error);
+            return [];
+        }
+    },
+
+    async addManualShoppingItem(item) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/shopping/manual`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(item)
+            });
+            if (!response.ok) throw new Error('Failed to add manual shopping item');
+            return await response.json();
+        } catch (error) {
+            console.error('Error adding manual shopping item:', error);
+            throw error;
+        }
+    },
+
+    async deleteManualShoppingItem(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/shopping/manual/${id}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Failed to delete manual shopping item');
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting manual shopping item:', error);
+            throw error;
+        }
+    },
+
+    async clearManualShoppingItems() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/shopping/manual`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Failed to clear manual shopping items');
+            return await response.json();
+        } catch (error) {
+            console.error('Error clearing manual shopping items:', error);
+            throw error;
+        }
     }
 };
 
@@ -1670,11 +1723,22 @@ const ShoppingListView = {
 
         if (this.shoppingList.length === 0) {
             return `
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center transition-colors duration-200">
-                    <p class="text-gray-500 dark:text-gray-400">Keine Zutaten im Wochenplan.</p>
-                    <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">
-                        Füge Rezepte zu deinem Wochenplan hinzu, um eine Einkaufsliste zu erstellen.
-                    </p>
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center flex-wrap gap-3">
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Einkaufsliste</h2>
+                        <button id="add-manual-item-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors">
+                            + Artikel hinzufügen
+                        </button>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center transition-colors duration-200">
+                        <p class="text-gray-500 dark:text-gray-400">Keine Zutaten im Wochenplan.</p>
+                        <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">
+                            Füge Rezepte zu deinem Wochenplan hinzu oder klicke auf "Artikel hinzufügen", um manuelle Einträge zu erstellen.
+                        </p>
+                    </div>
+
+                    ${this.renderAddManualItemModal()}
                 </div>
             `;
         }
@@ -1684,14 +1748,17 @@ const ShoppingListView = {
 
         return `
             <div class="space-y-6">
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center flex-wrap gap-3">
                     <div>
                         <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Einkaufsliste</h2>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
                             ${checkedCount} von ${this.shoppingList.length} Artikel${this.shoppingList.length !== 1 ? 'n' : ''} abgehakt
                         </p>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 flex-wrap">
+                        <button id="add-manual-item-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors">
+                            + Artikel hinzufügen
+                        </button>
                         <button id="copy-list-btn" class="px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-700 transition-colors">
                             Kopieren
                         </button>
@@ -1719,6 +1786,64 @@ const ShoppingListView = {
                         <strong>Tipp:</strong> Klicke auf einen Artikel, um ihn als erledigt zu markieren.
                         Du kannst die Liste exportieren oder in die Zwischenablage kopieren.
                     </p>
+                </div>
+
+                ${this.renderAddManualItemModal()}
+            </div>
+        `;
+    },
+
+    renderAddManualItemModal() {
+        return `
+            <div id="add-manual-item-modal" class="modal">
+                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Artikel hinzufügen</h3>
+                        <button id="close-manual-item-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                            ✕
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Artikel *
+                            </label>
+                            <input type="text" id="manual-item-name"
+                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                                   placeholder="z.B. Toilettenpapier, Snacks..."
+                                   required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Menge
+                            </label>
+                            <input type="text" id="manual-item-amount"
+                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                                   value="1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Kategorie
+                            </label>
+                            <select id="manual-item-category"
+                                    class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white">
+                                <option value="Obst & Gemüse">Obst & Gemüse</option>
+                                <option value="Milchprodukte">Milchprodukte</option>
+                                <option value="Fleisch & Fisch">Fleisch & Fisch</option>
+                                <option value="Trockenwaren">Trockenwaren</option>
+                                <option value="Tiefkühl">Tiefkühl</option>
+                                <option value="Sonstiges" selected>Sonstiges</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2 justify-end">
+                            <button id="cancel-manual-item" class="px-4 py-2 border dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                Abbrechen
+                            </button>
+                            <button id="save-manual-item" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
+                                Hinzufügen
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
@@ -1766,19 +1891,30 @@ const ShoppingListView = {
 
                     <div class="divide-y dark:divide-gray-700 ${isCollapsed ? 'hidden' : ''}">
                         ${items.map(item => `
-                            <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer ${item.checked ? 'opacity-50' : ''}"
-                                 data-item-index="${item.index}">
+                            <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${item.checked ? 'opacity-50' : ''} ${item.isManual ? 'border-l-4 border-green-500 dark:border-green-600' : ''}">
                                 <div class="flex items-start gap-3">
                                     <input type="checkbox" ${item.checked ? 'checked' : ''}
                                            class="item-checkbox mt-1 w-5 h-5 cursor-pointer accent-blue-500 dark:accent-blue-400"
                                            data-item-index="${item.index}">
-                                    <div class="flex-1">
-                                        <p class="font-medium text-gray-800 dark:text-white ${item.checked ? 'line-through' : ''}">
-                                            ${item.amount} ${item.unit} ${item.name}
-                                        </p>
-                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            Für: ${item.recipeNames.join(', ')}
-                                        </p>
+                                    <div class="flex-1 cursor-pointer" data-item-index="${item.index}">
+                                        <div class="flex items-start justify-between gap-2">
+                                            <p class="font-medium text-gray-800 dark:text-white ${item.checked ? 'line-through' : ''}">
+                                                ${item.amount} ${item.unit} ${item.name}
+                                                ${item.isManual ? '<span class="ml-2 text-xs bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">Manuell</span>' : ''}
+                                            </p>
+                                            ${item.isManual ? `
+                                                <button class="delete-manual-item-btn text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 text-sm px-2"
+                                                        data-item-id="${item.id}"
+                                                        title="Artikel löschen">
+                                                    ✕
+                                                </button>
+                                            ` : ''}
+                                        </div>
+                                        ${item.recipeNames.length > 0 ? `
+                                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                                Für: ${item.recipeNames.join(', ')}
+                                            </p>
+                                        ` : ''}
                                     </div>
                                 </div>
                             </div>
@@ -1790,50 +1926,64 @@ const ShoppingListView = {
     },
 
     async generateShoppingList() {
-        if (!AppState.weekPlan) {
-            this.shoppingList = [];
-            return;
-        }
-
         const ingredientsMap = new Map();
 
-        for (const day of AppState.weekPlan.days) {
-            for (const meal of Object.values(day.meals)) {
-                if (meal?.recipeId) {
-                    const recipe = await StorageService.getRecipeById(meal.recipeId);
-                    if (recipe) {
-                        recipe.ingredients.forEach(ingredient => {
-                            const key = `${ingredient.name.toLowerCase()}_${ingredient.unit.toLowerCase()}`;
+        // Add ingredients from week plan
+        if (AppState.weekPlan) {
+            for (const day of AppState.weekPlan.days) {
+                for (const meal of Object.values(day.meals)) {
+                    if (meal?.recipeId) {
+                        const recipe = await StorageService.getRecipeById(meal.recipeId);
+                        if (recipe) {
+                            recipe.ingredients.forEach(ingredient => {
+                                const key = `${ingredient.name.toLowerCase()}_${ingredient.unit.toLowerCase()}`;
 
-                            if (ingredientsMap.has(key)) {
-                                const existing = ingredientsMap.get(key);
-                                const existingAmount = parseFloat(existing.amount);
-                                const newAmount = parseFloat(ingredient.amount);
+                                if (ingredientsMap.has(key)) {
+                                    const existing = ingredientsMap.get(key);
+                                    const existingAmount = parseFloat(existing.amount);
+                                    const newAmount = parseFloat(ingredient.amount);
 
-                                if (!isNaN(existingAmount) && !isNaN(newAmount)) {
-                                    existing.amount = (existingAmount + newAmount).toString();
+                                    if (!isNaN(existingAmount) && !isNaN(newAmount)) {
+                                        existing.amount = (existingAmount + newAmount).toString();
+                                    } else {
+                                        existing.amount = `${existing.amount} + ${ingredient.amount}`;
+                                    }
+
+                                    if (!existing.recipeNames.includes(recipe.name)) {
+                                        existing.recipeNames.push(recipe.name);
+                                    }
                                 } else {
-                                    existing.amount = `${existing.amount} + ${ingredient.amount}`;
+                                    ingredientsMap.set(key, {
+                                        name: ingredient.name,
+                                        amount: ingredient.amount,
+                                        unit: ingredient.unit,
+                                        category: ingredient.category || 'Sonstiges',
+                                        checked: false,
+                                        recipeNames: [recipe.name],
+                                        isManual: false
+                                    });
                                 }
-
-                                if (!existing.recipeNames.includes(recipe.name)) {
-                                    existing.recipeNames.push(recipe.name);
-                                }
-                            } else {
-                                ingredientsMap.set(key, {
-                                    name: ingredient.name,
-                                    amount: ingredient.amount,
-                                    unit: ingredient.unit,
-                                    category: ingredient.category || 'Sonstiges',
-                                    checked: false,
-                                    recipeNames: [recipe.name]
-                                });
-                            }
-                        });
+                            });
+                        }
                     }
                 }
             }
         }
+
+        // Add manual shopping items
+        const manualItems = await StorageService.getManualShoppingItems();
+        manualItems.forEach(item => {
+            ingredientsMap.set(`manual_${item.id}`, {
+                id: item.id,
+                name: item.name,
+                amount: item.amount,
+                unit: item.unit,
+                category: item.category || 'Sonstiges',
+                checked: false,
+                recipeNames: [],
+                isManual: true
+            });
+        });
 
         this.shoppingList = Array.from(ingredientsMap.values()).sort((a, b) =>
             a.name.localeCompare(b.name)
@@ -1894,6 +2044,95 @@ const ShoppingListView = {
                 this.shoppingList = this.shoppingList.filter(item => !item.checked);
                 App.render();
             });
+        }
+
+        // Add manual item button
+        const addManualBtn = document.getElementById('add-manual-item-btn');
+        if (addManualBtn) {
+            addManualBtn.addEventListener('click', () => this.showAddManualItemModal());
+        }
+
+        // Close manual item modal
+        const closeModalBtn = document.getElementById('close-manual-item-modal');
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', () => this.hideAddManualItemModal());
+        }
+
+        // Cancel manual item
+        const cancelBtn = document.getElementById('cancel-manual-item');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => this.hideAddManualItemModal());
+        }
+
+        // Save manual item
+        const saveBtn = document.getElementById('save-manual-item');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveManualItem());
+        }
+
+        // Delete manual items
+        document.querySelectorAll('.delete-manual-item-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation(); // Prevent checkbox toggle
+                const itemId = e.target.dataset.itemId;
+                await this.deleteManualItem(itemId);
+            });
+        });
+    },
+
+    showAddManualItemModal() {
+        const modal = document.getElementById('add-manual-item-modal');
+        if (modal) modal.classList.add('active');
+    },
+
+    hideAddManualItemModal() {
+        const modal = document.getElementById('add-manual-item-modal');
+        if (modal) modal.classList.remove('active');
+        // Clear inputs
+        document.getElementById('manual-item-name').value = '';
+        document.getElementById('manual-item-amount').value = '1';
+        document.getElementById('manual-item-category').value = 'Sonstiges';
+    },
+
+    async saveManualItem() {
+        const name = document.getElementById('manual-item-name').value.trim();
+        const amount = document.getElementById('manual-item-amount').value.trim() || '1';
+        const category = document.getElementById('manual-item-category').value;
+
+        if (!name) {
+            Toast.error('Bitte gib einen Artikelnamen ein');
+            return;
+        }
+
+        const item = {
+            id: Date.now().toString(),
+            name,
+            amount,
+            unit: 'x',
+            category
+        };
+
+        try {
+            await StorageService.addManualShoppingItem(item);
+            this.hideAddManualItemModal();
+            await this.generateShoppingList();
+            App.render();
+            Toast.success(`"${name}" zur Einkaufsliste hinzugefügt ✓`);
+        } catch (error) {
+            Toast.error('Fehler beim Hinzufügen des Artikels');
+            console.error(error);
+        }
+    },
+
+    async deleteManualItem(itemId) {
+        try {
+            await StorageService.deleteManualShoppingItem(itemId);
+            await this.generateShoppingList();
+            App.render();
+            Toast.success('Artikel gelöscht');
+        } catch (error) {
+            Toast.error('Fehler beim Löschen des Artikels');
+            console.error(error);
         }
     },
 
