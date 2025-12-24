@@ -112,6 +112,18 @@ function initDatabase() {
             )
         `);
 
+        // Manual shopping items table
+        db.run(`
+            CREATE TABLE IF NOT EXISTS manual_shopping_items (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                amount TEXT NOT NULL,
+                unit TEXT NOT NULL,
+                category TEXT DEFAULT 'Sonstiges',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         console.log('Database tables initialized');
     });
 }
@@ -456,6 +468,64 @@ app.delete('/weekplan/templates/:id', (req, res) => {
             return res.status(404).json({ error: 'Template not found' });
         }
         res.json({ message: 'Template deleted successfully' });
+    });
+});
+
+// ========== MANUAL SHOPPING ITEMS ENDPOINTS ==========
+
+// Get all manual shopping items
+app.get('/shopping/manual', (req, res) => {
+    db.all('SELECT * FROM manual_shopping_items ORDER BY created_at DESC', [], (err, items) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(items);
+    });
+});
+
+// Add manual shopping item
+app.post('/shopping/manual', (req, res) => {
+    const { id, name, amount, unit, category } = req.body;
+
+    if (!name || !amount || !unit) {
+        return res.status(400).json({ error: 'Name, amount and unit are required' });
+    }
+
+    db.run(
+        'INSERT INTO manual_shopping_items (id, name, amount, unit, category) VALUES (?, ?, ?, ?, ?)',
+        [id, name, amount, unit, category || 'Sonstiges'],
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.status(201).json({
+                message: 'Manual shopping item added successfully',
+                id: id
+            });
+        }
+    );
+});
+
+// Delete manual shopping item
+app.delete('/shopping/manual/:id', (req, res) => {
+    db.run('DELETE FROM manual_shopping_items WHERE id = ?', [req.params.id], function(err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        if (this.changes === 0) {
+            return res.status(404).json({ error: 'Item not found' });
+        }
+        res.json({ message: 'Manual shopping item deleted successfully' });
+    });
+});
+
+// Delete all manual shopping items
+app.delete('/shopping/manual', (req, res) => {
+    db.run('DELETE FROM manual_shopping_items', [], function(err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ message: 'All manual shopping items deleted successfully' });
     });
 });
 
