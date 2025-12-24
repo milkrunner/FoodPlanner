@@ -673,6 +673,70 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
     }
 });
 
+// AI-based portion scaling
+app.post('/ai/scale-portions', async (req, res) => {
+    if (!genAI) {
+        return res.status(503).json({
+            error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
+        });
+    }
+
+    try {
+        const { ingredients, originalServings, newServings } = req.body;
+
+        if (!ingredients || !originalServings || !newServings) {
+            return res.status(400).json({ error: 'Missing required fields: ingredients, originalServings, newServings' });
+        }
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const prompt = `Du bist ein Küchen-Assistent, der bei der Skalierung von Rezepten hilft.
+
+Aufgabe: Skaliere die folgenden Zutaten von ${originalServings} Portionen auf ${newServings} Portionen. Verwende dabei intelligente Rundung für praktische Mengen.
+
+Regeln für intelligente Rundung:
+- Runde auf handelsübliche Mengen (z.B. 247g → 250g, 123g → 125g)
+- Bei Eiern: Runde auf ganze Zahlen (z.B. 0.8 Eier → 1 Ei, 2.3 Eier → 2 Eier)
+- Bei Esslöffeln/Teelöffeln: Runde auf halbe oder ganze Werte (z.B. 3.2 EL → 3 EL, 1.7 TL → 1.5 TL)
+- Optimiere Einheiten wo sinnvoll (z.B. 1200ml → 1.2L, 1500g → 1.5kg)
+- Behalte die Kategorie der Zutat bei
+
+Originale Zutaten:
+${JSON.stringify(ingredients, null, 2)}
+
+WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zusätzlichen Text:
+
+[
+  {
+    "name": "Zutatname",
+    "amount": "250",
+    "unit": "g",
+    "category": "Kategorie"
+  }
+]`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        // Extract JSON from response (remove markdown code blocks if present)
+        let jsonText = text.trim();
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
+        }
+
+        const scaledIngredients = JSON.parse(jsonText);
+
+        res.json({ ingredients: scaledIngredients });
+    } catch (error) {
+        console.error('AI portion scaling error:', error);
+        res.status(500).json({
+            error: 'Failed to scale portions',
+            details: error.message
+        });
+    }
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Food Planner Backend running on port ${PORT}`);
