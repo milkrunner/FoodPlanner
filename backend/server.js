@@ -100,6 +100,18 @@ function initDatabase() {
             )
         `);
 
+        // Week plan templates table
+        db.run(`
+            CREATE TABLE IF NOT EXISTS week_plan_templates (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                template_data TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
         console.log('Database tables initialized');
     });
 }
@@ -337,6 +349,113 @@ app.delete('/weekplan', (req, res) => {
             return res.status(500).json({ error: err.message });
         }
         res.json({ message: 'Week plan deleted successfully' });
+    });
+});
+
+// ========== WEEK PLAN TEMPLATES ENDPOINTS ==========
+
+// Get all templates
+app.get('/weekplan/templates', (req, res) => {
+    db.all('SELECT * FROM week_plan_templates ORDER BY created_at DESC', [], (err, templates) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+
+        // Parse template_data JSON for each template
+        const parsedTemplates = templates.map(t => ({
+            id: t.id,
+            name: t.name,
+            description: t.description,
+            templateData: JSON.parse(t.template_data),
+            createdAt: t.created_at,
+            updatedAt: t.updated_at
+        }));
+
+        res.json(parsedTemplates);
+    });
+});
+
+// Get template by ID
+app.get('/weekplan/templates/:id', (req, res) => {
+    db.get('SELECT * FROM week_plan_templates WHERE id = ?', [req.params.id], (err, template) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        if (!template) {
+            return res.status(404).json({ error: 'Template not found' });
+        }
+
+        res.json({
+            id: template.id,
+            name: template.name,
+            description: template.description,
+            templateData: JSON.parse(template.template_data),
+            createdAt: template.created_at,
+            updatedAt: template.updated_at
+        });
+    });
+});
+
+// Save template
+app.post('/weekplan/templates', (req, res) => {
+    const { id, name, description, templateData } = req.body;
+
+    if (!name || !templateData) {
+        return res.status(400).json({ error: 'Name and template data are required' });
+    }
+
+    const templateDataJson = JSON.stringify(templateData);
+
+    db.run(
+        'INSERT INTO week_plan_templates (id, name, description, template_data) VALUES (?, ?, ?, ?)',
+        [id, name, description || '', templateDataJson],
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.status(201).json({
+                message: 'Template saved successfully',
+                id: id
+            });
+        }
+    );
+});
+
+// Update template
+app.put('/weekplan/templates/:id', (req, res) => {
+    const { name, description, templateData } = req.body;
+
+    if (!name || !templateData) {
+        return res.status(400).json({ error: 'Name and template data are required' });
+    }
+
+    const templateDataJson = JSON.stringify(templateData);
+
+    db.run(
+        'UPDATE week_plan_templates SET name = ?, description = ?, template_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [name, description || '', templateDataJson, req.params.id],
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            if (this.changes === 0) {
+                return res.status(404).json({ error: 'Template not found' });
+            }
+            res.json({ message: 'Template updated successfully' });
+        }
+    );
+});
+
+// Delete template
+app.delete('/weekplan/templates/:id', (req, res) => {
+    db.run('DELETE FROM week_plan_templates WHERE id = ?', [req.params.id], function(err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        if (this.changes === 0) {
+            return res.status(404).json({ error: 'Template not found' });
+        }
+        res.json({ message: 'Template deleted successfully' });
     });
 });
 
