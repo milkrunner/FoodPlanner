@@ -7,9 +7,12 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./backend:/usr/src/app
+      - ./backend:/app
+      - /app/node_modules
+      - backend-data:/app/data
     environment:
       NODE_ENV: development
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     restart: unless-stopped
 
   nginx:
@@ -24,3 +27,6 @@ services:
       - ./index.html:/usr/share/nginx/html/index.html:ro
       - ./app.js:/usr/share/nginx/html/app.js:ro
     restart: unless-stopped
+
+volumes:
+  backend-data:

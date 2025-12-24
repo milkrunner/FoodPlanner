@@ -3,9 +3,14 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize Gemini AI
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
 // Middleware
 app.use(cors());
@@ -338,6 +343,81 @@ app.delete('/weekplan', (req, res) => {
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// ========== AI ENDPOINTS ==========
+
+// Generate recipes from ingredients
+app.post('/ai/generate-recipes', async (req, res) => {
+    if (!genAI) {
+        return res.status(503).json({
+            error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
+        });
+    }
+
+    try {
+        const { ingredients, preferences } = req.body;
+
+        if (!ingredients || ingredients.length === 0) {
+            return res.status(400).json({ error: 'Please provide at least one ingredient' });
+        }
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const prompt = `Du bist ein kreativer Koch-Assistent. Generiere 3 leckere Rezept-Vorschläge basierend auf folgenden Zutaten:
+
+Verfügbare Zutaten: ${ingredients.join(', ')}
+
+${preferences?.dietary ? `Ernährungspräferenzen: ${preferences.dietary}` : ''}
+${preferences?.cookingTime ? `Maximale Kochzeit: ${preferences.cookingTime} Minuten` : ''}
+${preferences?.difficulty ? `Schwierigkeitsgrad: ${preferences.difficulty}` : ''}
+
+Erstelle für jedes Rezept:
+- Einen kreativen Namen
+- Kategorie (z.B. Hauptgericht, Suppe, Salat, etc.)
+- Anzahl Portionen
+- Liste der Zutaten mit Mengen und Einheiten und Kategorien (Obst & Gemüse, Milchprodukte, Fleisch & Fisch, Trockenwaren, Tiefkühl, Sonstiges)
+- Schritt-für-Schritt Anleitung
+
+WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zusätzlichen Text:
+
+[
+  {
+    "name": "Rezeptname",
+    "category": "Kategorie",
+    "servings": 4,
+    "ingredients": [
+      {
+        "name": "Zutat",
+        "amount": "200",
+        "unit": "g",
+        "category": "Obst & Gemüse"
+      }
+    ],
+    "instructions": "Schritt 1: ... Schritt 2: ..."
+  }
+]`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        // Extract JSON from response (remove markdown code blocks if present)
+        let jsonText = text.trim();
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
+        }
+
+        const recipes = JSON.parse(jsonText);
+
+        res.json({ recipes });
+    } catch (error) {
+        console.error('AI generation error:', error);
+        res.status(500).json({
+            error: 'Failed to generate recipes',
+            details: error.message
+        });
+    }
 });
 
 // Start server
