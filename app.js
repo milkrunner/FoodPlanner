@@ -1813,25 +1813,13 @@ const ShoppingListView = {
                                    placeholder="z.B. Toilettenpapier, Snacks..."
                                    required>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Menge *
-                                </label>
-                                <input type="text" id="manual-item-amount"
-                                       class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
-                                       placeholder="1"
-                                       required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Einheit *
-                                </label>
-                                <input type="text" id="manual-item-unit"
-                                       class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
-                                       placeholder="Stk, Packung..."
-                                       required>
-                            </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Menge
+                            </label>
+                            <input type="text" id="manual-item-amount"
+                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                                   value="1">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -2102,19 +2090,17 @@ const ShoppingListView = {
         if (modal) modal.classList.remove('active');
         // Clear inputs
         document.getElementById('manual-item-name').value = '';
-        document.getElementById('manual-item-amount').value = '';
-        document.getElementById('manual-item-unit').value = '';
+        document.getElementById('manual-item-amount').value = '1';
         document.getElementById('manual-item-category').value = 'Sonstiges';
     },
 
     async saveManualItem() {
         const name = document.getElementById('manual-item-name').value.trim();
-        const amount = document.getElementById('manual-item-amount').value.trim();
-        const unit = document.getElementById('manual-item-unit').value.trim();
+        const amount = document.getElementById('manual-item-amount').value.trim() || '1';
         const category = document.getElementById('manual-item-category').value;
 
-        if (!name || !amount || !unit) {
-            Toast.error('Bitte fülle alle Pflichtfelder aus');
+        if (!name) {
+            Toast.error('Bitte gib einen Artikelnamen ein');
             return;
         }
 
@@ -2122,7 +2108,7 @@ const ShoppingListView = {
             id: Date.now().toString(),
             name,
             amount,
-            unit,
+            unit: 'x',
             category
         };
 
