@@ -124,6 +124,16 @@ function initDatabase() {
             )
         `);
 
+        // Recipe tags table
+        db.run(`
+            CREATE TABLE IF NOT EXISTS recipe_tags (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recipe_id TEXT NOT NULL,
+                tag TEXT NOT NULL,
+                FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
+            )
+        `);
+
         console.log('Database tables initialized');
     });
 }
@@ -137,15 +147,31 @@ app.get('/recipes', (req, res) => {
             return res.status(500).json({ error: err.message });
         }
 
-        // Get ingredients for each recipe
+        // Get ingredients and tags for each recipe
         const promises = recipes.map(recipe => {
             return new Promise((resolve, reject) => {
+                // Get ingredients
                 db.all(
                     'SELECT name, amount, unit, category FROM ingredients WHERE recipe_id = ?',
                     [recipe.id],
                     (err, ingredients) => {
-                        if (err) reject(err);
-                        else resolve({ ...recipe, ingredients });
+                        if (err) {
+                            reject(err);
+                        } else {
+                            // Get tags
+                            db.all(
+                                'SELECT tag FROM recipe_tags WHERE recipe_id = ?',
+                                [recipe.id],
+                                (err, tagRows) => {
+                                    if (err) {
+                                        reject(err);
+                                    } else {
+                                        const tags = tagRows.map(row => row.tag);
+                                        resolve({ ...recipe, ingredients, tags });
+                                    }
+                                }
+                            );
+                        }
                     }
                 );
             });
@@ -167,6 +193,7 @@ app.get('/recipes/:id', (req, res) => {
             return res.status(404).json({ error: 'Recipe not found' });
         }
 
+        // Get ingredients
         db.all(
             'SELECT name, amount, unit, category FROM ingredients WHERE recipe_id = ?',
             [recipe.id],
@@ -174,7 +201,19 @@ app.get('/recipes/:id', (req, res) => {
                 if (err) {
                     return res.status(500).json({ error: err.message });
                 }
-                res.json({ ...recipe, ingredients });
+
+                // Get tags
+                db.all(
+                    'SELECT tag FROM recipe_tags WHERE recipe_id = ?',
+                    [recipe.id],
+                    (err, tagRows) => {
+                        if (err) {
+                            return res.status(500).json({ error: err.message });
+                        }
+                        const tags = tagRows.map(row => row.tag);
+                        res.json({ ...recipe, ingredients, tags });
+                    }
+                );
             }
         );
     });
@@ -182,7 +221,7 @@ app.get('/recipes/:id', (req, res) => {
 
 // Create recipe
 app.post('/recipes', (req, res) => {
-    const { id, name, category, servings, instructions, ingredients } = req.body;
+    const { id, name, category, servings, instructions, ingredients, tags } = req.body;
 
     db.run(
         'INSERT INTO recipes (id, name, category, servings, instructions) VALUES (?, ?, ?, ?, ?)',
@@ -201,6 +240,15 @@ app.post('/recipes', (req, res) => {
                 stmt.finalize();
             }
 
+            // Insert tags
+            if (tags && tags.length > 0) {
+                const stmt = db.prepare('INSERT INTO recipe_tags (recipe_id, tag) VALUES (?, ?)');
+                tags.forEach(tag => {
+                    stmt.run(id, tag);
+                });
+                stmt.finalize();
+            }
+
             res.status(201).json({ id, message: 'Recipe created successfully' });
         }
     );
@@ -208,7 +256,7 @@ app.post('/recipes', (req, res) => {
 
 // Update recipe
 app.put('/recipes/:id', (req, res) => {
-    const { name, category, servings, instructions, ingredients } = req.body;
+    const { name, category, servings, instructions, ingredients, tags } = req.body;
 
     db.run(
         'UPDATE recipes SET name = ?, category = ?, servings = ?, instructions = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
@@ -233,7 +281,23 @@ app.put('/recipes/:id', (req, res) => {
                     stmt.finalize();
                 }
 
-                res.json({ message: 'Recipe updated successfully' });
+                // Delete old tags
+                db.run('DELETE FROM recipe_tags WHERE recipe_id = ?', [req.params.id], (err) => {
+                    if (err) {
+                        return res.status(500).json({ error: err.message });
+                    }
+
+                    // Insert new tags
+                    if (tags && tags.length > 0) {
+                        const stmt = db.prepare('INSERT INTO recipe_tags (recipe_id, tag) VALUES (?, ?)');
+                        tags.forEach(tag => {
+                            stmt.run(req.params.id, tag);
+                        });
+                        stmt.finalize();
+                    }
+
+                    res.json({ message: 'Recipe updated successfully' });
+                });
             });
         }
     );
