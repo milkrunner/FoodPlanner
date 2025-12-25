@@ -468,6 +468,7 @@ const App = {
             { id: 'planner', label: 'Wochenplan' },
             { id: 'recipes', label: 'Rezepte' },
             { id: 'ai-recipes', label: '🤖 KI Rezepte' },
+            { id: 'parser', label: '📝 Parser' },
             { id: 'shopping', label: 'Einkaufsliste' }
         ];
 
@@ -501,6 +502,8 @@ const App = {
                 return RecipeDatabaseView.render();
             case 'ai-recipes':
                 return AIRecipeGeneratorView.render();
+            case 'parser':
+                return RecipeParserView.render();
             case 'shopping':
                 return ShoppingListView.render();
             default:
@@ -533,6 +536,8 @@ const App = {
             RecipeDatabaseView.attachEventListeners();
         } else if (AppState.currentView === 'ai-recipes') {
             AIRecipeGeneratorView.attachEventListeners();
+        } else if (AppState.currentView === 'parser') {
+            RecipeParserView.attachEventListeners();
         } else if (AppState.currentView === 'shopping') {
             ShoppingListView.attachEventListeners();
         }
@@ -2050,6 +2055,186 @@ const AIRecipeGeneratorView = {
         } catch (error) {
             console.error('Error saving recipe:', error);
             Toast.error('Fehler beim Speichern des Rezepts');
+        }
+    }
+};
+
+// Recipe Parser View
+const RecipeParserView = {
+    inputText: '',
+    parsedRecipe: null,
+    isLoading: false,
+    isUrl: false,
+
+    render() {
+        return `
+            <div class="max-w-6xl mx-auto p-6">
+                <h2 class="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100">📝 Rezept Parser</h2>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Input Section -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Rezept eingeben</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            🔗 URL einer Rezeptseite ODER 📝 Rezepttext (von WhatsApp, E-Mail, etc.)
+                        </p>
+
+                        <textarea
+                            id="recipe-input"
+                            class="w-full h-96 p-4 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            placeholder="Option 1 - URL einfügen:\nhttps://www.chefkoch.de/rezepte/...\n\nOption 2 - Rezepttext einfügen:\n\nSpaghetti Carbonara\n\nZutaten:\n- 400g Spaghetti\n- 200g Speck\n- 4 Eier\n- 100g Parmesan\n- Salz, Pfeffer\n\nZubereitung:\n1. Nudeln kochen...\n2. Speck anbraten..."
+                        >${this.inputText}</textarea>
+
+                        <button
+                            id="parse-recipe-btn"
+                            class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            ${this.isLoading ? 'disabled' : ''}
+                        >
+                            ${this.isLoading ? (this.isUrl ? '🔄 URL wird geladen...' : '🔄 Wird geparst...') : '🤖 Rezept parsen'}
+                        </button>
+                    </div>
+
+                    <!-- Output Section -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Geparste Daten</h3>
+
+                        ${this.parsedRecipe ? `
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                                    <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">${this.parsedRecipe.name}</p>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategorie</label>
+                                        <p class="text-gray-900 dark:text-gray-100">${this.parsedRecipe.category}</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Portionen</label>
+                                        <p class="text-gray-900 dark:text-gray-100">${this.parsedRecipe.servings}</p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zutaten</label>
+                                    <ul class="space-y-2">
+                                        ${this.parsedRecipe.ingredients.map(ing => `
+                                            <li class="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                                                <span class="w-16 text-right font-mono text-sm">${ing.amount} ${ing.unit}</span>
+                                                <span>${ing.name}</span>
+                                                <span class="ml-auto text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">${ing.category}</span>
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zubereitung</label>
+                                    <p class="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">${this.parsedRecipe.instructions}</p>
+                                </div>
+
+                                <button
+                                    id="save-parsed-recipe-btn"
+                                    class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                                >
+                                    💾 Rezept speichern
+                                </button>
+                            </div>
+                        ` : `
+                            <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+                                <p class="text-lg mb-2">Noch kein Rezept geparst</p>
+                                <p class="text-sm">Füge links einen Rezepttext ein und klicke auf "Rezept parsen"</p>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    attachEventListeners() {
+        // Input textarea
+        const input = document.getElementById('recipe-input');
+        if (input) {
+            input.addEventListener('input', (e) => {
+                this.inputText = e.target.value;
+            });
+        }
+
+        // Parse button
+        const parseBtn = document.getElementById('parse-recipe-btn');
+        if (parseBtn) {
+            parseBtn.addEventListener('click', () => this.parseRecipe());
+        }
+
+        // Save button
+        const saveBtn = document.getElementById('save-parsed-recipe-btn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveParsedRecipe());
+        }
+    },
+
+    async parseRecipe() {
+        if (!this.inputText.trim()) {
+            Toast.error('Bitte gib eine URL oder einen Rezepttext ein');
+            return;
+        }
+
+        this.isUrl = this.inputText.trim().startsWith('http://') || this.inputText.trim().startsWith('https://');
+
+        this.isLoading = true;
+        this.parsedRecipe = null;
+        App.render();
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/parse-recipe`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    input: this.inputText,
+                    type: this.isUrl ? 'url' : 'text'
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to parse recipe');
+            }
+
+            const data = await response.json();
+            this.parsedRecipe = data.recipe;
+            this.isLoading = false;
+            App.render();
+            Toast.success('Rezept erfolgreich geparst! ✓');
+        } catch (error) {
+            this.isLoading = false;
+            App.render();
+            Toast.error(`Fehler beim Parsen: ${error.message}`);
+            console.error('Parse error:', error);
+        }
+    },
+
+    async saveParsedRecipe() {
+        if (!this.parsedRecipe) {
+            Toast.error('Kein Rezept zum Speichern vorhanden');
+            return;
+        }
+
+        try {
+            await StorageService.addRecipe(this.parsedRecipe);
+            await AppState.reloadData();
+            Toast.success(`Rezept "${this.parsedRecipe.name}" gespeichert ✓`);
+
+            // Reset and switch to recipes view
+            this.inputText = '';
+            this.parsedRecipe = null;
+            AppState.setView('recipes');
+        } catch (error) {
+            Toast.error('Fehler beim Speichern des Rezepts');
+            console.error('Save error:', error);
         }
     }
 };
