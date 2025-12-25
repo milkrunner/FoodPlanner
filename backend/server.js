@@ -5,6 +5,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const rateLimit = require('express-rate-limit');
+const cheerio = require('cheerio');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -916,6 +917,196 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
         console.error('AI portion scaling error:', error);
         res.status(500).json({
             error: 'Failed to scale portions',
+            details: error.message
+        });
+    }
+});
+
+// Helper function to fetch and extract text from URL
+async function fetchRecipeFromUrl(url) {
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const html = await response.text();
+        const $ = cheerio.load(html);
+
+        // Remove script and style elements
+        $('script, style, nav, header, footer, iframe, noscript').remove();
+
+        // Try to find recipe-specific content
+        let recipeText = '';
+
+        // Look for common recipe containers
+        const recipeSelectors = [
+            '[itemtype*="Recipe"]',
+            '.recipe',
+            '#recipe',
+            '.recipe-content',
+            '.recipe-instructions',
+            'article',
+            'main'
+        ];
+
+        for (const selector of recipeSelectors) {
+            const element = $(selector);
+            if (element.length > 0) {
+                recipeText = element.text();
+                break;
+            }
+        }
+
+        // Fallback to body content if no recipe-specific content found
+        if (!recipeText) {
+            recipeText = $('body').text();
+        }
+
+        // Clean up whitespace
+        recipeText = recipeText
+            .replace(/\s+/g, ' ')
+            .replace(/\n\s*\n/g, '\n')
+            .trim();
+
+        return recipeText;
+    } catch (error) {
+        throw new Error(`Failed to fetch URL: ${error.message}`);
+    }
+}
+
+// Recipe Parser - Parse free text into structured recipe
+app.post('/ai/parse-recipe', aiLimiter, async (req, res) => {
+    if (!genAI) {
+        return res.status(503).json({
+            error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
+        });
+    }
+
+    try {
+        let { input, type } = req.body;
+
+        if (!input || !input.trim()) {
+            return res.status(400).json({
+                error: 'Input text is required'
+            });
+        }
+
+        // Auto-detect if input is a URL
+        if (!type && (input.trim().startsWith('http://') || input.trim().startsWith('https://'))) {
+            type = 'url';
+        }
+
+        // Fetch content from URL if needed
+        if (type === 'url') {
+            const url = input.trim();
+            console.log(`Fetching recipe from URL: ${url}`);
+
+            try {
+                input = await fetchRecipeFromUrl(url);
+                console.log(`Fetched ${input.length} characters from URL`);
+            } catch (fetchError) {
+                return res.status(400).json({
+                    error: 'Failed to fetch recipe from URL',
+                    details: fetchError.message,
+                    hint: 'Make sure the URL is accessible and contains a recipe.'
+                });
+            }
+        }
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const prompt = `Du bist ein intelligenter Rezept-Parser. Analysiere den folgenden Text und extrahiere ein strukturiertes Rezept daraus.
+
+Text:
+${input}
+
+WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format (ohne Markdown-Formatierung):
+
+{
+  "name": "Rezeptname",
+  "category": "Kategorie (z.B. Hauptgericht, Suppe, Salat, Dessert, Vorspeise, Beilage, etc.)",
+  "servings": 4,
+  "ingredients": [
+    {
+      "name": "Zutat",
+      "amount": "200",
+      "unit": "g",
+      "category": "Obst & Gemüse"
+    }
+  ],
+  "instructions": "Schritt 1: ... Schritt 2: ..."
+}
+
+Regeln:
+- Extrahiere den Rezeptnamen so genau wie möglich
+- Identifiziere alle Zutaten mit Mengen und Einheiten
+- Kategorisiere jede Zutat in eine der Kategorien: "Obst & Gemüse", "Milchprodukte", "Fleisch & Fisch", "Trockenwaren", "Tiefkühl", "Sonstiges"
+- Fasse die Zubereitungsschritte in einer klaren Anleitung zusammen
+- Erkenne die Portionsanzahl (Standard: 4)
+- Bestimme eine passende Kategorie für das Rezept
+- Wenn Mengenangaben fehlen, verwende sinnvolle Standardwerte
+- Antworte AUSSCHLIESSLICH mit dem JSON-Objekt, keine zusätzlichen Erklärungen`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        let jsonText = response.text().trim();
+
+        console.log('AI Response:', jsonText);
+
+        // Remove markdown code blocks if present
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '').trim();
+        }
+
+        // Parse the JSON
+        let recipe;
+        try {
+            recipe = JSON.parse(jsonText);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            return res.status(500).json({
+                error: 'Failed to parse AI response as JSON',
+                details: parseError.message,
+                rawResponse: jsonText
+            });
+        }
+
+        // Validate required fields
+        if (!recipe.name || !recipe.ingredients || recipe.ingredients.length === 0) {
+            return res.status(400).json({
+                error: 'Parsed recipe is incomplete. Missing name or ingredients.',
+                parsedData: recipe
+            });
+        }
+
+        // Ensure all required fields have defaults
+        recipe.id = Date.now().toString();
+        recipe.category = recipe.category || 'Hauptgericht';
+        recipe.servings = recipe.servings || 4;
+        recipe.instructions = recipe.instructions || '';
+
+        // Validate ingredients
+        recipe.ingredients = recipe.ingredients.map(ing => ({
+            name: ing.name || '',
+            amount: ing.amount || '1',
+            unit: ing.unit || 'x',
+            category: ing.category || 'Sonstiges'
+        }));
+
+        res.json({
+            recipe,
+            source: 'ai-parsed'
+        });
+    } catch (error) {
+        console.error('Recipe parsing error:', error);
+        res.status(500).json({
+            error: 'Failed to parse recipe',
             details: error.message
         });
     }
