@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,6 +16,63 @@ const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 // Middleware
 app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
+
+// General API Rate Limiting
+// Limit: 100 requests per 15 minutes per IP
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: {
+        error: 'Too many requests from this IP, please try again after 15 minutes.',
+        retryAfter: '15 minutes'
+    },
+    // Skip rate limiting for local development
+    skip: (req) => {
+        return req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1';
+    },
+    handler: (req, res) => {
+        console.log(`[RATE LIMIT] General API limit exceeded for IP: ${req.ip} on ${req.method} ${req.path}`);
+        res.status(429).json({
+            error: 'Too many requests from this IP, please try again after 15 minutes.',
+            retryAfter: '15 minutes'
+        });
+    }
+});
+
+// AI Endpoints Rate Limiting (stricter)
+// Limit: 20 AI requests per 15 minutes per IP
+const aiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20, // Limit each IP to 20 AI requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        error: 'Too many AI requests from this IP. AI endpoints are limited to 20 requests per 15 minutes.',
+        retryAfter: '15 minutes'
+    },
+    skip: (req) => {
+        return req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1';
+    },
+    handler: (req, res) => {
+        console.log(`[RATE LIMIT] AI API limit exceeded for IP: ${req.ip} on ${req.method} ${req.path}`);
+        res.status(429).json({
+            error: 'Too many AI requests from this IP. AI endpoints are limited to 20 requests per 15 minutes.',
+            retryAfter: '15 minutes'
+        });
+    }
+});
+
+// Apply general rate limiter to all API routes
+app.use('/api/', generalLimiter);
+
+// Note: AI rate limiter is applied directly to specific AI endpoints below
+// AI endpoints have their own stricter rate limits (20 req/15min vs 100 req/15min for general API)
+// Rate limiting headers included in responses:
+//   - RateLimit-Limit: Maximum number of requests
+//   - RateLimit-Remaining: Remaining requests
+//   - RateLimit-Reset: Time when the limit resets (epoch seconds)
 
 // Database setup
 const dbPath = process.env.DB_PATH || path.join(__dirname, 'data', 'foodplanner.db');
@@ -601,7 +659,7 @@ app.get('/health', (req, res) => {
 // ========== AI ENDPOINTS ==========
 
 // Generate recipes from ingredients
-app.post('/ai/generate-recipes', async (req, res) => {
+app.post('/ai/generate-recipes', aiLimiter, async (req, res) => {
     if (!genAI) {
         return res.status(503).json({
             error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
@@ -674,7 +732,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
 });
 
 // AI-based portion scaling
-app.post('/ai/scale-portions', async (req, res) => {
+app.post('/ai/scale-portions', aiLimiter, async (req, res) => {
     if (!genAI) {
         return res.status(503).json({
             error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
