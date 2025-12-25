@@ -1015,7 +1015,6 @@ const RecipeDatabaseView = {
     editingRecipe: null,
     ingredients: [{ name: '', amount: '', unit: '', category: 'Sonstiges' }],
     tags: [],
-    tags: [],
     searchQuery: '',
     selectedTags: [],
     categories: ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'],
@@ -1024,6 +1023,7 @@ const RecipeDatabaseView = {
     scaledIngredients: null,
     newServings: null,
     isScaling: false,
+    categoryCache: new Map(), // Local cache for ingredient categories
 
     render() {
         const filteredRecipes = this.filterRecipes();
@@ -1357,8 +1357,8 @@ const RecipeDatabaseView = {
                        class="ingredient-input w-20 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                 <input type="text" placeholder="Einheit" value="${ing.unit}" data-index="${index}" data-field="unit"
                        class="ingredient-input w-20 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
-                <select data-index="${index}" data-field="category"
-                        class="ingredient-input w-40 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                <select data-index="${index}" data-field="category" title="Kategorie (wird automatisch erkannt)"
+                        class="ingredient-input ingredient-category-select w-40 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                     ${this.categories.map(cat => `
                         <option value="${cat}" ${(ing.category || 'Sonstiges') === cat ? 'selected' : ''}>${cat}</option>
                     `).join('')}
@@ -1372,10 +1372,29 @@ const RecipeDatabaseView = {
         // Attach ingredient input listeners
         document.querySelectorAll('.ingredient-input').forEach(input => {
             const eventType = input.tagName === 'SELECT' ? 'change' : 'input';
-            input.addEventListener(eventType, (e) => {
+            input.addEventListener(eventType, async (e) => {
                 const index = parseInt(e.target.dataset.index);
                 const field = e.target.dataset.field;
                 this.ingredients[index][field] = e.target.value;
+
+                // Auto-categorize when ingredient name changes
+                if (field === 'name' && e.target.value.trim()) {
+                    // Debounce the categorization
+                    if (this.categorizationTimeout) {
+                        clearTimeout(this.categorizationTimeout);
+                    }
+
+                    this.categorizationTimeout = setTimeout(async () => {
+                        const category = await this.categorizeIngredient(e.target.value);
+                        this.ingredients[index].category = category;
+
+                        // Update only the category dropdown for this ingredient
+                        const categorySelect = document.querySelector(`select[data-index="${index}"][data-field="category"]`);
+                        if (categorySelect) {
+                            categorySelect.value = category;
+                        }
+                    }, 500); // Wait 500ms after user stops typing
+                }
             });
         });
 
@@ -1729,6 +1748,47 @@ const RecipeDatabaseView = {
             Toast.error('Fehler beim Skalieren der Portionen: ' + error.message);
             this.isScaling = false;
             App.render();
+        }
+    },
+
+    async categorizeIngredient(ingredientName) {
+        if (!ingredientName || !ingredientName.trim()) {
+            return 'Sonstiges';
+        }
+
+        const normalizedName = ingredientName.trim().toLowerCase();
+
+        // Check cache first
+        if (this.categoryCache.has(normalizedName)) {
+            return this.categoryCache.get(normalizedName);
+        }
+
+        try {
+            const response = await fetch('http://localhost:3000/ai/categorize-ingredient', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ingredientName: ingredientName
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to categorize ingredient');
+            }
+
+            const data = await response.json();
+            const category = data.category;
+
+            // Cache the result
+            this.categoryCache.set(normalizedName, category);
+
+            return category;
+        } catch (error) {
+            console.error('Error categorizing ingredient:', error);
+            // Return default category on error
+            return 'Sonstiges';
         }
     }
 };

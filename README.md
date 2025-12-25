@@ -5,47 +5,38 @@ Eine moderne Web-Anwendung zum Planen deiner Wochenmahlzeiten, Verwalten von Rez
 ## Features
 
 - **Wochenplanung**: Plane deine Mahlzeiten für die gesamte Woche (Frühstück, Mittagessen, Abendessen)
-- **Rezeptdatenbank**: Erstelle und verwalte deine eigenen Rezepte mit Zutaten und Zubereitungsanleitung
-- **Einkaufsliste**: Automatische Generierung einer Einkaufsliste basierend auf deinem Wochenplan
-- **Datenpersistenz**: SQLite-Datenbank mit Docker Volumes (persistent) oder Browser localStorage
-- **Export-Funktionen**: Einkaufsliste als Textdatei exportieren oder in die Zwischenablage kopieren
+- **Wochenplan-Vorlagen**: Speichere häufig genutzte Wochenpläne als Vorlagen
+- **Rezeptdatenbank**: Erstelle und verwalte Rezepte mit Zutaten und Anleitung
+- **Rezept-Tags**: Organisiere Rezepte mit Tags (vegetarisch, vegan, glutenfrei, schnell, etc.)
+- **AI-Rezeptgenerierung**: Generiere Rezepte aus vorhandenen Zutaten via Gemini AI
+- **Intelligente Portionsanpassung**: Automatische Skalierung von Rezeptmengen
+- **Einkaufsliste**: Automatische Generierung mit Kategorisierung nach Warengruppen
+- **Manuelle Einträge**: Füge zusätzliche Artikel zur Einkaufsliste hinzu
+- **Dark Mode**: Helles und dunkles Design
+- **Undo-Funktion**: Aktionen rückgängig machen (Strg+Z)
+- **Export-Funktionen**: Liste als Textdatei oder in die Zwischenablage kopieren
+- **Datenpersistenz**: SQLite-Datenbank mit Docker Volumes oder Browser localStorage
 
 ## Technologie-Stack
 
-### Frontend
-
-- **Vanilla JavaScript** (ES6+)
-- **Tailwind CSS** (via CDN) für das Styling
-- **nginx** als Webserver
-
-### Backend
-
-- **Node.js** mit Express
-- **SQLite** Datenbank
-- **RESTful API**
-
-### Deployment
-
-- **Docker** & **Docker Compose**
-- **Persistente Datenbank** mit Docker Volumes
+**Frontend**: Vanilla JavaScript (ES6+), Tailwind CSS (CDN), nginx
+**Backend**: Node.js, Express, SQLite
+**AI**: Google Gemini API
+**Deployment**: Docker & Docker Compose
 
 ## Installation und Start
 
-### 🐳 Docker Deployment (Empfohlen für Produktion)
-
-Die einfachste Methode mit vollständiger Datenpersistenz:
+### 🐳 Docker (Empfohlen)
 
 ```bash
 # App starten
 docker-compose up -d
 
 # App aufrufen
-http://localhost
+http://localhost:5173
 ```
 
-Die App läuft dann auf Port 80. Alle Daten werden persistent in einem Docker Volume gespeichert.
-
-**Weitere Docker Commands:**
+**Weitere Commands:**
 
 ```bash
 # Logs ansehen
@@ -54,16 +45,14 @@ docker-compose logs -f
 # App stoppen
 docker-compose down
 
-# App neu bauen
+# Neu bauen
 docker-compose up -d --build
 
-# Volumes löschen (⚠️ Löscht alle Daten!)
+# Alle Daten löschen
 docker-compose down -v
 ```
 
 ### 💻 Lokale Entwicklung
-
-#### Option 1: Mit Backend (empfohlen)
 
 ```bash
 # Backend starten
@@ -71,102 +60,32 @@ cd backend
 npm install
 npm start
 
-# In neuem Terminal: Frontend starten
+# Frontend starten (neues Terminal)
 python -m http.server 8080
+# Öffne http://localhost:8080
 ```
 
-Dann öffne [http://localhost:8080](http://localhost:8080)
-
-#### Option 2: Nur Frontend (ohne Persistenz)
-
-Öffne einfach die [index.html](index.html) Datei in deinem Browser (Doppelklick auf die Datei).
-
-⚠️ **Achtung**: Ohne Backend werden Daten nur im Browser-LocalStorage gespeichert und gehen bei Cache-Löschung verloren.
-
-## Verwendung
-
-### Rezepte erstellen
-
-1. Navigiere zum Tab "Rezepte"
-2. Klicke auf "+ Neues Rezept"
-3. Fülle die Rezeptinformationen aus:
-   - Name (Pflichtfeld)
-   - Kategorie (optional)
-   - Portionen (optional)
-   - Zutaten mit Menge und Einheit
-   - Zubereitungsanleitung (optional)
-4. Klicke auf "Erstellen"
-
-### Wochenplan erstellen
-
-1. Navigiere zum Tab "Wochenplan"
-2. Für jeden Tag und jede Mahlzeit:
-   - Klicke auf "+ Rezept hinzufügen"
-   - Wähle ein Rezept aus deiner Datenbank
-3. Rezepte können jederzeit wieder entfernt werden (✕ Button)
-
-### Einkaufsliste nutzen
-
-1. Navigiere zum Tab "Einkaufsliste"
-2. Die Liste wird automatisch aus deinem Wochenplan generiert
-3. Funktionen:
-   - Artikel abhaken beim Einkaufen
-   - Liste in die Zwischenablage kopieren
-   - Liste als Textdatei exportieren
-   - Abgehakte Artikel entfernen
+**Ohne Backend**: Öffne `index.html` direkt im Browser (Daten nur in localStorage).
 
 ## Projektstruktur
 
-```file
+```
 FoodPlanner/
-├── frontend/
-│   ├── index.html           # Haupt-HTML-Datei
-│   ├── app.js               # Frontend JavaScript
-│   ├── nginx.conf           # Nginx Konfiguration
-│   └── Dockerfile           # Frontend Docker Image
+├── index.html           # Frontend HTML
+├── app.js               # Frontend JavaScript (2170 Zeilen)
+├── nginx.conf           # Nginx Konfiguration
+├── docker-compose.yml   # Container Orchestrierung
 ├── backend/
-│   ├── server.js            # Express API Server
-│   ├── package.json         # Backend Dependencies
-│   ├── Dockerfile           # Backend Docker Image
-│   └── data/                # SQLite Datenbank (Docker Volume)
-│       └── foodplanner.db
-├── docker-compose.yml       # Docker Orchestrierung
-└── README.md
+│   ├── server.js        # Express API Server
+│   ├── package.json     # Dependencies
+│   ├── Dockerfile       # Backend Container
+│   └── data/            # SQLite DB (Docker Volume)
+└── .env.example         # Umgebungsvariablen Template
 ```
-
-## Datenpersistenz
-
-### Mit Docker (Produktion)
-
-Alle Daten werden in einer **SQLite-Datenbank** gespeichert, die in einem **Docker Volume** (`foodplanner-data`) liegt:
-
-- ✅ **Persistent**: Daten bleiben nach Container-Neustarts erhalten
-- ✅ **Backup-fähig**: Volume kann einfach gesichert werden
-- ✅ **Sicher**: Daten gehen nicht verloren
-
-**Daten sichern:**
-
-```bash
-# Volume-Backup erstellen
-docker run --rm -v foodplanner-data:/data -v $(pwd):/backup alpine tar czf /backup/foodplanner-backup.tar.gz /data
-
-# Backup wiederherstellen
-docker run --rm -v foodplanner-data:/data -v $(pwd):/backup alpine tar xzf /backup/foodplanner-backup.tar.gz -C /
-```
-
-### Ohne Docker (Entwicklung)
-
-Daten werden im Browser-LocalStorage gespeichert:
-
-- ⚠️ **Temporär**: Gehen bei Cache-Löschung verloren
-- ⚠️ **Browser-gebunden**: Nicht zwischen Geräten synchronisiert
 
 ## API Endpoints
 
-Das Backend stellt folgende REST-API bereit:
-
 ### Rezepte
-
 - `GET /recipes` - Alle Rezepte abrufen
 - `GET /recipes/:id` - Einzelnes Rezept abrufen
 - `POST /recipes` - Neues Rezept erstellen
@@ -174,22 +93,62 @@ Das Backend stellt folgende REST-API bereit:
 - `DELETE /recipes/:id` - Rezept löschen
 
 ### Wochenplan
-
 - `GET /weekplan` - Aktuellen Wochenplan abrufen
 - `POST /weekplan` - Wochenplan speichern
 - `DELETE /weekplan` - Wochenplan löschen
 
-### System
+### Wochenplan-Vorlagen
+- `GET /weekplan/templates` - Alle Vorlagen
+- `GET /weekplan/templates/:id` - Einzelne Vorlage
+- `POST /weekplan/templates` - Vorlage erstellen
+- `PUT /weekplan/templates/:id` - Vorlage aktualisieren
+- `DELETE /weekplan/templates/:id` - Vorlage löschen
 
+### Einkaufsliste
+- `GET /shopping/manual` - Manuelle Einträge abrufen
+- `POST /shopping/manual` - Manuellen Eintrag hinzufügen
+- `DELETE /shopping/manual/:id` - Eintrag löschen
+- `DELETE /shopping/manual` - Alle manuellen Einträge löschen
+
+### AI-Features
+- `POST /ai/generate-recipes` - Rezepte aus Zutaten generieren
+- `POST /ai/scale-portions` - Portionen intelligent skalieren
+
+### System
 - `GET /health` - Health Check
+
+## Datenpersistenz
+
+**Mit Docker**: SQLite in Docker Volume `backend-data` (persistent)
+**Ohne Docker**: Browser localStorage (geht bei Cache-Löschung verloren)
+
+**Backup erstellen:**
+
+```bash
+docker run --rm -v backend-data:/data -v $(pwd):/backup alpine tar czf /backup/foodplanner-backup.tar.gz /data
+```
+
+**Backup wiederherstellen:**
+
+```bash
+docker run --rm -v backend-data:/data -v $(pwd):/backup alpine tar xzf /backup/foodplanner-backup.tar.gz -C /
+```
+
+## Umgebungsvariablen
+
+Erstelle eine `.env` Datei im Root:
+
+```bash
+GEMINI_API_KEY=dein-api-key-hier
+```
+
+API-Key beantragen: https://ai.google.dev/
 
 ## Browser-Kompatibilität
 
-Die App funktioniert in allen modernen Browsern:
-
-- Chrome/Edge (Version 90+)
-- Firefox (Version 88+)
-- Safari (Version 14+)
+- Chrome/Edge (90+)
+- Firefox (88+)
+- Safari (14+)
 
 ## Lizenz
 
