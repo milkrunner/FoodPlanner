@@ -997,62 +997,163 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
     }
 });
 
-// Helper function to fetch and extract text from URL
-async function fetchRecipeFromUrl(url) {
+// Allowlist of trusted recipe domains to prevent SSRF attacks
+const ALLOWED_RECIPE_DOMAINS = [
+    'chefkoch.de',
+    'www.chefkoch.de',
+    'eatsmarter.de',
+    'www.eatsmarter.de',
+    'lecker.de',
+    'www.lecker.de',
+    'gutekueche.at',
+    'www.gutekueche.at',
+    'kochbar.de',
+    'www.kochbar.de',
+    'rezeptwelt.de',
+    'www.rezeptwelt.de',
+    'kitchenstories.com',
+    'www.kitchenstories.com',
+    'allrecipes.com',
+    'www.allrecipes.com',
+    'bbcgoodfood.com',
+    'www.bbcgoodfood.com',
+    'seriouseats.com',
+    'www.seriouseats.com',
+    'food.com',
+    'www.food.com',
+    'epicurious.com',
+    'www.epicurious.com',
+    'bonappetit.com',
+    'www.bonappetit.com',
+    'delish.com',
+    'www.delish.com',
+    'tasty.co',
+    'www.tasty.co',
+    'simplyrecipes.com',
+    'www.simplyrecipes.com',
+    'foodnetwork.com',
+    'www.foodnetwork.com'
+];
+
+// URL validation to prevent SSRF attacks - only allows trusted recipe domains
+function validateUrl(urlString) {
+    let url;
     try {
-        const response = await fetch(url, {
+        url = new URL(urlString);
+    } catch {
+        throw new Error('Invalid URL format');
+    }
+
+    // Only allow http and https protocols
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        throw new Error('Only HTTP and HTTPS protocols are allowed');
+    }
+
+    // Check against allowlist of trusted domains
+    const hostname = url.hostname.toLowerCase();
+    if (!ALLOWED_RECIPE_DOMAINS.includes(hostname)) {
+        throw new Error(
+            `Domain "${hostname}" is not in the list of allowed recipe websites. ` +
+            `Allowed domains: ${ALLOWED_RECIPE_DOMAINS.filter(d => !d.startsWith('www.')).join(', ')}`
+        );
+    }
+
+    return url.href;
+}
+
+// Helper function to fetch and extract text from URL
+async function fetchRecipeFromUrl(userProvidedUrl) {
+    // Validate URL against allowlist - throws error if domain not allowed
+    const safeUrl = validateUrl(userProvidedUrl);
+
+    // Build a new URL from validated components to ensure safety
+    const urlObj = new URL(safeUrl);
+    const fetchUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}${urlObj.search}`;
+
+    try {
+        const response = await fetch(fetchUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
+            },
+            redirect: 'manual'
         });
+
+        // Handle redirects safely - only follow if redirect stays on allowed domains
+        if (response.status >= 300 && response.status < 400) {
+            const redirectLocation = response.headers.get('location');
+            if (redirectLocation) {
+                const redirectUrl = new URL(redirectLocation, fetchUrl);
+                // Validate redirect URL against allowlist
+                const safeRedirectUrl = validateUrl(redirectUrl.href);
+                const redirectUrlObj = new URL(safeRedirectUrl);
+                const fetchRedirectUrl = `${redirectUrlObj.protocol}//${redirectUrlObj.host}${redirectUrlObj.pathname}${redirectUrlObj.search}`;
+
+                const redirectResponse = await fetch(fetchRedirectUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    },
+                    redirect: 'manual'
+                });
+                if (!redirectResponse.ok) {
+                    throw new Error(`HTTP error! status: ${redirectResponse.status}`);
+                }
+                const html = await redirectResponse.text();
+                return extractRecipeText(html);
+            }
+        }
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const html = await response.text();
-        const $ = cheerio.load(html);
-
-        // Remove script and style elements
-        $('script, style, nav, header, footer, iframe, noscript').remove();
-
-        // Try to find recipe-specific content
-        let recipeText = '';
-
-        // Look for common recipe containers
-        const recipeSelectors = [
-            '[itemtype*="Recipe"]',
-            '.recipe',
-            '#recipe',
-            '.recipe-content',
-            '.recipe-instructions',
-            'article',
-            'main'
-        ];
-
-        for (const selector of recipeSelectors) {
-            const element = $(selector);
-            if (element.length > 0) {
-                recipeText = element.text();
-                break;
-            }
-        }
-
-        // Fallback to body content if no recipe-specific content found
-        if (!recipeText) {
-            recipeText = $('body').text();
-        }
-
-        // Clean up whitespace
-        recipeText = recipeText
-            .replace(/\s+/g, ' ')
-            .replace(/\n\s*\n/g, '\n')
-            .trim();
-
-        return recipeText;
+        return extractRecipeText(html);
     } catch (error) {
         throw new Error(`Failed to fetch URL: ${error.message}`);
     }
+}
+
+// Helper function to extract recipe text from HTML
+function extractRecipeText(html) {
+    const $ = cheerio.load(html);
+
+    // Remove script and style elements
+    $('script, style, nav, header, footer, iframe, noscript').remove();
+
+    // Try to find recipe-specific content
+    let recipeText = '';
+
+    // Look for common recipe containers
+    const recipeSelectors = [
+        '[itemtype*="Recipe"]',
+        '.recipe',
+        '#recipe',
+        '.recipe-content',
+        '.recipe-instructions',
+        'article',
+        'main'
+    ];
+
+    for (const selector of recipeSelectors) {
+        const element = $(selector);
+        if (element.length > 0) {
+            recipeText = element.text();
+            break;
+        }
+    }
+
+    // Fallback to body content if no recipe-specific content found
+    if (!recipeText) {
+        recipeText = $('body').text();
+    }
+
+    // Clean up whitespace
+    recipeText = recipeText
+        .replace(/\s+/g, ' ')
+        .replace(/\n\s*\n/g, '\n')
+        .trim();
+
+    return recipeText;
 }
 
 // Recipe Parser - Parse free text into structured recipe
