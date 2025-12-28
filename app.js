@@ -97,6 +97,80 @@ const ActionHistory = {
     }
 };
 
+// Date Utilities for Calendar View
+const DateUtils = {
+    // Get Monday of the week containing the given date
+    getMonday(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+        d.setDate(diff);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    },
+
+    // Format date as "Montag, 23.12.2024"
+    formatDateWithDay(date) {
+        const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+        const d = new Date(date);
+        const dayName = days[d.getDay()];
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        return `${dayName}, ${day}.${month}.${year}`;
+    },
+
+    // Format week range as "23.12. - 29.12.2024"
+    formatWeekRange(startDate) {
+        const start = new Date(startDate);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+
+        const startDay = start.getDate().toString().padStart(2, '0');
+        const startMonth = (start.getMonth() + 1).toString().padStart(2, '0');
+        const endDay = end.getDate().toString().padStart(2, '0');
+        const endMonth = (end.getMonth() + 1).toString().padStart(2, '0');
+        const year = end.getFullYear();
+
+        if (start.getMonth() === end.getMonth()) {
+            return `${startDay}. - ${endDay}.${endMonth}.${year}`;
+        }
+        return `${startDay}.${startMonth}. - ${endDay}.${endMonth}.${year}`;
+    },
+
+    // Get week ID from date (format: YYYY-WW)
+    getWeekId(date) {
+        const d = new Date(date);
+        const monday = this.getMonday(d);
+        const year = monday.getFullYear();
+        const firstDayOfYear = new Date(year, 0, 1);
+        const firstMonday = this.getMonday(firstDayOfYear);
+        if (firstMonday > firstDayOfYear) {
+            firstMonday.setDate(firstMonday.getDate() - 7);
+        }
+        const weekNumber = Math.ceil(((monday - firstMonday) / 86400000 + 1) / 7);
+        return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+    },
+
+    // Check if date is today
+    isToday(date) {
+        const today = new Date();
+        const d = new Date(date);
+        return d.getDate() === today.getDate() &&
+               d.getMonth() === today.getMonth() &&
+               d.getFullYear() === today.getFullYear();
+    },
+
+    // Check if date is in the past
+    isPast(date) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        return d < today;
+    }
+};
+
 // Dark Mode Manager
 const DarkMode = {
     init() {
@@ -209,6 +283,19 @@ const StorageService = {
             return await response.json();
         } catch (error) {
             console.error('Error fetching week plan:', error);
+            return null;
+        }
+    },
+
+    async getWeekPlanByDate(date) {
+        try {
+            const isoDate = new Date(date).toISOString().split('T')[0];
+            const response = await fetch(`${API_BASE_URL}/weekplan/by-date/${isoDate}`);
+            if (response.status === 404) return null;
+            if (!response.ok) throw new Error('Failed to fetch week plan by date');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching week plan by date:', error);
             return null;
         }
     },
@@ -366,34 +453,75 @@ const AppState = {
     currentView: 'planner',
     recipes: [],
     weekPlan: null,
+    currentWeekStart: null, // Track the current week being viewed
+    weekPlansCache: {}, // Cache for multiple week plans
 
     async init() {
         this.recipes = await StorageService.getRecipes();
-        this.weekPlan = await StorageService.getWeekPlan();
-        if (!this.weekPlan) {
-            await this.initializeWeekPlan();
+        // Set current week to Monday of current week
+        this.currentWeekStart = DateUtils.getMonday(new Date());
+        await this.loadWeekPlan(this.currentWeekStart);
+    },
+
+    async loadWeekPlan(weekStart) {
+        const weekId = DateUtils.getWeekId(weekStart);
+
+        // Check cache first
+        if (this.weekPlansCache[weekId]) {
+            this.weekPlan = this.weekPlansCache[weekId];
+            return;
+        }
+
+        // Try to load from server
+        const savedPlan = await StorageService.getWeekPlanByDate(weekStart);
+        if (savedPlan) {
+            this.weekPlan = savedPlan;
+            this.weekPlansCache[weekId] = savedPlan;
+        } else {
+            // Initialize new week plan for this week
+            await this.initializeWeekPlan(weekStart);
+            this.weekPlansCache[weekId] = this.weekPlan;
         }
     },
 
-    async initializeWeekPlan() {
-        const days = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
-        const startDate = new Date();
+    async initializeWeekPlan(weekStart = null) {
+        const monday = weekStart ? DateUtils.getMonday(weekStart) : DateUtils.getMonday(new Date());
+        const weekId = DateUtils.getWeekId(monday);
 
         this.weekPlan = {
-            id: Date.now().toString(),
-            startDate: startDate.toISOString(),
-            days: days.map((dayName, index) => {
-                const date = new Date(startDate);
-                date.setDate(startDate.getDate() + index);
+            id: weekId,
+            startDate: monday.toISOString(),
+            days: Array.from({ length: 7 }, (_, index) => {
+                const date = new Date(monday);
+                date.setDate(monday.getDate() + index);
                 return {
                     date: date.toISOString(),
-                    dayName,
+                    dayName: DateUtils.formatDateWithDay(date).split(',')[0], // Just the day name for internal use
                     meals: {}
                 };
             })
         };
 
         await StorageService.saveWeekPlan(this.weekPlan);
+    },
+
+    async navigateWeek(direction) {
+        const newWeekStart = new Date(this.currentWeekStart);
+        newWeekStart.setDate(newWeekStart.getDate() + (direction * 7));
+        this.currentWeekStart = newWeekStart;
+        await this.loadWeekPlan(newWeekStart);
+        App.render();
+    },
+
+    async goToCurrentWeek() {
+        this.currentWeekStart = DateUtils.getMonday(new Date());
+        await this.loadWeekPlan(this.currentWeekStart);
+        App.render();
+    },
+
+    isCurrentWeek() {
+        const today = DateUtils.getMonday(new Date());
+        return this.currentWeekStart.getTime() === today.getTime();
     },
 
     setView(view) {
@@ -403,7 +531,10 @@ const AppState = {
 
     async reloadData() {
         this.recipes = await StorageService.getRecipes();
-        this.weekPlan = await StorageService.getWeekPlan();
+        // Reload current week
+        const weekId = DateUtils.getWeekId(this.currentWeekStart);
+        delete this.weekPlansCache[weekId]; // Clear cache for this week
+        await this.loadWeekPlan(this.currentWeekStart);
     }
 };
 
@@ -550,11 +681,13 @@ const WeekPlannerView = {
     selectedMealType: null,
 
     render() {
-        if (!AppState.weekPlan) {
+        if (!AppState.weekPlan || !AppState.currentWeekStart) {
             return '<div class="text-gray-800 dark:text-gray-200">Lade Wochenplan...</div>';
         }
 
         const mealTypes = ['Frühstück', 'Mittagessen', 'Abendessen'];
+        const weekRange = DateUtils.formatWeekRange(AppState.currentWeekStart);
+        const isCurrentWeek = AppState.isCurrentWeek();
 
         return `
             <div class="space-y-6">
@@ -562,58 +695,94 @@ const WeekPlannerView = {
                     <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Wochenplan</h2>
                     <div class="flex gap-2 flex-wrap">
                         <button id="save-template-btn" class="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
-                            💾 Als Vorlage speichern
+                            Als Vorlage speichern
                         </button>
                         <button id="load-template-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors">
-                            📂 Aus Vorlage laden
+                            Aus Vorlage laden
                         </button>
                         <button id="reset-week-btn" class="px-4 py-2 bg-red-500 dark:bg-red-600 text-white rounded hover:bg-red-600 dark:hover:bg-red-700 transition-colors">
-                            🗑️ Zurücksetzen
+                            Zurücksetzen
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Week Navigation -->
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+                    <div class="flex items-center justify-between">
+                        <button id="prev-week-btn" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" title="Vorherige Woche">
+                            <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        <div class="text-center">
+                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white">${weekRange}</h3>
+                            ${!isCurrentWeek ? `
+                                <button id="go-to-current-week-btn" class="mt-1 text-sm text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500 transition-colors">
+                                    Zur aktuellen Woche
+                                </button>
+                            ` : '<span class="mt-1 text-sm text-green-600 dark:text-green-400">Aktuelle Woche</span>'}
+                        </div>
+                        <button id="next-week-btn" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" title="Nächste Woche">
+                            <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
                         </button>
                     </div>
                 </div>
 
                 <div class="grid gap-4">
-                    ${AppState.weekPlan.days.map((day, dayIndex) => `
-                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
-                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-3">${day.dayName}</h3>
-                            <div class="grid md:grid-cols-3 gap-3">
-                                ${mealTypes.map(mealType => {
-                                    const meal = day.meals[mealType];
-                                    return `
-                                        <div class="border dark:border-gray-700 rounded p-3">
-                                            <div class="flex justify-between items-center mb-2">
-                                                <h4 class="font-medium text-gray-700 dark:text-gray-300">${mealType}</h4>
-                                                ${meal ? `
-                                                    <button class="remove-meal-btn text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 text-sm"
-                                                            data-day="${dayIndex}"
-                                                            data-meal="${mealType}">
-                                                        ✕
-                                                    </button>
-                                                ` : ''}
-                                            </div>
-                                            ${meal ? `
-                                                <div class="bg-blue-50 dark:bg-blue-900/30 p-2 rounded">
-                                                    <p class="text-sm text-gray-800 dark:text-gray-200">${meal.recipeName}</p>
-                                                </div>
-                                            ` : `
-                                                <button class="add-meal-btn w-full py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded text-gray-500 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-                                                        data-day="${dayIndex}"
-                                                        data-meal="${mealType}">
-                                                    + Rezept hinzufügen
-                                                </button>
-                                            `}
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                    `).join('')}
+                    ${AppState.weekPlan.days.map((day, dayIndex) => this.renderDay(day, dayIndex, mealTypes)).join('')}
                 </div>
 
                 ${this.renderRecipeSelector()}
                 ${this.renderSaveTemplateModal()}
                 ${this.renderLoadTemplateModal()}
+            </div>
+        `;
+    },
+
+    renderDay(day, dayIndex, mealTypes) {
+        const dayDate = new Date(day.date);
+        const formattedDate = DateUtils.formatDateWithDay(dayDate);
+        const isToday = DateUtils.isToday(dayDate);
+        const isPast = DateUtils.isPast(dayDate);
+
+        return `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200 ${isToday ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''} ${isPast ? 'opacity-75' : ''}">
+                <div class="flex items-center gap-2 mb-3">
+                    <h3 class="text-xl font-semibold text-gray-800 dark:text-white">${formattedDate}</h3>
+                    ${isToday ? '<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">Heute</span>' : ''}
+                </div>
+                <div class="grid md:grid-cols-3 gap-3">
+                    ${mealTypes.map(mealType => {
+                        const meal = day.meals[mealType];
+                        return `
+                            <div class="border dark:border-gray-700 rounded p-3">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h4 class="font-medium text-gray-700 dark:text-gray-300">${mealType}</h4>
+                                    ${meal ? `
+                                        <button class="remove-meal-btn text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 text-sm"
+                                                data-day="${dayIndex}"
+                                                data-meal="${mealType}">
+                                            ✕
+                                        </button>
+                                    ` : ''}
+                                </div>
+                                ${meal ? `
+                                    <div class="bg-blue-50 dark:bg-blue-900/30 p-2 rounded">
+                                        <p class="text-sm text-gray-800 dark:text-gray-200">${meal.recipeName}</p>
+                                    </div>
+                                ` : `
+                                    <button class="add-meal-btn w-full py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded text-gray-500 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                                            data-day="${dayIndex}"
+                                            data-meal="${mealType}">
+                                        + Rezept hinzufügen
+                                    </button>
+                                `}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
             </div>
         `;
     },
@@ -712,6 +881,22 @@ const WeekPlannerView = {
     },
 
     attachEventListeners() {
+        // Week navigation buttons
+        const prevWeekBtn = document.getElementById('prev-week-btn');
+        if (prevWeekBtn) {
+            prevWeekBtn.addEventListener('click', () => AppState.navigateWeek(-1));
+        }
+
+        const nextWeekBtn = document.getElementById('next-week-btn');
+        if (nextWeekBtn) {
+            nextWeekBtn.addEventListener('click', () => AppState.navigateWeek(1));
+        }
+
+        const goToCurrentWeekBtn = document.getElementById('go-to-current-week-btn');
+        if (goToCurrentWeekBtn) {
+            goToCurrentWeekBtn.addEventListener('click', () => AppState.goToCurrentWeek());
+        }
+
         // Reset week plan
         const resetBtn = document.getElementById('reset-week-btn');
         if (resetBtn) {
@@ -720,8 +905,10 @@ const WeekPlannerView = {
                     // Save current week plan before resetting
                     const oldWeekPlan = JSON.parse(JSON.stringify(AppState.weekPlan));
 
-                    // Reset week plan
-                    await AppState.initializeWeekPlan();
+                    // Reset week plan for current displayed week
+                    await AppState.initializeWeekPlan(AppState.currentWeekStart);
+                    const weekId = DateUtils.getWeekId(AppState.currentWeekStart);
+                    AppState.weekPlansCache[weekId] = AppState.weekPlan;
                     App.render();
 
                     // Show toast with undo option
@@ -729,7 +916,8 @@ const WeekPlannerView = {
                         showUndo: true,
                         onUndo: async () => {
                             await StorageService.saveWeekPlan(oldWeekPlan);
-                            await AppState.reloadData();
+                            AppState.weekPlansCache[weekId] = oldWeekPlan;
+                            AppState.weekPlan = oldWeekPlan;
                             App.render();
                             Toast.show('Wochenplan wiederhergestellt');
                         }
@@ -827,15 +1015,22 @@ const WeekPlannerView = {
         };
 
         await StorageService.saveWeekPlan(AppState.weekPlan);
+        // Update cache
+        const weekId = DateUtils.getWeekId(AppState.currentWeekStart);
+        AppState.weekPlansCache[weekId] = AppState.weekPlan;
+
         this.hideRecipeSelector();
         App.render();
 
-        Toast.success('Wochenplan aktualisiert ✓');
+        Toast.success('Wochenplan aktualisiert');
     },
 
     async removeMeal(dayIndex, mealType) {
         delete AppState.weekPlan.days[dayIndex].meals[mealType];
         await StorageService.saveWeekPlan(AppState.weekPlan);
+        // Update cache
+        const weekId = DateUtils.getWeekId(AppState.currentWeekStart);
+        AppState.weekPlansCache[weekId] = AppState.weekPlan;
         App.render();
     },
 
