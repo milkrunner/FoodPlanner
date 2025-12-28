@@ -1,4 +1,23 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: foodplanner-db
+    environment:
+      POSTGRES_DB: foodplanner
+      POSTGRES_USER: foodplanner
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-foodplanner_secret}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backend/db/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foodplanner -d foodplanner"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -8,12 +27,14 @@ services:
       - "3000:3000"
     volumes:
       - ./backend:/app
-      # Prevent host node_modules from overwriting container dependencies
       - /app/node_modules
-      - backend-data:/app/data
     environment:
       NODE_ENV: development
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      DATABASE_URL: postgresql://foodplanner:${DB_PASSWORD:-foodplanner_secret}@postgres:5432/foodplanner
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   nginx:
@@ -30,4 +51,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  backend-data:
+  postgres-data:

@@ -1,11 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const rateLimit = require('express-rate-limit');
 const cheerio = require('cheerio');
+const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -75,661 +74,542 @@ app.use(generalLimiter);
 //   - RateLimit-Remaining: Remaining requests
 //   - RateLimit-Reset: Time when the limit resets (epoch seconds)
 
-// Database setup
-const dbPath = process.env.DB_PATH || path.join(__dirname, 'data', 'foodplanner.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error opening database:', err);
-    } else {
-        console.log('Connected to SQLite database at:', dbPath);
-        initDatabase();
+// Database connection check on startup
+(async () => {
+    const connected = await db.checkConnection();
+    if (!connected) {
+        console.error('Failed to connect to database. Exiting...');
+        process.exit(1);
     }
-});
-
-// Initialize database tables
-function initDatabase() {
-    db.serialize(() => {
-        // Recipes table
-        db.run(`
-            CREATE TABLE IF NOT EXISTS recipes (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                category TEXT,
-                servings INTEGER,
-                instructions TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        // Ingredients table
-        db.run(`
-            CREATE TABLE IF NOT EXISTS ingredients (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                recipe_id TEXT NOT NULL,
-                name TEXT NOT NULL,
-                amount TEXT NOT NULL,
-                unit TEXT NOT NULL,
-                category TEXT DEFAULT 'Sonstiges',
-                FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
-            )
-        `);
-
-        // Week plans table
-        db.run(`
-            CREATE TABLE IF NOT EXISTS week_plans (
-                id TEXT PRIMARY KEY,
-                start_date TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        // Days table
-        db.run(`
-            CREATE TABLE IF NOT EXISTS days (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                week_plan_id TEXT NOT NULL,
-                date TEXT NOT NULL,
-                day_name TEXT NOT NULL,
-                FOREIGN KEY (week_plan_id) REFERENCES week_plans(id) ON DELETE CASCADE
-            )
-        `);
-
-        // Add category column to existing ingredients tables (migration)
-        db.run(`
-            ALTER TABLE ingredients ADD COLUMN category TEXT DEFAULT 'Sonstiges'
-        `, (err) => {
-            // Ignore error if column already exists
-            if (err && !err.message.includes('duplicate column')) {
-                console.error('Migration warning:', err.message);
-            }
-        });
-
-        // Meals table
-        db.run(`
-            CREATE TABLE IF NOT EXISTS meals (
-                id TEXT PRIMARY KEY,
-                day_id INTEGER NOT NULL,
-                recipe_id TEXT,
-                recipe_name TEXT NOT NULL,
-                meal_type TEXT NOT NULL,
-                FOREIGN KEY (day_id) REFERENCES days(id) ON DELETE CASCADE,
-                FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE SET NULL
-            )
-        `);
-
-        // Week plan templates table
-        db.run(`
-            CREATE TABLE IF NOT EXISTS week_plan_templates (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                description TEXT,
-                template_data TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        // Manual shopping items table
-        db.run(`
-            CREATE TABLE IF NOT EXISTS manual_shopping_items (
-                id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                amount TEXT NOT NULL,
-                unit TEXT NOT NULL,
-                category TEXT DEFAULT 'Sonstiges',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
-        // Recipe tags table
-        db.run(`
-            CREATE TABLE IF NOT EXISTS recipe_tags (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                recipe_id TEXT NOT NULL,
-                tag TEXT NOT NULL,
-                FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
-            )
-        `);
-
-        console.log('Database tables initialized');
-    });
-}
+})();
 
 // ========== RECIPES ENDPOINTS ==========
 
 // Get all recipes
-app.get('/recipes', (req, res) => {
-    db.all('SELECT * FROM recipes ORDER BY created_at DESC', [], (err, recipes) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+app.get('/recipes', async (req, res) => {
+    try {
+        const { rows: recipes } = await db.query(`
+            SELECT * FROM recipes ORDER BY created_at DESC
+        `);
 
         // Get ingredients and tags for each recipe
-        const promises = recipes.map(recipe => {
-            return new Promise((resolve, reject) => {
-                // Get ingredients
-                db.all(
-                    'SELECT name, amount, unit, category FROM ingredients WHERE recipe_id = ?',
-                    [recipe.id],
-                    (err, ingredients) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            // Get tags
-                            db.all(
-                                'SELECT tag FROM recipe_tags WHERE recipe_id = ?',
-                                [recipe.id],
-                                (err, tagRows) => {
-                                    if (err) {
-                                        reject(err);
-                                    } else {
-                                        const tags = tagRows.map(row => row.tag);
-                                        resolve({ ...recipe, ingredients, tags });
-                                    }
-                                }
-                            );
-                        }
-                    }
-                );
-            });
-        });
+        const recipesWithDetails = await Promise.all(recipes.map(async (recipe) => {
+            const { rows: ingredients } = await db.query(
+                'SELECT name, amount, unit, category FROM ingredients WHERE recipe_id = $1',
+                [recipe.id]
+            );
 
-        Promise.all(promises)
-            .then(results => res.json(results))
-            .catch(err => res.status(500).json({ error: err.message }));
-    });
+            const { rows: tagRows } = await db.query(
+                'SELECT tag FROM recipe_tags WHERE recipe_id = $1',
+                [recipe.id]
+            );
+
+            const tags = tagRows.map(row => row.tag);
+            return { ...recipe, ingredients, tags };
+        }));
+
+        res.json(recipesWithDetails);
+    } catch (error) {
+        console.error('Error fetching recipes:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Get recipe by ID
-app.get('/recipes/:id', (req, res) => {
-    db.get('SELECT * FROM recipes WHERE id = ?', [req.params.id], (err, recipe) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        if (!recipe) {
+app.get('/recipes/:id', async (req, res) => {
+    try {
+        const { rows } = await db.query(
+            'SELECT * FROM recipes WHERE id = $1',
+            [req.params.id]
+        );
+
+        if (rows.length === 0) {
             return res.status(404).json({ error: 'Recipe not found' });
         }
 
-        // Get ingredients
-        db.all(
-            'SELECT name, amount, unit, category FROM ingredients WHERE recipe_id = ?',
-            [recipe.id],
-            (err, ingredients) => {
-                if (err) {
-                    return res.status(500).json({ error: err.message });
-                }
+        const recipe = rows[0];
 
-                // Get tags
-                db.all(
-                    'SELECT tag FROM recipe_tags WHERE recipe_id = ?',
-                    [recipe.id],
-                    (err, tagRows) => {
-                        if (err) {
-                            return res.status(500).json({ error: err.message });
-                        }
-                        const tags = tagRows.map(row => row.tag);
-                        res.json({ ...recipe, ingredients, tags });
-                    }
-                );
-            }
+        const { rows: ingredients } = await db.query(
+            'SELECT name, amount, unit, category FROM ingredients WHERE recipe_id = $1',
+            [recipe.id]
         );
-    });
+
+        const { rows: tagRows } = await db.query(
+            'SELECT tag FROM recipe_tags WHERE recipe_id = $1',
+            [recipe.id]
+        );
+
+        const tags = tagRows.map(row => row.tag);
+        res.json({ ...recipe, ingredients, tags });
+    } catch (error) {
+        console.error('Error fetching recipe:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Create recipe
-app.post('/recipes', (req, res) => {
+app.post('/recipes', async (req, res) => {
     const { id, name, category, servings, instructions, ingredients, tags } = req.body;
 
-    db.run(
-        'INSERT INTO recipes (id, name, category, servings, instructions) VALUES (?, ?, ?, ?, ?)',
-        [id, name, category, servings, instructions],
-        function(err) {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
+    try {
+        await db.transaction(async (client) => {
+            // Insert recipe
+            await client.query(
+                'INSERT INTO recipes (id, name, category, servings, instructions) VALUES ($1, $2, $3, $4, $5)',
+                [id, name, category, servings, instructions]
+            );
 
             // Insert ingredients
             if (ingredients && ingredients.length > 0) {
-                const stmt = db.prepare('INSERT INTO ingredients (recipe_id, name, amount, unit, category) VALUES (?, ?, ?, ?, ?)');
-                ingredients.forEach(ing => {
-                    stmt.run(id, ing.name, ing.amount, ing.unit, ing.category || 'Sonstiges');
-                });
-                stmt.finalize();
+                for (const ing of ingredients) {
+                    await client.query(
+                        'INSERT INTO ingredients (recipe_id, name, amount, unit, category) VALUES ($1, $2, $3, $4, $5)',
+                        [id, ing.name, ing.amount, ing.unit, ing.category || 'Sonstiges']
+                    );
+                }
             }
 
             // Insert tags
             if (tags && tags.length > 0) {
-                const stmt = db.prepare('INSERT INTO recipe_tags (recipe_id, tag) VALUES (?, ?)');
-                tags.forEach(tag => {
-                    stmt.run(id, tag);
-                });
-                stmt.finalize();
+                for (const tag of tags) {
+                    await client.query(
+                        'INSERT INTO recipe_tags (recipe_id, tag) VALUES ($1, $2)',
+                        [id, tag]
+                    );
+                }
             }
+        });
 
-            res.status(201).json({ id, message: 'Recipe created successfully' });
-        }
-    );
+        res.status(201).json({ id, message: 'Recipe created successfully' });
+    } catch (error) {
+        console.error('Error creating recipe:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Update recipe
-app.put('/recipes/:id', (req, res) => {
+app.put('/recipes/:id', async (req, res) => {
     const { name, category, servings, instructions, ingredients, tags } = req.body;
 
-    db.run(
-        'UPDATE recipes SET name = ?, category = ?, servings = ?, instructions = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [name, category, servings, instructions, req.params.id],
-        function(err) {
-            if (err) {
-                return res.status(500).json({ error: err.message });
+    try {
+        await db.transaction(async (client) => {
+            // Update recipe
+            await client.query(
+                'UPDATE recipes SET name = $1, category = $2, servings = $3, instructions = $4 WHERE id = $5',
+                [name, category, servings, instructions, req.params.id]
+            );
+
+            // Delete old ingredients and insert new ones
+            await client.query('DELETE FROM ingredients WHERE recipe_id = $1', [req.params.id]);
+
+            if (ingredients && ingredients.length > 0) {
+                for (const ing of ingredients) {
+                    await client.query(
+                        'INSERT INTO ingredients (recipe_id, name, amount, unit, category) VALUES ($1, $2, $3, $4, $5)',
+                        [req.params.id, ing.name, ing.amount, ing.unit, ing.category || 'Sonstiges']
+                    );
+                }
             }
 
-            // Delete old ingredients
-            db.run('DELETE FROM ingredients WHERE recipe_id = ?', [req.params.id], (err) => {
-                if (err) {
-                    return res.status(500).json({ error: err.message });
+            // Delete old tags and insert new ones
+            await client.query('DELETE FROM recipe_tags WHERE recipe_id = $1', [req.params.id]);
+
+            if (tags && tags.length > 0) {
+                for (const tag of tags) {
+                    await client.query(
+                        'INSERT INTO recipe_tags (recipe_id, tag) VALUES ($1, $2)',
+                        [req.params.id, tag]
+                    );
                 }
+            }
+        });
 
-                // Insert new ingredients
-                if (ingredients && ingredients.length > 0) {
-                    const stmt = db.prepare('INSERT INTO ingredients (recipe_id, name, amount, unit, category) VALUES (?, ?, ?, ?, ?)');
-                    ingredients.forEach(ing => {
-                        stmt.run(req.params.id, ing.name, ing.amount, ing.unit, ing.category || 'Sonstiges');
-                    });
-                    stmt.finalize();
-                }
-
-                // Delete old tags
-                db.run('DELETE FROM recipe_tags WHERE recipe_id = ?', [req.params.id], (err) => {
-                    if (err) {
-                        return res.status(500).json({ error: err.message });
-                    }
-
-                    // Insert new tags
-                    if (tags && tags.length > 0) {
-                        const stmt = db.prepare('INSERT INTO recipe_tags (recipe_id, tag) VALUES (?, ?)');
-                        tags.forEach(tag => {
-                            stmt.run(req.params.id, tag);
-                        });
-                        stmt.finalize();
-                    }
-
-                    res.json({ message: 'Recipe updated successfully' });
-                });
-            });
-        }
-    );
+        res.json({ message: 'Recipe updated successfully' });
+    } catch (error) {
+        console.error('Error updating recipe:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Delete recipe
-app.delete('/recipes/:id', (req, res) => {
-    db.run('DELETE FROM recipes WHERE id = ?', [req.params.id], function(err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+app.delete('/recipes/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM recipes WHERE id = $1', [req.params.id]);
         res.json({ message: 'Recipe deleted successfully' });
-    });
+    } catch (error) {
+        console.error('Error deleting recipe:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // ========== WEEK PLAN ENDPOINTS ==========
 
 // Get current week plan
-app.get('/weekplan', (req, res) => {
-    db.get('SELECT * FROM week_plans ORDER BY created_at DESC LIMIT 1', [], (err, weekPlan) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        if (!weekPlan) {
+app.get('/weekplan', async (req, res) => {
+    try {
+        const { rows: weekPlans } = await db.query(
+            'SELECT * FROM week_plans ORDER BY created_at DESC LIMIT 1'
+        );
+
+        if (weekPlans.length === 0) {
             return res.json(null);
         }
 
-        // Get days for this week plan
-        db.all('SELECT * FROM days WHERE week_plan_id = ? ORDER BY id', [weekPlan.id], (err, days) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
+        const weekPlan = weekPlans[0];
 
-            // Get meals for each day
-            const promises = days.map(day => {
-                return new Promise((resolve, reject) => {
-                    db.all(
-                        'SELECT * FROM meals WHERE day_id = ?',
-                        [day.id],
-                        (err, meals) => {
-                            if (err) reject(err);
-                            else {
-                                const mealsObj = {};
-                                meals.forEach(meal => {
-                                    mealsObj[meal.meal_type] = {
-                                        id: meal.id,
-                                        recipeId: meal.recipe_id,
-                                        recipeName: meal.recipe_name,
-                                        mealType: meal.meal_type
-                                    };
-                                });
-                                resolve({ ...day, meals: mealsObj });
-                            }
-                        }
-                    );
-                });
+        const { rows: days } = await db.query(
+            'SELECT * FROM days WHERE week_plan_id = $1 ORDER BY id',
+            [weekPlan.id]
+        );
+
+        const daysWithMeals = await Promise.all(days.map(async (day) => {
+            const { rows: meals } = await db.query(
+                'SELECT * FROM meals WHERE day_id = $1',
+                [day.id]
+            );
+
+            const mealsObj = {};
+            meals.forEach(meal => {
+                mealsObj[meal.meal_type] = {
+                    id: meal.id,
+                    recipeId: meal.recipe_id,
+                    recipeName: meal.recipe_name,
+                    mealType: meal.meal_type
+                };
             });
 
-            Promise.all(promises)
-                .then(daysWithMeals => {
-                    res.json({
-                        id: weekPlan.id,
-                        startDate: weekPlan.start_date,
-                        days: daysWithMeals.map(d => ({
-                            date: d.date,
-                            dayName: d.day_name,
-                            meals: d.meals
-                        }))
-                    });
-                })
-                .catch(err => res.status(500).json({ error: err.message }));
+            return { ...day, meals: mealsObj };
+        }));
+
+        res.json({
+            id: weekPlan.id,
+            startDate: weekPlan.start_date,
+            days: daysWithMeals.map(d => ({
+                date: d.date,
+                dayName: d.day_name,
+                meals: d.meals
+            }))
         });
-    });
+    } catch (error) {
+        console.error('Error fetching week plan:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Save week plan (supports multiple weeks)
-app.post('/weekplan', (req, res) => {
+app.post('/weekplan', async (req, res) => {
     const { id, startDate, days } = req.body;
 
-    // Delete existing week plan with the same ID (same week)
-    db.run('DELETE FROM week_plans WHERE id = ?', [id], (err) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+    try {
+        await db.transaction(async (client) => {
+            // Delete existing week plan with the same ID
+            await client.query('DELETE FROM week_plans WHERE id = $1', [id]);
 
-        // Insert new week plan
-        db.run(
-            'INSERT INTO week_plans (id, start_date) VALUES (?, ?)',
-            [id, startDate],
-            function(err) {
-                if (err) {
-                    return res.status(500).json({ error: err.message });
+            // Insert new week plan
+            await client.query(
+                'INSERT INTO week_plans (id, start_date) VALUES ($1, $2)',
+                [id, startDate]
+            );
+
+            // Insert days and meals
+            for (const day of days) {
+                const { rows } = await client.query(
+                    'INSERT INTO days (week_plan_id, date, day_name) VALUES ($1, $2, $3) RETURNING id',
+                    [id, day.date, day.dayName]
+                );
+
+                const dayId = rows[0].id;
+
+                // Insert meals for this day
+                for (const [mealType, meal] of Object.entries(day.meals || {})) {
+                    await client.query(
+                        'INSERT INTO meals (id, day_id, recipe_id, recipe_name, meal_type) VALUES ($1, $2, $3, $4, $5)',
+                        [meal.id, dayId, meal.recipeId, meal.recipeName, mealType]
+                    );
                 }
-
-                // Insert days
-                const dayStmt = db.prepare('INSERT INTO days (week_plan_id, date, day_name) VALUES (?, ?, ?)');
-                const mealStmt = db.prepare('INSERT INTO meals (id, day_id, recipe_id, recipe_name, meal_type) VALUES (?, ?, ?, ?, ?)');
-
-                db.serialize(() => {
-                    days.forEach(day => {
-                        dayStmt.run(id, day.date, day.dayName, function(err) {
-                            if (!err) {
-                                const dayId = this.lastID;
-                                Object.entries(day.meals || {}).forEach(([mealType, meal]) => {
-                                    mealStmt.run(meal.id, dayId, meal.recipeId, meal.recipeName, mealType);
-                                });
-                            }
-                        });
-                    });
-
-                    dayStmt.finalize();
-                    mealStmt.finalize();
-                });
-
-                res.status(201).json({ message: 'Week plan saved successfully' });
             }
-        );
-    });
+        });
+
+        res.status(201).json({ message: 'Week plan saved successfully' });
+    } catch (error) {
+        console.error('Error saving week plan:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Delete week plan
-app.delete('/weekplan', (req, res) => {
-    db.run('DELETE FROM week_plans', [], function(err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+app.delete('/weekplan', async (req, res) => {
+    try {
+        await db.query('DELETE FROM week_plans');
         res.json({ message: 'Week plan deleted successfully' });
-    });
+    } catch (error) {
+        console.error('Error deleting week plan:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Get week plan by date (finds week containing the given date)
-app.get('/weekplan/by-date/:date', (req, res) => {
-    const requestedDate = new Date(req.params.date);
+app.get('/weekplan/by-date/:date', async (req, res) => {
+    try {
+        const requestedDate = new Date(req.params.date);
 
-    // Calculate Monday of the requested week
-    const day = requestedDate.getDay();
-    const diff = requestedDate.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(requestedDate);
-    monday.setDate(diff);
-    monday.setHours(0, 0, 0, 0);
+        // Calculate Monday of the requested week
+        const day = requestedDate.getDay();
+        const diff = requestedDate.getDate() - day + (day === 0 ? -6 : 1);
+        const monday = new Date(requestedDate);
+        monday.setDate(diff);
+        monday.setHours(0, 0, 0, 0);
 
-    // Format as YYYY-MM-DD for comparison
-    const mondayStr = monday.toISOString().split('T')[0];
+        // Format as YYYY-MM-DD for comparison
+        const mondayStr = monday.toISOString().split('T')[0];
 
-    // Find week plan that starts on the requested Monday (compare date part only)
-    db.get(
-        `SELECT * FROM week_plans WHERE date(start_date) = date(?)`,
-        [mondayStr],
-        (err, weekPlan) => {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            if (!weekPlan) {
-                return res.status(404).json({ error: 'Week plan not found' });
-            }
+        const { rows: weekPlans } = await db.query(
+            'SELECT * FROM week_plans WHERE start_date::date = $1::date',
+            [mondayStr]
+        );
 
-            // Get days for this week plan
-            db.all('SELECT * FROM days WHERE week_plan_id = ? ORDER BY id', [weekPlan.id], (err, days) => {
-                if (err) {
-                    return res.status(500).json({ error: err.message });
-                }
-
-                // Get meals for each day
-                const promises = days.map(day => {
-                    return new Promise((resolve, reject) => {
-                        db.all(
-                            'SELECT * FROM meals WHERE day_id = ?',
-                            [day.id],
-                            (err, meals) => {
-                                if (err) reject(err);
-                                else {
-                                    const mealsObj = {};
-                                    meals.forEach(meal => {
-                                        mealsObj[meal.meal_type] = {
-                                            id: meal.id,
-                                            recipeId: meal.recipe_id,
-                                            recipeName: meal.recipe_name,
-                                            mealType: meal.meal_type
-                                        };
-                                    });
-                                    resolve({ ...day, meals: mealsObj });
-                                }
-                            }
-                        );
-                    });
-                });
-
-                Promise.all(promises)
-                    .then(daysWithMeals => {
-                        res.json({
-                            id: weekPlan.id,
-                            startDate: weekPlan.start_date,
-                            days: daysWithMeals.map(d => ({
-                                date: d.date,
-                                dayName: d.day_name,
-                                meals: d.meals
-                            }))
-                        });
-                    })
-                    .catch(err => res.status(500).json({ error: err.message }));
-            });
+        if (weekPlans.length === 0) {
+            return res.status(404).json({ error: 'Week plan not found' });
         }
-    );
+
+        const weekPlan = weekPlans[0];
+
+        const { rows: days } = await db.query(
+            'SELECT * FROM days WHERE week_plan_id = $1 ORDER BY id',
+            [weekPlan.id]
+        );
+
+        const daysWithMeals = await Promise.all(days.map(async (day) => {
+            const { rows: meals } = await db.query(
+                'SELECT * FROM meals WHERE day_id = $1',
+                [day.id]
+            );
+
+            const mealsObj = {};
+            meals.forEach(meal => {
+                mealsObj[meal.meal_type] = {
+                    id: meal.id,
+                    recipeId: meal.recipe_id,
+                    recipeName: meal.recipe_name,
+                    mealType: meal.meal_type
+                };
+            });
+
+            return { ...day, meals: mealsObj };
+        }));
+
+        res.json({
+            id: weekPlan.id,
+            startDate: weekPlan.start_date,
+            days: daysWithMeals.map(d => ({
+                date: d.date,
+                dayName: d.day_name,
+                meals: d.meals
+            }))
+        });
+    } catch (error) {
+        console.error('Error fetching week plan by date:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // ========== WEEK PLAN TEMPLATES ENDPOINTS ==========
 
 // Get all templates
-app.get('/weekplan/templates', (req, res) => {
-    db.all('SELECT * FROM week_plan_templates ORDER BY created_at DESC', [], (err, templates) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+app.get('/weekplan/templates', async (req, res) => {
+    try {
+        const { rows: templates } = await db.query(
+            'SELECT * FROM week_plan_templates ORDER BY created_at DESC'
+        );
 
-        // Parse template_data JSON for each template
         const parsedTemplates = templates.map(t => ({
             id: t.id,
             name: t.name,
             description: t.description,
-            templateData: JSON.parse(t.template_data),
+            templateData: t.template_data, // JSONB is automatically parsed
             createdAt: t.created_at,
             updatedAt: t.updated_at
         }));
 
         res.json(parsedTemplates);
-    });
+    } catch (error) {
+        console.error('Error fetching templates:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Get template by ID
-app.get('/weekplan/templates/:id', (req, res) => {
-    db.get('SELECT * FROM week_plan_templates WHERE id = ?', [req.params.id], (err, template) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        if (!template) {
+app.get('/weekplan/templates/:id', async (req, res) => {
+    try {
+        const { rows } = await db.query(
+            'SELECT * FROM week_plan_templates WHERE id = $1',
+            [req.params.id]
+        );
+
+        if (rows.length === 0) {
             return res.status(404).json({ error: 'Template not found' });
         }
 
+        const template = rows[0];
         res.json({
             id: template.id,
             name: template.name,
             description: template.description,
-            templateData: JSON.parse(template.template_data),
+            templateData: template.template_data,
             createdAt: template.created_at,
             updatedAt: template.updated_at
         });
-    });
+    } catch (error) {
+        console.error('Error fetching template:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Save template
-app.post('/weekplan/templates', (req, res) => {
+app.post('/weekplan/templates', async (req, res) => {
     const { id, name, description, templateData } = req.body;
 
     if (!name || !templateData) {
         return res.status(400).json({ error: 'Name and template data are required' });
     }
 
-    const templateDataJson = JSON.stringify(templateData);
+    try {
+        await db.query(
+            'INSERT INTO week_plan_templates (id, name, description, template_data) VALUES ($1, $2, $3, $4)',
+            [id, name, description || '', templateData] // JSONB handles objects directly
+        );
 
-    db.run(
-        'INSERT INTO week_plan_templates (id, name, description, template_data) VALUES (?, ?, ?, ?)',
-        [id, name, description || '', templateDataJson],
-        function(err) {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            res.status(201).json({
-                message: 'Template saved successfully',
-                id: id
-            });
-        }
-    );
+        res.status(201).json({
+            message: 'Template saved successfully',
+            id: id
+        });
+    } catch (error) {
+        console.error('Error saving template:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Update template
-app.put('/weekplan/templates/:id', (req, res) => {
+app.put('/weekplan/templates/:id', async (req, res) => {
     const { name, description, templateData } = req.body;
 
     if (!name || !templateData) {
         return res.status(400).json({ error: 'Name and template data are required' });
     }
 
-    const templateDataJson = JSON.stringify(templateData);
+    try {
+        const { rowCount } = await db.query(
+            'UPDATE week_plan_templates SET name = $1, description = $2, template_data = $3 WHERE id = $4',
+            [name, description || '', templateData, req.params.id]
+        );
 
-    db.run(
-        'UPDATE week_plan_templates SET name = ?, description = ?, template_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [name, description || '', templateDataJson, req.params.id],
-        function(err) {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            if (this.changes === 0) {
-                return res.status(404).json({ error: 'Template not found' });
-            }
-            res.json({ message: 'Template updated successfully' });
+        if (rowCount === 0) {
+            return res.status(404).json({ error: 'Template not found' });
         }
-    );
+
+        res.json({ message: 'Template updated successfully' });
+    } catch (error) {
+        console.error('Error updating template:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Delete template
-app.delete('/weekplan/templates/:id', (req, res) => {
-    db.run('DELETE FROM week_plan_templates WHERE id = ?', [req.params.id], function(err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        if (this.changes === 0) {
+app.delete('/weekplan/templates/:id', async (req, res) => {
+    try {
+        const { rowCount } = await db.query(
+            'DELETE FROM week_plan_templates WHERE id = $1',
+            [req.params.id]
+        );
+
+        if (rowCount === 0) {
             return res.status(404).json({ error: 'Template not found' });
         }
+
         res.json({ message: 'Template deleted successfully' });
-    });
+    } catch (error) {
+        console.error('Error deleting template:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // ========== MANUAL SHOPPING ITEMS ENDPOINTS ==========
 
 // Get all manual shopping items
-app.get('/shopping/manual', (req, res) => {
-    db.all('SELECT * FROM manual_shopping_items ORDER BY created_at DESC', [], (err, items) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json(items);
-    });
+app.get('/shopping/manual', async (req, res) => {
+    try {
+        const { rows } = await db.query(
+            'SELECT * FROM manual_shopping_items ORDER BY created_at DESC'
+        );
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching manual shopping items:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Add manual shopping item
-app.post('/shopping/manual', (req, res) => {
+app.post('/shopping/manual', async (req, res) => {
     const { id, name, amount, unit, category } = req.body;
 
     if (!name || !amount || !unit) {
         return res.status(400).json({ error: 'Name, amount and unit are required' });
     }
 
-    db.run(
-        'INSERT INTO manual_shopping_items (id, name, amount, unit, category) VALUES (?, ?, ?, ?, ?)',
-        [id, name, amount, unit, category || 'Sonstiges'],
-        function(err) {
-            if (err) {
-                return res.status(500).json({ error: err.message });
-            }
-            res.status(201).json({
-                message: 'Manual shopping item added successfully',
-                id: id
-            });
-        }
-    );
+    try {
+        await db.query(
+            'INSERT INTO manual_shopping_items (id, name, amount, unit, category) VALUES ($1, $2, $3, $4, $5)',
+            [id, name, amount, unit, category || 'Sonstiges']
+        );
+
+        res.status(201).json({
+            message: 'Manual shopping item added successfully',
+            id: id
+        });
+    } catch (error) {
+        console.error('Error adding manual shopping item:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Delete manual shopping item
-app.delete('/shopping/manual/:id', (req, res) => {
-    db.run('DELETE FROM manual_shopping_items WHERE id = ?', [req.params.id], function(err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        if (this.changes === 0) {
+app.delete('/shopping/manual/:id', async (req, res) => {
+    try {
+        const { rowCount } = await db.query(
+            'DELETE FROM manual_shopping_items WHERE id = $1',
+            [req.params.id]
+        );
+
+        if (rowCount === 0) {
             return res.status(404).json({ error: 'Item not found' });
         }
+
         res.json({ message: 'Manual shopping item deleted successfully' });
-    });
+    } catch (error) {
+        console.error('Error deleting manual shopping item:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Delete all manual shopping items
-app.delete('/shopping/manual', (req, res) => {
-    db.run('DELETE FROM manual_shopping_items', [], function(err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
+app.delete('/shopping/manual', async (req, res) => {
+    try {
+        await db.query('DELETE FROM manual_shopping_items');
         res.json({ message: 'All manual shopping items deleted successfully' });
-    });
+    } catch (error) {
+        console.error('Error deleting all manual shopping items:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'OK', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+    try {
+        await db.query('SELECT 1');
+        res.json({ status: 'OK', database: 'connected', timestamp: new Date().toISOString() });
+    } catch (error) {
+        res.status(503).json({ status: 'ERROR', database: 'disconnected', timestamp: new Date().toISOString() });
+    }
 });
 
 // ========== AI ENDPOINTS ==========
@@ -1283,12 +1163,14 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
     console.log('SIGTERM received, closing database...');
-    db.close((err) => {
-        if (err) {
-            console.error('Error closing database:', err);
-        }
-        process.exit(0);
-    });
+    await db.close();
+    process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+    console.log('SIGINT received, closing database...');
+    await db.close();
+    process.exit(0);
 });
