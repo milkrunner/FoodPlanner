@@ -877,87 +877,98 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
     }
 });
 
-// URL validation to prevent SSRF attacks
+// Allowlist of trusted recipe domains to prevent SSRF attacks
+const ALLOWED_RECIPE_DOMAINS = [
+    'chefkoch.de',
+    'www.chefkoch.de',
+    'eatsmarter.de',
+    'www.eatsmarter.de',
+    'lecker.de',
+    'www.lecker.de',
+    'gutekueche.at',
+    'www.gutekueche.at',
+    'kochbar.de',
+    'www.kochbar.de',
+    'rezeptwelt.de',
+    'www.rezeptwelt.de',
+    'kitchenstories.com',
+    'www.kitchenstories.com',
+    'allrecipes.com',
+    'www.allrecipes.com',
+    'bbcgoodfood.com',
+    'www.bbcgoodfood.com',
+    'seriouseats.com',
+    'www.seriouseats.com',
+    'food.com',
+    'www.food.com',
+    'epicurious.com',
+    'www.epicurious.com',
+    'bonappetit.com',
+    'www.bonappetit.com',
+    'delish.com',
+    'www.delish.com',
+    'tasty.co',
+    'www.tasty.co',
+    'simplyrecipes.com',
+    'www.simplyrecipes.com',
+    'foodnetwork.com',
+    'www.foodnetwork.com'
+];
+
+// URL validation to prevent SSRF attacks - only allows trusted recipe domains
 function validateUrl(urlString) {
+    let url;
     try {
-        const url = new URL(urlString);
-
-        // Only allow http and https protocols
-        if (!['http:', 'https:'].includes(url.protocol)) {
-            throw new Error('Only HTTP and HTTPS protocols are allowed');
-        }
-
-        // Block localhost and loopback addresses
-        const hostname = url.hostname.toLowerCase();
-        const blockedHosts = [
-            'localhost',
-            '127.0.0.1',
-            '0.0.0.0',
-            '::1',
-            '[::1]'
-        ];
-
-        if (blockedHosts.includes(hostname)) {
-            throw new Error('Access to localhost is not allowed');
-        }
-
-        // Block private IP ranges
-        const ipv4Pattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-        const match = hostname.match(ipv4Pattern);
-        if (match) {
-            const [, a, b, c, d] = match.map(Number);
-            // 10.0.0.0/8
-            if (a === 10) {
-                throw new Error('Access to private networks is not allowed');
-            }
-            // 172.16.0.0/12
-            if (a === 172 && b >= 16 && b <= 31) {
-                throw new Error('Access to private networks is not allowed');
-            }
-            // 192.168.0.0/16
-            if (a === 192 && b === 168) {
-                throw new Error('Access to private networks is not allowed');
-            }
-            // 169.254.0.0/16 (link-local)
-            if (a === 169 && b === 254) {
-                throw new Error('Access to link-local addresses is not allowed');
-            }
-        }
-
-        // Block internal hostnames
-        if (hostname.endsWith('.local') || hostname.endsWith('.internal') || hostname.endsWith('.localhost')) {
-            throw new Error('Access to internal hostnames is not allowed');
-        }
-
-        return url.toString();
-    } catch (error) {
-        if (error.message.startsWith('Access to') || error.message.startsWith('Only HTTP')) {
-            throw error;
-        }
+        url = new URL(urlString);
+    } catch {
         throw new Error('Invalid URL format');
     }
+
+    // Only allow http and https protocols
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        throw new Error('Only HTTP and HTTPS protocols are allowed');
+    }
+
+    // Check against allowlist of trusted domains
+    const hostname = url.hostname.toLowerCase();
+    if (!ALLOWED_RECIPE_DOMAINS.includes(hostname)) {
+        throw new Error(
+            `Domain "${hostname}" is not in the list of allowed recipe websites. ` +
+            `Allowed domains: ${ALLOWED_RECIPE_DOMAINS.filter(d => !d.startsWith('www.')).join(', ')}`
+        );
+    }
+
+    return url.href;
 }
 
 // Helper function to fetch and extract text from URL
-async function fetchRecipeFromUrl(url) {
-    // Validate URL to prevent SSRF
-    const validatedUrl = validateUrl(url);
+async function fetchRecipeFromUrl(userProvidedUrl) {
+    // Validate URL against allowlist - throws error if domain not allowed
+    const safeUrl = validateUrl(userProvidedUrl);
+
+    // Build a new URL from validated components to ensure safety
+    const urlObj = new URL(safeUrl);
+    const fetchUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}${urlObj.search}`;
 
     try {
-        const response = await fetch(validatedUrl, {
+        const response = await fetch(fetchUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             },
-            redirect: 'manual' // Don't follow redirects automatically to prevent SSRF via redirects
+            redirect: 'manual'
         });
 
-        // Handle redirects safely
+        // Handle redirects safely - only follow if redirect stays on allowed domains
         if (response.status >= 300 && response.status < 400) {
-            const redirectUrl = response.headers.get('location');
-            if (redirectUrl) {
-                // Validate the redirect URL as well
-                const validatedRedirect = validateUrl(new URL(redirectUrl, validatedUrl).toString());
-                const redirectResponse = await fetch(validatedRedirect, {
+            const redirectLocation = response.headers.get('location');
+            if (redirectLocation) {
+                const redirectUrl = new URL(redirectLocation, fetchUrl);
+                // Validate redirect URL against allowlist
+                const safeRedirectUrl = validateUrl(redirectUrl.href);
+                const redirectUrlObj = new URL(safeRedirectUrl);
+                const fetchRedirectUrl = `${redirectUrlObj.protocol}//${redirectUrlObj.host}${redirectUrlObj.pathname}${redirectUrlObj.search}`;
+
+                const redirectResponse = await fetch(fetchRedirectUrl, {
                     headers: {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                     },
