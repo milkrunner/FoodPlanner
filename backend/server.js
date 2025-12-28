@@ -66,7 +66,7 @@ const aiLimiter = rateLimit({
 });
 
 // Apply general rate limiter to all API routes
-app.use('/api/', generalLimiter);
+app.use(generalLimiter);
 
 // Note: AI rate limiter is applied directly to specific AI endpoints below
 // AI endpoints have their own stricter rate limits (20 req/15min vs 100 req/15min for general API)
