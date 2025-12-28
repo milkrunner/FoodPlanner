@@ -432,12 +432,12 @@ app.get('/weekplan', (req, res) => {
     });
 });
 
-// Save week plan
+// Save week plan (supports multiple weeks)
 app.post('/weekplan', (req, res) => {
     const { id, startDate, days } = req.body;
 
-    // Delete existing week plan
-    db.run('DELETE FROM week_plans', [], (err) => {
+    // Delete existing week plan with the same ID (same week)
+    db.run('DELETE FROM week_plans WHERE id = ?', [id], (err) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -485,6 +485,81 @@ app.delete('/weekplan', (req, res) => {
         }
         res.json({ message: 'Week plan deleted successfully' });
     });
+});
+
+// Get week plan by date (finds week containing the given date)
+app.get('/weekplan/by-date/:date', (req, res) => {
+    const requestedDate = new Date(req.params.date);
+
+    // Calculate Monday of the requested week
+    const day = requestedDate.getDay();
+    const diff = requestedDate.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(requestedDate);
+    monday.setDate(diff);
+    monday.setHours(0, 0, 0, 0);
+
+    // Format as YYYY-MM-DD for comparison
+    const mondayStr = monday.toISOString().split('T')[0];
+
+    // Find week plan that starts on the requested Monday (compare date part only)
+    db.get(
+        `SELECT * FROM week_plans WHERE date(start_date) = date(?)`,
+        [mondayStr],
+        (err, weekPlan) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            if (!weekPlan) {
+                return res.status(404).json({ error: 'Week plan not found' });
+            }
+
+            // Get days for this week plan
+            db.all('SELECT * FROM days WHERE week_plan_id = ? ORDER BY id', [weekPlan.id], (err, days) => {
+                if (err) {
+                    return res.status(500).json({ error: err.message });
+                }
+
+                // Get meals for each day
+                const promises = days.map(day => {
+                    return new Promise((resolve, reject) => {
+                        db.all(
+                            'SELECT * FROM meals WHERE day_id = ?',
+                            [day.id],
+                            (err, meals) => {
+                                if (err) reject(err);
+                                else {
+                                    const mealsObj = {};
+                                    meals.forEach(meal => {
+                                        mealsObj[meal.meal_type] = {
+                                            id: meal.id,
+                                            recipeId: meal.recipe_id,
+                                            recipeName: meal.recipe_name,
+                                            mealType: meal.meal_type
+                                        };
+                                    });
+                                    resolve({ ...day, meals: mealsObj });
+                                }
+                            }
+                        );
+                    });
+                });
+
+                Promise.all(promises)
+                    .then(daysWithMeals => {
+                        res.json({
+                            id: weekPlan.id,
+                            startDate: weekPlan.start_date,
+                            days: daysWithMeals.map(d => ({
+                                date: d.date,
+                                dayName: d.day_name,
+                                meals: d.meals
+                            }))
+                        });
+                    })
+                    .catch(err => res.status(500).json({ error: err.message }));
+            });
+        }
+    );
 });
 
 // ========== WEEK PLAN TEMPLATES ENDPOINTS ==========
