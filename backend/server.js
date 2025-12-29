@@ -612,6 +612,155 @@ app.get('/health', async (req, res) => {
     }
 });
 
+// ========== COOKING HISTORY ENDPOINTS ==========
+
+// Get cooking history (paginated)
+app.get('/cooking-history', async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 50;
+        const offset = parseInt(req.query.offset) || 0;
+
+        const { rows } = await db.query(`
+            SELECT ch.id, ch.recipe_id, ch.cooked_at, ch.servings, ch.notes,
+                   r.name as recipe_name, r.category as recipe_category
+            FROM cooking_history ch
+            LEFT JOIN recipes r ON ch.recipe_id = r.id
+            ORDER BY ch.cooked_at DESC
+            LIMIT $1 OFFSET $2
+        `, [limit, offset]);
+
+        const { rows: countResult } = await db.query('SELECT COUNT(*) FROM cooking_history');
+        const total = parseInt(countResult[0].count);
+
+        res.json({
+            entries: rows,
+            total,
+            limit,
+            offset
+        });
+    } catch (error) {
+        console.error('Error fetching cooking history:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get cooking stats for all recipes
+app.get('/cooking-history/stats', async (req, res) => {
+    try {
+        const { rows } = await db.query(`
+            SELECT
+                r.id as recipe_id,
+                r.name as recipe_name,
+                COUNT(ch.id) as times_cooked,
+                MAX(ch.cooked_at) as last_cooked_at
+            FROM recipes r
+            LEFT JOIN cooking_history ch ON r.id = ch.recipe_id
+            GROUP BY r.id, r.name
+            ORDER BY times_cooked DESC, r.name ASC
+        `);
+
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching cooking stats:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get cooking history for a specific recipe
+app.get('/cooking-history/recipe/:recipeId', async (req, res) => {
+    try {
+        const { rows } = await db.query(`
+            SELECT id, recipe_id, cooked_at, servings, notes
+            FROM cooking_history
+            WHERE recipe_id = $1
+            ORDER BY cooked_at DESC
+        `, [req.params.recipeId]);
+
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching recipe cooking history:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Mark recipe as cooked
+app.post('/cooking-history', async (req, res) => {
+    const { recipeId, servings, notes } = req.body;
+
+    if (!recipeId) {
+        return res.status(400).json({ error: 'Recipe ID is required' });
+    }
+
+    try {
+        // Verify recipe exists
+        const { rows: recipeCheck } = await db.query(
+            'SELECT id, name FROM recipes WHERE id = $1',
+            [recipeId]
+        );
+
+        if (recipeCheck.length === 0) {
+            return res.status(404).json({ error: 'Recipe not found' });
+        }
+
+        const { rows } = await db.query(`
+            INSERT INTO cooking_history (recipe_id, servings, notes)
+            VALUES ($1, $2, $3)
+            RETURNING id, recipe_id, cooked_at, servings, notes
+        `, [recipeId, servings || null, notes || null]);
+
+        res.status(201).json({
+            ...rows[0],
+            recipe_name: recipeCheck[0].name
+        });
+    } catch (error) {
+        console.error('Error marking recipe as cooked:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete cooking history entry
+app.delete('/cooking-history/:id', async (req, res) => {
+    try {
+        const { rowCount } = await db.query(
+            'DELETE FROM cooking_history WHERE id = $1',
+            [req.params.id]
+        );
+
+        if (rowCount === 0) {
+            return res.status(404).json({ error: 'Entry not found' });
+        }
+
+        res.json({ message: 'Entry deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting cooking history entry:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get recipes that haven't been cooked recently
+app.get('/cooking-history/not-cooked-recently', async (req, res) => {
+    try {
+        const days = parseInt(req.query.days) || 30;
+
+        const { rows } = await db.query(`
+            SELECT r.id, r.name, r.category,
+                   MAX(ch.cooked_at) as last_cooked_at,
+                   COUNT(ch.id) as times_cooked
+            FROM recipes r
+            LEFT JOIN cooking_history ch ON r.id = ch.recipe_id
+            GROUP BY r.id, r.name, r.category
+            HAVING MAX(ch.cooked_at) IS NULL
+               OR MAX(ch.cooked_at) < CURRENT_TIMESTAMP - INTERVAL '1 day' * $1
+            ORDER BY last_cooked_at ASC NULLS FIRST, r.name ASC
+        `, [days]);
+
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching not recently cooked recipes:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ========== AI ENDPOINTS ==========
 
 // Generate recipes from ingredients
