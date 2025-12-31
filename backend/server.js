@@ -1517,17 +1517,17 @@ Regeln:
 
 // ========== VIDEO RECIPE PARSER ==========
 
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// Supported video platforms
+// Supported video platforms with strict URL patterns
 const VIDEO_PLATFORMS = {
-    tiktok: /tiktok\.com/i,
-    instagram: /instagram\.com\/reel|instagram\.com\/p/i,
-    pinterest: /pinterest\.(com|de)\/pin/i,
-    youtube: /youtube\.com\/shorts|youtu\.be/i
+    tiktok: /^https?:\/\/(www\.|vm\.)?tiktok\.com\//i,
+    instagram: /^https?:\/\/(www\.)?instagram\.com\/(reel|p)\//i,
+    pinterest: /^https?:\/\/(www\.)?pinterest\.(com|de)\/pin\//i,
+    youtube: /^https?:\/\/(www\.)?(youtube\.com\/shorts|youtu\.be)\//i
 };
 
 // Check if URL is a supported video platform
@@ -1535,12 +1535,50 @@ function isVideoUrl(url) {
     return Object.values(VIDEO_PLATFORMS).some(regex => regex.test(url));
 }
 
-// Download video using yt-dlp
+// Validate and sanitize URL to prevent command injection
+function sanitizeVideoUrl(url) {
+    // Must be a valid URL
+    let parsed;
+    try {
+        parsed = new URL(url);
+    } catch {
+        return null;
+    }
+
+    // Must be http or https
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return null;
+    }
+
+    // Must match one of our supported platforms
+    if (!isVideoUrl(url)) {
+        return null;
+    }
+
+    // Return the sanitized URL (reconstructed from parsed components)
+    return parsed.href;
+}
+
+// Download video using yt-dlp (using execFile to prevent command injection)
 function downloadVideo(url, outputPath) {
     return new Promise((resolve, reject) => {
-        const command = `yt-dlp -f "best[ext=mp4]/best" --no-playlist --max-filesize 50M -o "${outputPath}" "${url}"`;
+        // Validate URL before executing
+        const sanitizedUrl = sanitizeVideoUrl(url);
+        if (!sanitizedUrl) {
+            reject(new Error('Invalid or unsupported video URL'));
+            return;
+        }
 
-        exec(command, { timeout: 120000 }, (error, stdout, stderr) => {
+        // Use execFile with arguments array to prevent shell injection
+        const args = [
+            '-f', 'best[ext=mp4]/best',
+            '--no-playlist',
+            '--max-filesize', '50M',
+            '-o', outputPath,
+            sanitizedUrl
+        ];
+
+        execFile('yt-dlp', args, { timeout: 120000 }, (error, stdout, stderr) => {
             if (error) {
                 console.error('yt-dlp error:', stderr);
                 reject(new Error(`Video download failed: ${error.message}`));
