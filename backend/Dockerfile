@@ -1,16 +1,19 @@
 # Backend Dockerfile - Node.js API
 FROM node:20-alpine
 
+# Install system dependencies for video processing
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    ffmpeg \
+    ca-certificates \
+    && update-ca-certificates \
+    && pip3 install --break-system-packages yt-dlp
+
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install --production
-
-# Copy application files
+# Copy all application files (node_modules mounted via volume)
 COPY . .
 
 # Expose port
