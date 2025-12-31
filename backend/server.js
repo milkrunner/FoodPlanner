@@ -1515,6 +1515,243 @@ Regeln:
     }
 });
 
+// ========== VIDEO RECIPE PARSER ==========
+
+const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+// Supported video platforms
+const VIDEO_PLATFORMS = {
+    tiktok: /tiktok\.com/i,
+    instagram: /instagram\.com\/reel|instagram\.com\/p/i,
+    pinterest: /pinterest\.(com|de)\/pin/i,
+    youtube: /youtube\.com\/shorts|youtu\.be/i
+};
+
+// Check if URL is a supported video platform
+function isVideoUrl(url) {
+    return Object.values(VIDEO_PLATFORMS).some(regex => regex.test(url));
+}
+
+// Download video using yt-dlp
+function downloadVideo(url, outputPath) {
+    return new Promise((resolve, reject) => {
+        const command = `yt-dlp -f "best[ext=mp4]/best" --no-playlist --max-filesize 50M -o "${outputPath}" "${url}"`;
+
+        exec(command, { timeout: 120000 }, (error, stdout, stderr) => {
+            if (error) {
+                console.error('yt-dlp error:', stderr);
+                reject(new Error(`Video download failed: ${error.message}`));
+                return;
+            }
+            resolve(outputPath);
+        });
+    });
+}
+
+// Clean up temporary files
+function cleanupTempFiles(filePath) {
+    try {
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+    } catch (e) {
+        console.error('Cleanup error:', e);
+    }
+}
+
+// Parse video recipe using Gemini
+app.post('/ai/parse-video-recipe', aiLimiter, async (req, res) => {
+    if (!genAI) {
+        return res.status(503).json({
+            error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
+        });
+    }
+
+    const { url, acceptDisclaimer } = req.body;
+
+    if (!url || !url.trim()) {
+        return res.status(400).json({
+            error: 'Video URL is required'
+        });
+    }
+
+    if (!acceptDisclaimer) {
+        return res.status(400).json({
+            error: 'You must accept the disclaimer to use this feature',
+            requiresDisclaimer: true
+        });
+    }
+
+    const videoUrl = url.trim();
+
+    // Validate URL is from supported platform
+    if (!isVideoUrl(videoUrl)) {
+        return res.status(400).json({
+            error: 'Unsupported video platform',
+            hint: 'Supported platforms: TikTok, Instagram Reels, Pinterest, YouTube Shorts',
+            supportedPlatforms: Object.keys(VIDEO_PLATFORMS)
+        });
+    }
+
+    const tempDir = os.tmpdir();
+    const videoId = Date.now().toString();
+    const videoPath = path.join(tempDir, `recipe_video_${videoId}.mp4`);
+
+    try {
+        console.log(`Downloading video from: ${videoUrl}`);
+
+        // Download the video
+        await downloadVideo(videoUrl, videoPath);
+
+        if (!fs.existsSync(videoPath)) {
+            throw new Error('Video download failed - file not found');
+        }
+
+        const videoStats = fs.statSync(videoPath);
+        console.log(`Video downloaded: ${(videoStats.size / 1024 / 1024).toFixed(2)} MB`);
+
+        // Check file size (Gemini limit is ~20MB for inline, we use File API for larger)
+        if (videoStats.size > 20 * 1024 * 1024) {
+            cleanupTempFiles(videoPath);
+            return res.status(400).json({
+                error: 'Video file too large. Maximum size is 20MB.',
+                hint: 'Try a shorter video or lower quality.'
+            });
+        }
+
+        // Read video file as base64
+        const videoBuffer = fs.readFileSync(videoPath);
+        const videoBase64 = videoBuffer.toString('base64');
+
+        // Use Gemini with video
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const prompt = `Du bist ein intelligenter Rezept-Extraktor für Kochvideos. Analysiere dieses Video und extrahiere das gezeigte Rezept.
+
+Achte besonders auf:
+- Gesprochene Anweisungen und Zutatenlisten
+- Sichtbare Zutaten und Mengenangaben
+- Zubereitungsschritte die gezeigt oder erklärt werden
+- Text-Overlays mit Rezeptinformationen
+
+WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format:
+
+{
+    "name": "Rezeptname (aus dem Video oder passend zum Gericht)",
+    "category": "Kategorie (Hauptgericht, Suppe, Salat, Dessert, Vorspeise, Beilage, Snack, Getränk)",
+    "servings": 4,
+    "prepTime": "15 Min",
+    "cookTime": "30 Min",
+    "difficulty": "Einfach|Mittel|Schwer",
+    "ingredients": [
+        {
+            "name": "Zutatname",
+            "amount": "200",
+            "unit": "g",
+            "category": "Obst & Gemüse|Milchprodukte|Fleisch & Fisch|Trockenwaren|Tiefkühl|Sonstiges"
+        }
+    ],
+    "instructions": "Schritt 1: ... \\n\\nSchritt 2: ...",
+    "tips": "Optionale Tipps aus dem Video",
+    "sourceNote": "Kurze Beschreibung des Videos (z.B. 'TikTok Rezept von @username')"
+}
+
+Regeln:
+- Extrahiere so viele Details wie möglich aus Audio UND Bild
+- Wenn Mengen nicht genannt werden, schätze sinnvolle Standardwerte
+- Strukturiere die Anleitung in klare, nummerierte Schritte
+- Erkenne die Sprache des Videos und übersetze bei Bedarf ins Deutsche
+- Bei unklaren Informationen, nutze dein Kochwissen für plausible Werte`;
+
+        const result = await model.generateContent([
+            { text: prompt },
+            {
+                inlineData: {
+                    mimeType: 'video/mp4',
+                    data: videoBase64
+                }
+            }
+        ]);
+
+        // Clean up video file
+        cleanupTempFiles(videoPath);
+
+        const response = result.response;
+        let jsonText = response.text().trim();
+
+        console.log('Video AI Response:', jsonText.substring(0, 500) + '...');
+
+        // Remove markdown code blocks if present
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '').trim();
+        }
+
+        // Parse the JSON
+        let recipe;
+        try {
+            recipe = JSON.parse(jsonText);
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            return res.status(500).json({
+                error: 'Failed to parse AI response as JSON',
+                details: parseError.message,
+                hint: 'The video might not contain a clear recipe.'
+            });
+        }
+
+        // Validate required fields
+        if (!recipe.name || !recipe.ingredients || recipe.ingredients.length === 0) {
+            return res.status(400).json({
+                error: 'Could not extract a complete recipe from this video',
+                hint: 'Make sure the video clearly shows or explains a recipe.',
+                parsedData: recipe
+            });
+        }
+
+        // Ensure all required fields have defaults
+        recipe.id = Date.now().toString();
+        recipe.category = recipe.category || 'Hauptgericht';
+        recipe.servings = recipe.servings || 4;
+        recipe.instructions = recipe.instructions || '';
+        recipe.sourceUrl = videoUrl;
+
+        // Validate ingredients
+        recipe.ingredients = recipe.ingredients.map(ing => ({
+            name: ing.name || '',
+            amount: ing.amount || '1',
+            unit: ing.unit || 'x',
+            category: ing.category || 'Sonstiges'
+        }));
+
+        res.json({
+            recipe,
+            source: 'video-parsed',
+            platform: Object.keys(VIDEO_PLATFORMS).find(p => VIDEO_PLATFORMS[p].test(videoUrl)) || 'unknown'
+        });
+
+    } catch (error) {
+        // Clean up on error
+        cleanupTempFiles(videoPath);
+
+        console.error('Video recipe parsing error:', error);
+        res.status(500).json({
+            error: 'Failed to parse video recipe',
+            details: error.message
+        });
+    }
+});
+
+// Get supported video platforms
+app.get('/ai/video-platforms', (req, res) => {
+    res.json({
+        platforms: Object.keys(VIDEO_PLATFORMS),
+        disclaimer: 'Dieses Feature ist nur für Videos gedacht, zu deren Nutzung du berechtigt bist. Die Originalvideos werden nicht gespeichert. Bitte respektiere die Urheberrechte der Content-Creator.'
+    });
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Food Planner Backend running on port ${PORT}`);
