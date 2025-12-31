@@ -690,10 +690,10 @@ const App = {
         const tabs = [
             { id: 'planner', label: 'Wochenplan' },
             { id: 'recipes', label: 'Rezepte' },
-            { id: 'ai-recipes', label: '🤖 KI Rezepte' },
-            { id: 'parser', label: '📝 Parser' },
+            { id: 'ai-recipes', label: 'KI Rezepte' },
+            { id: 'parser', label: 'Rezepte Parser' },
             { id: 'shopping', label: 'Einkaufsliste' },
-            { id: 'history', label: 'Verlauf' }
+            { id: 'history', label: 'Kochverlauf' }
         ];
 
         return `
@@ -2453,7 +2453,7 @@ const AIRecipeGeneratorView = {
         return `
             <div class="space-y-6">
                 <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
-                    <h2 class="text-3xl font-bold mb-2">🤖 KI Rezept-Generator</h2>
+                    <h2 class="text-3xl font-bold mb-2">KI Rezept-Generator</h2>
                     <p class="text-blue-100">Gib deine verfügbaren Zutaten ein und lass die KI kreative Rezepte für dich generieren!</p>
                 </div>
 
@@ -2883,6 +2883,16 @@ const RecipeParserView = {
 const ShoppingListView = {
     shoppingList: [],
     collapsedCategories: new Set(),
+    budget: null,
+    budgetAmount: 50,
+    optimizationResult: null,
+    isOptimizing: false,
+    showOptimizationModal: false,
+    preferences: {
+        prioritizeSeasonal: false,
+        prioritizeOrganic: false,
+        avoidBrands: true
+    },
 
     render() {
         this.generateShoppingList();
@@ -2950,11 +2960,17 @@ const ShoppingListView = {
                     </div>
                 </div>
 
+                <!-- Budget Panel -->
+                ${this.renderBudgetPanel()}
+
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
                     <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                         <div class="bg-green-500 dark:bg-green-600 h-3 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
                     </div>
                 </div>
+
+                <!-- Optimization Result -->
+                ${this.optimizationResult ? this.renderOptimizationResult() : ''}
 
                 ${this.renderCategorizedList()}
 
@@ -2966,6 +2982,213 @@ const ShoppingListView = {
                 </div>
 
                 ${this.renderAddManualItemModal()}
+                ${this.renderOptimizationModal()}
+            </div>
+        `;
+    },
+
+    renderBudgetPanel() {
+        return `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-lg font-semibold text-gray-800 dark:text-white">Budget</span>
+                            <span id="budget-display" class="text-2xl font-bold text-green-600 dark:text-green-400">${this.budgetAmount} €</span>
+                        </div>
+                        <input type="range" id="budget-slider"
+                               min="10" max="200" step="5" value="${this.budgetAmount}"
+                               class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500">
+                        <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <span>10 €</span>
+                            <span>200 €</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="pref-seasonal" ${this.preferences.prioritizeSeasonal ? 'checked' : ''}
+                                   class="w-4 h-4 accent-green-500 cursor-pointer">
+                            <label for="pref-seasonal" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">Saisonal bevorzugen</label>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="pref-brands" ${this.preferences.avoidBrands ? 'checked' : ''}
+                                   class="w-4 h-4 accent-green-500 cursor-pointer">
+                            <label for="pref-brands" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">Eigenmarken bevorzugen</label>
+                        </div>
+                    </div>
+
+                    <button id="optimize-shopping-btn"
+                            class="px-6 py-3 bg-purple-500 dark:bg-purple-600 text-white rounded-lg hover:bg-purple-600 dark:hover:bg-purple-700 transition-colors flex items-center gap-2 font-medium ${this.isOptimizing ? 'opacity-50 cursor-not-allowed' : ''}"
+                            ${this.isOptimizing ? 'disabled' : ''}>
+                        ${this.isOptimizing ? `
+                            <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Optimiere...
+                        ` : `
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            KI-Optimierung
+                        `}
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    renderOptimizationResult() {
+        const result = this.optimizationResult;
+        const savings = result.originalEstimate - result.optimizedEstimate;
+
+        return `
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 transition-colors duration-200">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-semibold text-green-800 dark:text-green-300 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Optimierungsvorschläge
+                    </h3>
+                    <button id="close-optimization-result" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Originalkosten</p>
+                        <p class="text-xl font-bold text-gray-700 dark:text-gray-300">${result.originalEstimate?.toFixed(2) || '?'} €</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Optimiert</p>
+                        <p class="text-xl font-bold text-green-600 dark:text-green-400">${result.optimizedEstimate?.toFixed(2) || '?'} €</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Ersparnis</p>
+                        <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400">${savings?.toFixed(2) || '?'} € (${result.savingsPercent || 0}%)</p>
+                    </div>
+                </div>
+
+                ${result.substitutions && result.substitutions.length > 0 ? `
+                    <div class="mb-4">
+                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ersatz-Vorschläge:</h4>
+                        <div class="space-y-2">
+                            ${result.substitutions.slice(0, 3).map(sub => `
+                                <div class="flex items-center justify-between bg-white dark:bg-gray-800 rounded p-2 text-sm">
+                                    <span class="text-gray-600 dark:text-gray-400">
+                                        <span class="line-through">${escapeHtml(sub.original)}</span>
+                                        → <span class="text-green-600 dark:text-green-400 font-medium">${escapeHtml(sub.substitute)}</span>
+                                    </span>
+                                    <span class="text-green-600 dark:text-green-400 text-xs">-${sub.savingsPercent}%</span>
+                                </div>
+                            `).join('')}
+                            ${result.substitutions.length > 3 ? `
+                                <button id="show-all-substitutions" class="text-purple-600 dark:text-purple-400 text-sm hover:underline">
+                                    + ${result.substitutions.length - 3} weitere anzeigen
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${result.generalTips && result.generalTips.length > 0 ? `
+                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                        <strong>Tipps:</strong> ${escapeHtml(result.generalTips[0])}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    renderOptimizationModal() {
+        if (!this.showOptimizationModal || !this.optimizationResult) return '';
+
+        const result = this.optimizationResult;
+
+        return `
+            <div id="optimization-modal" class="modal active">
+                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Alle Optimierungsvorschläge</h3>
+                        <button id="close-optimization-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                            ✕
+                        </button>
+                    </div>
+
+                    ${result.substitutions && result.substitutions.length > 0 ? `
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Ersatz-Vorschläge</h4>
+                            <div class="space-y-3">
+                                ${result.substitutions.map(sub => `
+                                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <span class="font-medium text-gray-800 dark:text-white">
+                                                ${escapeHtml(sub.original)} → ${escapeHtml(sub.substitute)}
+                                            </span>
+                                            <span class="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-2 py-1 rounded text-sm">
+                                                -${sub.savingsPercent}%
+                                            </span>
+                                        </div>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">${escapeHtml(sub.reason)}</p>
+                                        <button class="save-substitution-btn mt-2 text-sm text-purple-600 dark:text-purple-400 hover:underline"
+                                                data-original="${escapeHtml(sub.original)}"
+                                                data-substitute="${escapeHtml(sub.substitute)}"
+                                                data-reason="${escapeHtml(sub.reason)}"
+                                                data-savings="${sub.savingsPercent}">
+                                            Für zukünftige Einkäufe merken
+                                        </button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${result.seasonalTips && result.seasonalTips.length > 0 ? `
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Saisonale Tipps</h4>
+                            <div class="space-y-2">
+                                ${result.seasonalTips.map(tip => `
+                                    <div class="flex items-center gap-2 text-sm">
+                                        <span class="${tip.isInSeason ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}">
+                                            ${tip.isInSeason ? '✓' : '⚠'}
+                                        </span>
+                                        <span class="font-medium text-gray-700 dark:text-gray-300">${escapeHtml(tip.ingredient)}:</span>
+                                        <span class="text-gray-600 dark:text-gray-400">${escapeHtml(tip.tip)}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${result.quantityTips && result.quantityTips.length > 0 ? `
+                        <div class="mb-6">
+                            <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Mengen-Optimierung</h4>
+                            <div class="space-y-2">
+                                ${result.quantityTips.map(tip => `
+                                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded p-2 text-sm">
+                                        <span class="font-medium text-blue-800 dark:text-blue-300">${escapeHtml(tip.ingredient)}:</span>
+                                        <span class="text-blue-700 dark:text-blue-400">${escapeHtml(tip.tip)}</span>
+                                        ${tip.savingsPercent ? `<span class="text-green-600 dark:text-green-400 ml-2">(-${tip.savingsPercent}%)</span>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${result.generalTips && result.generalTips.length > 0 ? `
+                        <div>
+                            <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Allgemeine Tipps</h4>
+                            <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                ${result.generalTips.map(tip => `<li>${escapeHtml(tip)}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
             </div>
         `;
     },
@@ -3255,6 +3478,75 @@ const ShoppingListView = {
                 await this.deleteManualItem(itemId);
             });
         });
+
+        // Budget slider
+        const budgetSlider = document.getElementById('budget-slider');
+        if (budgetSlider) {
+            budgetSlider.addEventListener('input', (e) => {
+                this.budgetAmount = parseInt(e.target.value);
+                const display = document.getElementById('budget-display');
+                if (display) display.textContent = `${this.budgetAmount} €`;
+            });
+        }
+
+        // Preferences checkboxes
+        const prefSeasonal = document.getElementById('pref-seasonal');
+        if (prefSeasonal) {
+            prefSeasonal.addEventListener('change', (e) => {
+                this.preferences.prioritizeSeasonal = e.target.checked;
+            });
+        }
+
+        const prefBrands = document.getElementById('pref-brands');
+        if (prefBrands) {
+            prefBrands.addEventListener('change', (e) => {
+                this.preferences.avoidBrands = e.target.checked;
+            });
+        }
+
+        // Optimize button
+        const optimizeBtn = document.getElementById('optimize-shopping-btn');
+        if (optimizeBtn) {
+            optimizeBtn.addEventListener('click', () => this.optimizeShoppingList());
+        }
+
+        // Close optimization result
+        const closeOptResult = document.getElementById('close-optimization-result');
+        if (closeOptResult) {
+            closeOptResult.addEventListener('click', () => {
+                this.optimizationResult = null;
+                App.render();
+            });
+        }
+
+        // Show all substitutions
+        const showAllBtn = document.getElementById('show-all-substitutions');
+        if (showAllBtn) {
+            showAllBtn.addEventListener('click', () => {
+                this.showOptimizationModal = true;
+                App.render();
+            });
+        }
+
+        // Close optimization modal
+        const closeOptModal = document.getElementById('close-optimization-modal');
+        if (closeOptModal) {
+            closeOptModal.addEventListener('click', () => {
+                this.showOptimizationModal = false;
+                App.render();
+            });
+        }
+
+        // Save substitution preferences
+        document.querySelectorAll('.save-substitution-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const original = e.target.dataset.original;
+                const substitute = e.target.dataset.substitute;
+                const reason = e.target.dataset.reason;
+                const savings = parseInt(e.target.dataset.savings);
+                await this.saveSubstitutionPreference(original, substitute, reason, savings);
+            });
+        });
     },
 
     showAddManualItemModal() {
@@ -3338,6 +3630,104 @@ const ShoppingListView = {
         a.download = 'einkaufsliste.txt';
         a.click();
         URL.revokeObjectURL(url);
+    },
+
+    async optimizeShoppingList() {
+        if (this.shoppingList.length === 0) {
+            Toast.error('Keine Artikel in der Einkaufsliste');
+            return;
+        }
+
+        this.isOptimizing = true;
+        App.render();
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/shopping/optimize`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    shoppingList: this.shoppingList.map(item => ({
+                        name: item.name,
+                        amount: item.amount,
+                        unit: item.unit,
+                        category: item.category
+                    })),
+                    budget: this.budgetAmount,
+                    preferences: this.preferences
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Optimierung fehlgeschlagen');
+            }
+
+            this.optimizationResult = await response.json();
+            Toast.success('Optimierungsvorschläge erstellt');
+        } catch (error) {
+            console.error('Optimization error:', error);
+            Toast.error(error.message || 'Fehler bei der Optimierung');
+        } finally {
+            this.isOptimizing = false;
+            App.render();
+        }
+    },
+
+    async saveSubstitutionPreference(original, substitute, reason, savingsPercent) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/shopping/substitutions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    originalIngredient: original,
+                    substituteIngredient: substitute,
+                    reason: reason,
+                    savingsPercent: savingsPercent
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Fehler beim Speichern');
+            }
+
+            Toast.success(`Substitution "${original} → ${substitute}" gespeichert`);
+        } catch (error) {
+            console.error('Save substitution error:', error);
+            Toast.error('Fehler beim Speichern der Substitution');
+        }
+    },
+
+    async saveBudget() {
+        const weekStart = DateUtils.getMonday(new Date()).toISOString().split('T')[0];
+
+        try {
+            await fetch(`${API_BASE_URL}/shopping/budget`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    weekStart: weekStart,
+                    budgetAmount: this.budgetAmount
+                })
+            });
+        } catch (error) {
+            console.error('Save budget error:', error);
+        }
+    },
+
+    async loadBudget() {
+        const weekStart = DateUtils.getMonday(new Date()).toISOString().split('T')[0];
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/shopping/budget/${weekStart}`);
+            if (response.ok) {
+                const budget = await response.json();
+                if (budget && budget.budget_amount) {
+                    this.budgetAmount = parseFloat(budget.budget_amount);
+                }
+            }
+        } catch (error) {
+            console.error('Load budget error:', error);
+        }
     }
 };
 

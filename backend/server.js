@@ -602,6 +602,204 @@ app.delete('/shopping/manual', async (req, res) => {
     }
 });
 
+// ========== SHOPPING BUDGET ENDPOINTS ==========
+
+// Get budget for a specific week
+app.get('/shopping/budget/:weekStart', async (req, res) => {
+    try {
+        const { weekStart } = req.params;
+        const { rows } = await db.query(
+            'SELECT * FROM shopping_budget WHERE week_start = $1',
+            [weekStart]
+        );
+
+        if (rows.length === 0) {
+            return res.json(null);
+        }
+
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Error fetching budget:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Set/update budget for a week
+app.post('/shopping/budget', async (req, res) => {
+    const { weekStart, budgetAmount, currency = 'EUR' } = req.body;
+
+    if (!weekStart || budgetAmount === undefined) {
+        return res.status(400).json({ error: 'weekStart and budgetAmount are required' });
+    }
+
+    try {
+        const { rows } = await db.query(`
+            INSERT INTO shopping_budget (week_start, budget_amount, currency)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (week_start)
+            DO UPDATE SET budget_amount = $2, currency = $3, updated_at = CURRENT_TIMESTAMP
+            RETURNING *
+        `, [weekStart, budgetAmount, currency]);
+
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Error saving budget:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get substitution preferences
+app.get('/shopping/substitutions', async (req, res) => {
+    try {
+        const { rows } = await db.query(
+            'SELECT * FROM substitution_preferences WHERE is_active = true ORDER BY created_at DESC'
+        );
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching substitutions:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Save a substitution preference
+app.post('/shopping/substitutions', async (req, res) => {
+    const { originalIngredient, substituteIngredient, reason, savingsPercent } = req.body;
+
+    if (!originalIngredient || !substituteIngredient) {
+        return res.status(400).json({ error: 'originalIngredient and substituteIngredient are required' });
+    }
+
+    try {
+        const { rows } = await db.query(`
+            INSERT INTO substitution_preferences (original_ingredient, substitute_ingredient, reason, savings_percent)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (LOWER(original_ingredient), LOWER(substitute_ingredient))
+            DO UPDATE SET reason = $3, savings_percent = $4, is_active = true
+            RETURNING *
+        `, [originalIngredient, substituteIngredient, reason, savingsPercent]);
+
+        res.status(201).json(rows[0]);
+    } catch (error) {
+        console.error('Error saving substitution:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete/deactivate a substitution preference
+app.delete('/shopping/substitutions/:id', async (req, res) => {
+    try {
+        await db.query(
+            'UPDATE substitution_preferences SET is_active = false WHERE id = $1',
+            [req.params.id]
+        );
+        res.json({ message: 'Substitution preference deactivated' });
+    } catch (error) {
+        console.error('Error deactivating substitution:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// AI-powered shopping list optimization
+app.post('/shopping/optimize', aiLimiter, async (req, res) => {
+    if (!genAI) {
+        return res.status(503).json({
+            error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
+        });
+    }
+
+    try {
+        const { shoppingList, budget, preferences } = req.body;
+
+        if (!shoppingList || shoppingList.length === 0) {
+            return res.status(400).json({ error: 'Shopping list is required' });
+        }
+
+        // Get saved substitution preferences
+        const { rows: savedSubstitutions } = await db.query(
+            'SELECT original_ingredient, substitute_ingredient, reason, savings_percent FROM substitution_preferences WHERE is_active = true'
+        );
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const prompt = `Du bist ein intelligenter Einkaufsberater. Analysiere die folgende Einkaufsliste und schlage Optimierungen vor.
+
+EINKAUFSLISTE:
+${shoppingList.map(item => `- ${item.amount} ${item.unit} ${item.name} (Kategorie: ${item.category})`).join('\n')}
+
+${budget ? `BUDGET: ${budget} EUR` : 'Kein spezifisches Budget angegeben.'}
+
+${preferences?.prioritizeSeasonal ? 'PRÄFERENZ: Bevorzuge saisonale Produkte.' : ''}
+${preferences?.prioritizeOrganic ? 'PRÄFERENZ: Bio-Produkte wenn möglich.' : ''}
+${preferences?.avoidBrands ? 'PRÄFERENZ: Eigenmarken/No-Name bevorzugen.' : ''}
+
+${savedSubstitutions.length > 0 ? `
+BEVORZUGTE SUBSTITUTIONEN DES NUTZERS:
+${savedSubstitutions.map(s => `- ${s.original_ingredient} -> ${s.substitute_ingredient} (${s.reason})`).join('\n')}
+` : ''}
+
+Erstelle Optimierungsvorschläge mit:
+1. SUBSTITUTIONEN: Günstigere oder bessere Alternativen für teure Zutaten
+2. SAISONALE TIPPS: Welche Produkte sind gerade saisonal/günstig
+3. MENGEN-OPTIMIERUNG: Gibt es Großpackungen die sich lohnen? Vermeidung von Verschwendung
+4. GESCHÄTZTE KOSTEN: Schätze die Gesamtkosten der Original-Liste und der optimierten Liste
+
+WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format:
+
+{
+    "originalEstimate": 45.50,
+    "optimizedEstimate": 38.20,
+    "savingsPercent": 16,
+    "substitutions": [
+        {
+            "original": "Parmesan",
+            "substitute": "Grana Padano",
+            "reason": "Ähnlicher Geschmack, 30% günstiger",
+            "savingsPercent": 30,
+            "category": "cost"
+        }
+    ],
+    "seasonalTips": [
+        {
+            "ingredient": "Tomaten",
+            "tip": "Aktuell Saison - besonders günstig und geschmackvoll",
+            "isInSeason": true
+        }
+    ],
+    "quantityTips": [
+        {
+            "ingredient": "Reis",
+            "tip": "Großpackung (1kg statt 500g) spart 20% pro Kilo",
+            "savingsPercent": 20
+        }
+    ],
+    "generalTips": [
+        "Tipp 1...",
+        "Tipp 2..."
+    ]
+}`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        // Extract JSON from response
+        let jsonText = text.trim();
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
+        }
+
+        const optimization = JSON.parse(jsonText);
+
+        res.json(optimization);
+    } catch (error) {
+        console.error('Shopping optimization error:', error);
+        res.status(500).json({
+            error: 'Failed to optimize shopping list',
+            details: error.message
+        });
+    }
+});
+
 // Health check
 app.get('/health', async (req, res) => {
     try {

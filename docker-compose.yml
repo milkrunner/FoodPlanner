@@ -10,6 +10,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./backend/db/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
       - ./backend/db/migrations/002_cooking_history.sql:/docker-entrypoint-initdb.d/002_cooking_history.sql:ro
+      - ./backend/db/migrations/003_shopping_budget.sql:/docker-entrypoint-initdb.d/003_shopping_budget.sql:ro
     ports:
       - "5432:5432"
     healthcheck:
