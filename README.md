@@ -24,6 +24,13 @@ Eine moderne Web-Anwendung zum Planen deiner Wochenmahlzeiten, Verwalten von Rez
 **AI**: Google Gemini API
 **Deployment**: Docker & Docker Compose
 
+## Releases
+
+Releases werden automatisch nach jedem Merge in `main` erstellt. Siehe [Releases & Installation](docs/RELEASES.md) für Download- und Installationsanleitungen.
+
+- [Alle Releases](https://github.com/milkrunner/FoodPlanner/releases)
+- [Docker Images](https://github.com/milkrunner/FoodPlanner/pkgs/container/foodplanner%2Fbackend)
+
 ## Installation und Start
 
 ### 🐳 Docker (Empfohlen)
@@ -149,6 +156,10 @@ API-Key beantragen: https://ai.google.dev/
 - Chrome/Edge (90+)
 - Firefox (88+)
 - Safari (14+)
+
+## Beitragen
+
+Dieses Projekt verwendet [Conventional Commits](https://www.conventionalcommits.org/) für automatische Releases. Siehe [Commit-Konvention](.github/COMMIT_CONVENTION.md) für Details.
 
 ## Lizenz
 
