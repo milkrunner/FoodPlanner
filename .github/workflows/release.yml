@@ -21,7 +21,7 @@ jobs:
         id: release
         uses: googleapis/release-please-action@v4
         with:
-          release-type: node
+          release-type: simple
           token: ${{ secrets.GITHUB_TOKEN }}
 
   build-and-publish:
