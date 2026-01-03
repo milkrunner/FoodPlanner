@@ -814,15 +814,120 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format:
     }
 });
 
-// Health check
-app.get('/health', async (req, res) => {
+// ========== HEALTH CHECK ENDPOINTS ==========
+
+// Track server start time for uptime calculation
+const serverStartTime = Date.now();
+
+// Basic health check - fast response for load balancers (< 100ms)
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'UP',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// Readiness probe - checks if app is ready to serve traffic (includes DB check)
+app.get('/health/ready', async (req, res) => {
     try {
+        const start = Date.now();
         await db.query('SELECT 1');
-        res.json({ status: 'OK', database: 'connected', timestamp: new Date().toISOString() });
+        const dbLatency = Date.now() - start;
+
+        res.json({
+            status: 'UP',
+            timestamp: new Date().toISOString(),
+            checks: {
+                database: {
+                    status: 'UP',
+                    latency: dbLatency
+                }
+            }
+        });
     } catch (error) {
-        res.status(503).json({ status: 'ERROR', database: 'disconnected', timestamp: new Date().toISOString() });
+        res.status(503).json({
+            status: 'DOWN',
+            timestamp: new Date().toISOString(),
+            checks: {
+                database: {
+                    status: 'DOWN',
+                    error: error.message
+                }
+            }
+        });
     }
 });
+
+// Detailed health check - comprehensive system status
+app.get('/health/detailed', async (req, res) => {
+    const checks = {};
+    let overallStatus = 'UP';
+
+    // Database check
+    try {
+        const start = Date.now();
+        await db.query('SELECT 1');
+        const dbLatency = Date.now() - start;
+        checks.database = {
+            status: 'UP',
+            latency: dbLatency
+        };
+    } catch (error) {
+        checks.database = {
+            status: 'DOWN',
+            error: error.message
+        };
+        overallStatus = 'DOWN';
+    }
+
+    // Gemini API check
+    checks.geminiApi = {
+        status: genAI ? 'UP' : 'UNCONFIGURED',
+        configured: !!genAI
+    };
+
+    // Memory usage
+    const memUsage = process.memoryUsage();
+    checks.memory = {
+        heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+        heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+        rss: Math.round(memUsage.rss / 1024 / 1024),
+        external: Math.round(memUsage.external / 1024 / 1024),
+        unit: 'MB'
+    };
+
+    // Uptime
+    const uptimeSeconds = Math.floor((Date.now() - serverStartTime) / 1000);
+
+    // Version from package.json
+    const packageJson = require('./package.json');
+
+    const statusCode = overallStatus === 'UP' ? 200 : 503;
+    res.status(statusCode).json({
+        status: overallStatus,
+        timestamp: new Date().toISOString(),
+        version: packageJson.version,
+        uptime: uptimeSeconds,
+        uptimeHuman: formatUptime(uptimeSeconds),
+        checks
+    });
+});
+
+// Helper function to format uptime
+function formatUptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+    return parts.join(' ');
+}
 
 // ========== COOKING HISTORY ENDPOINTS ==========
 

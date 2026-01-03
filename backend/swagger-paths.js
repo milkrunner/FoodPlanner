@@ -1009,30 +1009,172 @@
  * @swagger
  * /health:
  *   get:
- *     summary: Health Check
+ *     summary: Basic Health Check (Liveness Probe)
  *     tags: [System]
- *     description: Prüft ob der Server und die Datenbank erreichbar sind
+ *     description: |
+ *       Schneller Health Check für Load Balancer und Liveness Probes.
+ *       Antwortet in < 100ms ohne Datenbank-Check.
  *     responses:
  *       200:
- *         description: Server ist gesund
+ *         description: Server ist erreichbar
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/HealthCheck'
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   enum: [UP]
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
  *             example:
- *               status: "OK"
- *               database: "connected"
+ *               status: "UP"
  *               timestamp: "2024-01-15T10:30:00.000Z"
+ */
+
+/**
+ * @swagger
+ * /health/ready:
+ *   get:
+ *     summary: Readiness Probe
+ *     tags: [System]
+ *     description: |
+ *       Prüft ob die Anwendung bereit ist, Traffic zu verarbeiten.
+ *       Inkludiert Datenbank-Verbindungscheck.
+ *       Geeignet für Kubernetes Readiness Probes.
+ *     responses:
+ *       200:
+ *         description: Anwendung ist bereit
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   enum: [UP, DOWN]
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 checks:
+ *                   type: object
+ *                   properties:
+ *                     database:
+ *                       type: object
+ *                       properties:
+ *                         status:
+ *                           type: string
+ *                           enum: [UP, DOWN]
+ *                         latency:
+ *                           type: integer
+ *                           description: Latenz in Millisekunden
+ *             example:
+ *               status: "UP"
+ *               timestamp: "2024-01-15T10:30:00.000Z"
+ *               checks:
+ *                 database:
+ *                   status: "UP"
+ *                   latency: 5
  *       503:
- *         description: Server oder Datenbank nicht erreichbar
+ *         description: Anwendung nicht bereit
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/HealthCheck'
+ *               type: object
  *             example:
- *               status: "ERROR"
- *               database: "disconnected"
+ *               status: "DOWN"
  *               timestamp: "2024-01-15T10:30:00.000Z"
+ *               checks:
+ *                 database:
+ *                   status: "DOWN"
+ *                   error: "Connection refused"
+ */
+
+/**
+ * @swagger
+ * /health/detailed:
+ *   get:
+ *     summary: Detailed Health Check
+ *     tags: [System]
+ *     description: |
+ *       Umfassender Health Check mit detaillierten Informationen zu allen Komponenten.
+ *       Geeignet für Monitoring-Dashboards und Debugging.
+ *     responses:
+ *       200:
+ *         description: Detaillierter Systemstatus
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   enum: [UP, DOWN]
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 version:
+ *                   type: string
+ *                   description: Version aus package.json
+ *                 uptime:
+ *                   type: integer
+ *                   description: Uptime in Sekunden
+ *                 uptimeHuman:
+ *                   type: string
+ *                   description: Uptime in lesbarem Format
+ *                 checks:
+ *                   type: object
+ *                   properties:
+ *                     database:
+ *                       type: object
+ *                       properties:
+ *                         status:
+ *                           type: string
+ *                         latency:
+ *                           type: integer
+ *                     geminiApi:
+ *                       type: object
+ *                       properties:
+ *                         status:
+ *                           type: string
+ *                           enum: [UP, UNCONFIGURED]
+ *                         configured:
+ *                           type: boolean
+ *                     memory:
+ *                       type: object
+ *                       properties:
+ *                         heapUsed:
+ *                           type: integer
+ *                         heapTotal:
+ *                           type: integer
+ *                         rss:
+ *                           type: integer
+ *                         external:
+ *                           type: integer
+ *                         unit:
+ *                           type: string
+ *             example:
+ *               status: "UP"
+ *               timestamp: "2024-01-15T10:30:00.000Z"
+ *               version: "1.0.0"
+ *               uptime: 86400
+ *               uptimeHuman: "1d 0h 0m 0s"
+ *               checks:
+ *                 database:
+ *                   status: "UP"
+ *                   latency: 5
+ *                 geminiApi:
+ *                   status: "UP"
+ *                   configured: true
+ *                 memory:
+ *                   heapUsed: 45
+ *                   heapTotal: 65
+ *                   rss: 95
+ *                   external: 2
+ *                   unit: "MB"
+ *       503:
+ *         description: Eine oder mehrere Komponenten sind nicht verfügbar
  */
 
 // Diese Datei enthält nur JSDoc-Kommentare für swagger-jsdoc
