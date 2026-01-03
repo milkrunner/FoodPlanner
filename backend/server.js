@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const rateLimit = require('express-rate-limit');
 const cheerio = require('cheerio');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
 const db = require('./db');
 
 const app = express();
@@ -16,6 +18,18 @@ const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 // Middleware
 app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
+
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'FoodPlanner API Dokumentation'
+}));
+
+// Serve OpenAPI spec as JSON
+app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+});
 
 // General API Rate Limiting
 // Limit: 100 requests per 15 minutes per IP
