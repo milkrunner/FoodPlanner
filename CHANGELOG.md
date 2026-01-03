@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.0](https://github.com/milkrunner/FoodPlanner/compare/v1.0.0...v1.1.0) (2026-01-03)
+
+
+### Features
+
+* add Swagger API documentation and integrate with Express ([#81](https://github.com/milkrunner/FoodPlanner/issues/81)) ([350f3b0](https://github.com/milkrunner/FoodPlanner/commit/350f3b044db4d00e784a3b60cebfd7d94528f2d2))
+* extend health check endpoints with detailed status and metrics ([ff56cd8](https://github.com/milkrunner/FoodPlanner/commit/ff56cd8f6fa6c76e9e8928735e24b7ea1886c221))
+
+
+### Bug Fixes
+
+* update permissions to include package write access ([a400d5d](https://github.com/milkrunner/FoodPlanner/commit/a400d5dc86dbab60c332269deedaf36eeac94c7b))
+
 ## 1.0.0 (2026-01-01)
 
 
