@@ -13,7 +13,7 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /app
 
-# Copy all application files (node_modules mounted via volume)
+# Copy all application files
 COPY . .
 
 # Expose port

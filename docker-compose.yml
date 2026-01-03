@@ -29,7 +29,7 @@ services:
       - "3000:3000"
     volumes:
       - ./backend:/app
-      - /app/node_modules
+      - backend-node-modules:/app/node_modules
     environment:
       NODE_ENV: development
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
@@ -37,6 +37,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    command: sh -c "npm config set registry https://registry.npmmirror.com && npm install && node server.js"
     restart: unless-stopped
 
   nginx:
@@ -54,3 +55,4 @@ services:
 
 volumes:
   postgres-data:
+  backend-node-modules:
