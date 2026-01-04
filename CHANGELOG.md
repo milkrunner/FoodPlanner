@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0](https://github.com/milkrunner/FoodPlanner/compare/v1.1.0...v1.2.0) (2026-01-04)
+
+
+### Features
+
+* Enhance recipe retrieval with pagination and detailed response structure ([3e4bb5f](https://github.com/milkrunner/FoodPlanner/commit/3e4bb5f5971eb8183570329db1c0a105c2f8c3a0))
+* Enhance recipe retrieval with pagination and detailed response structure ([af35bb0](https://github.com/milkrunner/FoodPlanner/commit/af35bb05c0e9833cf308b9d4a696c87e9f7f06fd))
+* implement CORS whitelist configuration and update API documentation ([f31bb1e](https://github.com/milkrunner/FoodPlanner/commit/f31bb1eea74cff996b913578789cf1f4119c351a))
+* Improve URL validation and sanitization tests for security ([7b26191](https://github.com/milkrunner/FoodPlanner/commit/7b261919cd87d87517bd263e02eb5426e0d2a97b))
+* Optimize Node.js setup in CI workflow by removing caching and simplifying dependency installation ([d22121e](https://github.com/milkrunner/FoodPlanner/commit/d22121eca897ea5370b3e1732349e6e5e58bef25))
+* Restrict permissions in CI workflow and remove coverage comment step ([4ec7305](https://github.com/milkrunner/FoodPlanner/commit/4ec7305e8404f702ad1978c4b2e4e50f4ce364f4))
+* Update frozen ingredient names in categorization tests for accuracy ([61f0279](https://github.com/milkrunner/FoodPlanner/commit/61f0279c1184b46b72d0c46cc37b7ff9b5cd462a))
+* Update ingredient names in categorization tests for accuracy ([b10b853](https://github.com/milkrunner/FoodPlanner/commit/b10b853ca9a0bd0cee83f72b726b5cda71ba0dcc))
+
 ## [1.1.0](https://github.com/milkrunner/FoodPlanner/compare/v1.0.0...v1.1.0) (2026-01-03)
 
 
