@@ -147,62 +147,113 @@ app.use(generalLimiter);
 
 // ========== RECIPES ENDPOINTS ==========
 
-// Get all recipes
+// Default pagination settings
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
+// Get all recipes - Optimized with single JOIN query and pagination
+// Query params: page (default: 1), pageSize (default: 20, max: 100), all (if true, returns all recipes)
 app.get('/recipes', async (req, res) => {
     try {
-        const { rows: recipes } = await db.query(`
-            SELECT * FROM recipes ORDER BY created_at DESC
-        `);
+        const startTime = Date.now();
 
-        // Get ingredients and tags for each recipe
-        const recipesWithDetails = await Promise.all(recipes.map(async (recipe) => {
-            const { rows: ingredients } = await db.query(
-                'SELECT name, amount, unit, category FROM ingredients WHERE recipe_id = $1',
-                [recipe.id]
-            );
+        // Parse pagination parameters
+        const returnAll = req.query.all === 'true';
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const pageSize = returnAll ? null : Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(req.query.pageSize) || DEFAULT_PAGE_SIZE));
+        const offset = returnAll ? 0 : (page - 1) * pageSize;
 
-            const { rows: tagRows } = await db.query(
-                'SELECT tag FROM recipe_tags WHERE recipe_id = $1',
-                [recipe.id]
-            );
+        // Get total count for pagination metadata
+        const { rows: countResult } = await db.query('SELECT COUNT(*) FROM recipes');
+        const totalItems = parseInt(countResult[0].count);
 
-            const tags = tagRows.map(row => row.tag);
-            return { ...recipe, ingredients, tags };
-        }));
+        // Single query with JSON aggregation - replaces N+1 queries
+        const query = `
+            SELECT
+                r.id, r.name, r.category, r.servings, r.instructions, r.created_at, r.updated_at,
+                COALESCE(
+                    json_agg(DISTINCT jsonb_build_object(
+                        'name', i.name,
+                        'amount', i.amount,
+                        'unit', i.unit,
+                        'category', i.category
+                    )) FILTER (WHERE i.name IS NOT NULL),
+                    '[]'::json
+                ) as ingredients,
+                COALESCE(
+                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
+                    '[]'::json
+                ) as tags
+            FROM recipes r
+            LEFT JOIN ingredients i ON r.id = i.recipe_id
+            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
+            GROUP BY r.id, r.name, r.category, r.servings, r.instructions, r.created_at, r.updated_at
+            ORDER BY r.created_at DESC
+            ${returnAll ? '' : 'LIMIT $1 OFFSET $2'}
+        `;
 
-        res.json(recipesWithDetails);
+        const { rows } = returnAll
+            ? await db.query(query)
+            : await db.query(query, [pageSize, offset]);
+
+        const queryTime = Date.now() - startTime;
+        console.log(`[PERF] GET /recipes - ${rows.length}/${totalItems} recipes loaded in ${queryTime}ms (page: ${returnAll ? 'all' : page})`);
+
+        // Return paginated response
+        res.json({
+            recipes: rows,
+            pagination: {
+                page: returnAll ? 1 : page,
+                pageSize: returnAll ? totalItems : pageSize,
+                totalItems,
+                totalPages: returnAll ? 1 : Math.ceil(totalItems / pageSize),
+                hasNextPage: returnAll ? false : page * pageSize < totalItems,
+                hasPrevPage: returnAll ? false : page > 1
+            }
+        });
     } catch (error) {
         console.error('Error fetching recipes:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Get recipe by ID
+// Get recipe by ID - Optimized with single JOIN query
 app.get('/recipes/:id', async (req, res) => {
     try {
-        const { rows } = await db.query(
-            'SELECT * FROM recipes WHERE id = $1',
-            [req.params.id]
-        );
+        const startTime = Date.now();
+
+        // Single query with JSON aggregation - replaces 3 separate queries
+        const { rows } = await db.query(`
+            SELECT
+                r.id, r.name, r.category, r.servings, r.instructions, r.created_at, r.updated_at,
+                COALESCE(
+                    json_agg(DISTINCT jsonb_build_object(
+                        'name', i.name,
+                        'amount', i.amount,
+                        'unit', i.unit,
+                        'category', i.category
+                    )) FILTER (WHERE i.name IS NOT NULL),
+                    '[]'::json
+                ) as ingredients,
+                COALESCE(
+                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
+                    '[]'::json
+                ) as tags
+            FROM recipes r
+            LEFT JOIN ingredients i ON r.id = i.recipe_id
+            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
+            WHERE r.id = $1
+            GROUP BY r.id, r.name, r.category, r.servings, r.instructions, r.created_at, r.updated_at
+        `, [req.params.id]);
+
+        const queryTime = Date.now() - startTime;
 
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Recipe not found' });
         }
 
-        const recipe = rows[0];
-
-        const { rows: ingredients } = await db.query(
-            'SELECT name, amount, unit, category FROM ingredients WHERE recipe_id = $1',
-            [recipe.id]
-        );
-
-        const { rows: tagRows } = await db.query(
-            'SELECT tag FROM recipe_tags WHERE recipe_id = $1',
-            [recipe.id]
-        );
-
-        const tags = tagRows.map(row => row.tag);
-        res.json({ ...recipe, ingredients, tags });
+        console.log(`[PERF] GET /recipes/${req.params.id} - loaded in ${queryTime}ms (single query)`);
+        res.json(rows[0]);
     } catch (error) {
         console.error('Error fetching recipe:', error);
         res.status(500).json({ error: error.message });

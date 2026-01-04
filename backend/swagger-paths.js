@@ -2,17 +2,70 @@
  * @swagger
  * /recipes:
  *   get:
- *     summary: Alle Rezepte abrufen
+ *     summary: Alle Rezepte abrufen (paginiert)
+ *     description: |
+ *       Ruft Rezepte mit Pagination ab. Standardmäßig werden 20 Rezepte pro Seite geladen.
+ *       Mit `all=true` können alle Rezepte auf einmal abgerufen werden (für Offline-Sync).
  *     tags: [Recipes]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *           minimum: 1
+ *         description: Seitennummer (1-basiert)
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *           minimum: 1
+ *           maximum: 100
+ *         description: Anzahl Rezepte pro Seite (max. 100)
+ *       - in: query
+ *         name: all
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Wenn true, werden alle Rezepte ohne Pagination zurückgegeben
  *     responses:
  *       200:
- *         description: Liste aller Rezepte
+ *         description: Paginierte Liste der Rezepte
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Recipe'
+ *               type: object
+ *               properties:
+ *                 recipes:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Recipe'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                       description: Aktuelle Seite
+ *                       example: 1
+ *                     pageSize:
+ *                       type: integer
+ *                       description: Rezepte pro Seite
+ *                       example: 20
+ *                     totalItems:
+ *                       type: integer
+ *                       description: Gesamtanzahl Rezepte
+ *                       example: 150
+ *                     totalPages:
+ *                       type: integer
+ *                       description: Gesamtanzahl Seiten
+ *                       example: 8
+ *                     hasNextPage:
+ *                       type: boolean
+ *                       description: Gibt es eine nächste Seite?
+ *                     hasPrevPage:
+ *                       type: boolean
+ *                       description: Gibt es eine vorherige Seite?
  *       500:
  *         description: Serverfehler
  *         content:
