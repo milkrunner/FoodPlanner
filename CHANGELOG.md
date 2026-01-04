@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/milkrunner/FoodPlanner/compare/v1.1.0...v1.2.0) (2026-01-04)
+
+
+### Features
+
+* implement CORS whitelist configuration and update API documentation ([f31bb1e](https://github.com/milkrunner/FoodPlanner/commit/f31bb1eea74cff996b913578789cf1f4119c351a))
+
 ## [1.1.0](https://github.com/milkrunner/FoodPlanner/compare/v1.0.0...v1.1.0) (2026-01-03)
 
 
