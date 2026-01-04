@@ -32,7 +32,8 @@ function formatUptime(seconds) {
 function parsePaginationParams(query, defaultPageSize = 20, maxPageSize = 100) {
     const returnAll = query.all === 'true';
     const page = Math.max(1, parseInt(query.page) || 1);
-    const pageSize = returnAll ? null : Math.min(maxPageSize, Math.max(1, parseInt(query.pageSize) || defaultPageSize));
+    const parsedPageSize = parseInt(query.pageSize);
+    const pageSize = returnAll ? null : Math.min(maxPageSize, Math.max(1, isNaN(parsedPageSize) ? defaultPageSize : parsedPageSize));
     const offset = returnAll ? 0 : (page - 1) * pageSize;
 
     return {

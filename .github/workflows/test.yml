@@ -24,28 +24,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
+      - name: Run tests (no npm required)
         working-directory: ./backend
-        run: npm install
-
-      - name: Run tests with coverage
-        working-directory: ./backend
-        run: npm run test:ci
-        env:
-          CI: true
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage-report
-          path: backend/coverage/
-          retention-days: 7
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: backend/junit.xml
-          retention-days: 7
+        run: node --test --test-reporter spec __tests__/**/*.test.js

@@ -1,3 +1,11 @@
+/**
+ * URL Validation tests using Node.js built-in test runner
+ * Run with: node --test
+ */
+
+const { describe, it } = require('node:test');
+const assert = require('node:assert');
+
 const {
     validateUrl,
     isVideoUrl,
@@ -10,71 +18,70 @@ describe('URL Validation', () => {
     describe('validateUrl', () => {
         it('should accept valid chefkoch.de URLs', () => {
             const url = 'https://www.chefkoch.de/rezepte/12345';
-            expect(validateUrl(url)).toBe(url);
+            assert.strictEqual(validateUrl(url), url);
         });
 
         it('should accept valid allrecipes.com URLs', () => {
             const url = 'https://www.allrecipes.com/recipe/12345/spaghetti';
-            expect(validateUrl(url)).toBe(url);
+            assert.strictEqual(validateUrl(url), url);
         });
 
         it('should accept HTTP URLs from allowed domains', () => {
             const url = 'http://chefkoch.de/rezepte/12345';
-            expect(validateUrl(url)).toBe(url);
+            assert.strictEqual(validateUrl(url), url);
         });
 
         it('should reject invalid URL format', () => {
-            expect(() => validateUrl('not-a-url')).toThrow('Invalid URL format');
+            assert.throws(() => validateUrl('not-a-url'), /Invalid URL format/);
         });
 
         it('should reject non-HTTP/HTTPS protocols', () => {
-            expect(() => validateUrl('ftp://chefkoch.de/file')).toThrow('Only HTTP and HTTPS protocols are allowed');
-            expect(() => validateUrl('file:///etc/passwd')).toThrow('Only HTTP and HTTPS protocols are allowed');
-            // javascript: URLs are parsed as valid URLs with protocol "javascript:"
-            expect(() => validateUrl('javascript:alert(1)')).toThrow('Only HTTP and HTTPS protocols are allowed');
+            assert.throws(() => validateUrl('ftp://chefkoch.de/file'), /Only HTTP and HTTPS protocols are allowed/);
+            assert.throws(() => validateUrl('file:///etc/passwd'), /Only HTTP and HTTPS protocols are allowed/);
+            assert.throws(() => validateUrl('javascript:alert(1)'), /Only HTTP and HTTPS protocols are allowed/);
         });
 
         it('should reject domains not in allowlist', () => {
-            expect(() => validateUrl('https://evil.com/malware')).toThrow('not in the list of allowed');
-            expect(() => validateUrl('https://localhost/admin')).toThrow('not in the list of allowed');
-            expect(() => validateUrl('https://192.168.1.1/internal')).toThrow('not in the list of allowed');
-            expect(() => validateUrl('https://127.0.0.1:8080/api')).toThrow('not in the list of allowed');
+            assert.throws(() => validateUrl('https://evil.com/malware'), /not in the list of allowed/);
+            assert.throws(() => validateUrl('https://localhost/admin'), /not in the list of allowed/);
+            assert.throws(() => validateUrl('https://192.168.1.1/internal'), /not in the list of allowed/);
+            assert.throws(() => validateUrl('https://127.0.0.1:8080/api'), /not in the list of allowed/);
         });
 
         it('should reject internal/private IP addresses', () => {
-            expect(() => validateUrl('http://10.0.0.1/secret')).toThrow('not in the list of allowed');
-            expect(() => validateUrl('http://172.16.0.1/admin')).toThrow('not in the list of allowed');
+            assert.throws(() => validateUrl('http://10.0.0.1/secret'), /not in the list of allowed/);
+            assert.throws(() => validateUrl('http://172.16.0.1/admin'), /not in the list of allowed/);
         });
 
         it('should handle URLs with query parameters', () => {
             const url = 'https://www.chefkoch.de/rezepte/12345?print=true&lang=de';
-            expect(validateUrl(url)).toBe(url);
+            assert.strictEqual(validateUrl(url), url);
         });
 
         it('should handle URLs with fragments', () => {
             const url = 'https://www.chefkoch.de/rezepte/12345#ingredients';
-            expect(validateUrl(url)).toBe(url);
+            assert.strictEqual(validateUrl(url), url);
         });
     });
 
     describe('ALLOWED_RECIPE_DOMAINS', () => {
         it('should contain expected German recipe sites', () => {
-            expect(ALLOWED_RECIPE_DOMAINS).toContain('chefkoch.de');
-            expect(ALLOWED_RECIPE_DOMAINS).toContain('www.chefkoch.de');
-            expect(ALLOWED_RECIPE_DOMAINS).toContain('eatsmarter.de');
-            expect(ALLOWED_RECIPE_DOMAINS).toContain('lecker.de');
+            assert.ok(ALLOWED_RECIPE_DOMAINS.includes('chefkoch.de'));
+            assert.ok(ALLOWED_RECIPE_DOMAINS.includes('www.chefkoch.de'));
+            assert.ok(ALLOWED_RECIPE_DOMAINS.includes('eatsmarter.de'));
+            assert.ok(ALLOWED_RECIPE_DOMAINS.includes('lecker.de'));
         });
 
         it('should contain expected international recipe sites', () => {
-            expect(ALLOWED_RECIPE_DOMAINS).toContain('allrecipes.com');
-            expect(ALLOWED_RECIPE_DOMAINS).toContain('bbcgoodfood.com');
-            expect(ALLOWED_RECIPE_DOMAINS).toContain('epicurious.com');
+            assert.ok(ALLOWED_RECIPE_DOMAINS.includes('allrecipes.com'));
+            assert.ok(ALLOWED_RECIPE_DOMAINS.includes('bbcgoodfood.com'));
+            assert.ok(ALLOWED_RECIPE_DOMAINS.includes('epicurious.com'));
         });
 
         it('should have both www and non-www versions', () => {
             const nonWwwDomains = ALLOWED_RECIPE_DOMAINS.filter(d => !d.startsWith('www.'));
             nonWwwDomains.forEach(domain => {
-                expect(ALLOWED_RECIPE_DOMAINS).toContain(`www.${domain}`);
+                assert.ok(ALLOWED_RECIPE_DOMAINS.includes(`www.${domain}`));
             });
         });
     });
@@ -83,89 +90,87 @@ describe('URL Validation', () => {
 describe('Video URL Validation', () => {
     describe('isVideoUrl', () => {
         it('should recognize TikTok URLs', () => {
-            expect(isVideoUrl('https://www.tiktok.com/@user/video/123')).toBe(true);
-            expect(isVideoUrl('https://vm.tiktok.com/abc123')).toBe(true);
-            expect(isVideoUrl('http://tiktok.com/video')).toBe(true);
+            assert.strictEqual(isVideoUrl('https://www.tiktok.com/@user/video/123'), true);
+            assert.strictEqual(isVideoUrl('https://vm.tiktok.com/abc123'), true);
+            assert.strictEqual(isVideoUrl('http://tiktok.com/video'), true);
         });
 
         it('should recognize Instagram Reels', () => {
-            expect(isVideoUrl('https://www.instagram.com/reel/ABC123')).toBe(true);
-            expect(isVideoUrl('https://instagram.com/reel/XYZ789')).toBe(true);
-            expect(isVideoUrl('https://www.instagram.com/p/POST123')).toBe(true);
+            assert.strictEqual(isVideoUrl('https://www.instagram.com/reel/ABC123'), true);
+            assert.strictEqual(isVideoUrl('https://instagram.com/reel/XYZ789'), true);
+            assert.strictEqual(isVideoUrl('https://www.instagram.com/p/POST123'), true);
         });
 
         it('should recognize Pinterest pins', () => {
-            expect(isVideoUrl('https://www.pinterest.com/pin/123456')).toBe(true);
-            expect(isVideoUrl('https://pinterest.de/pin/789')).toBe(true);
+            assert.strictEqual(isVideoUrl('https://www.pinterest.com/pin/123456'), true);
+            assert.strictEqual(isVideoUrl('https://pinterest.de/pin/789'), true);
         });
 
         it('should recognize YouTube Shorts', () => {
-            expect(isVideoUrl('https://www.youtube.com/shorts/ABC123')).toBe(true);
-            expect(isVideoUrl('https://youtube.com/shorts/XYZ')).toBe(true);
-            expect(isVideoUrl('https://youtu.be/shortid')).toBe(true);
+            assert.strictEqual(isVideoUrl('https://www.youtube.com/shorts/ABC123'), true);
+            assert.strictEqual(isVideoUrl('https://youtube.com/shorts/XYZ'), true);
+            assert.strictEqual(isVideoUrl('https://youtu.be/shortid'), true);
         });
 
         it('should reject non-video URLs', () => {
-            expect(isVideoUrl('https://www.google.com')).toBe(false);
-            expect(isVideoUrl('https://chefkoch.de/rezepte')).toBe(false);
-            expect(isVideoUrl('https://instagram.com/profile')).toBe(false);
-            expect(isVideoUrl('https://youtube.com/watch?v=123')).toBe(false);
+            assert.strictEqual(isVideoUrl('https://www.google.com'), false);
+            assert.strictEqual(isVideoUrl('https://chefkoch.de/rezepte'), false);
+            assert.strictEqual(isVideoUrl('https://instagram.com/profile'), false);
+            assert.strictEqual(isVideoUrl('https://youtube.com/watch?v=123'), false);
         });
     });
 
     describe('sanitizeVideoUrl', () => {
         it('should return sanitized URL for valid video URLs', () => {
             const url = 'https://www.tiktok.com/@user/video/123';
-            expect(sanitizeVideoUrl(url)).toBe(url);
+            assert.strictEqual(sanitizeVideoUrl(url), url);
         });
 
         it('should return null for invalid URLs', () => {
-            expect(sanitizeVideoUrl('not-a-url')).toBeNull();
-            expect(sanitizeVideoUrl('')).toBeNull();
+            assert.strictEqual(sanitizeVideoUrl('not-a-url'), null);
+            assert.strictEqual(sanitizeVideoUrl(''), null);
         });
 
         it('should return null for non-HTTP protocols', () => {
-            expect(sanitizeVideoUrl('ftp://tiktok.com/video')).toBeNull();
-            expect(sanitizeVideoUrl('file:///video.mp4')).toBeNull();
+            assert.strictEqual(sanitizeVideoUrl('ftp://tiktok.com/video'), null);
+            assert.strictEqual(sanitizeVideoUrl('file:///video.mp4'), null);
         });
 
         it('should return null for non-video platform URLs', () => {
-            expect(sanitizeVideoUrl('https://evil.com/malware')).toBeNull();
-            expect(sanitizeVideoUrl('https://localhost:8080/api')).toBeNull();
+            assert.strictEqual(sanitizeVideoUrl('https://evil.com/malware'), null);
+            assert.strictEqual(sanitizeVideoUrl('https://localhost:8080/api'), null);
         });
 
         it('should prevent command injection attempts', () => {
-            // Invalid URL formats should return null
-            expect(sanitizeVideoUrl('$(curl evil.com)')).toBeNull();
-            expect(sanitizeVideoUrl('`whoami`')).toBeNull();
-            expect(sanitizeVideoUrl('; rm -rf /')).toBeNull();
-            // URLs that don't match video platform patterns
-            expect(sanitizeVideoUrl('https://evil.com/$(whoami)')).toBeNull();
+            assert.strictEqual(sanitizeVideoUrl('$(curl evil.com)'), null);
+            assert.strictEqual(sanitizeVideoUrl('`whoami`'), null);
+            assert.strictEqual(sanitizeVideoUrl('; rm -rf /'), null);
+            assert.strictEqual(sanitizeVideoUrl('https://evil.com/$(whoami)'), null);
         });
     });
 
     describe('getVideoPlatform', () => {
         it('should identify TikTok', () => {
-            expect(getVideoPlatform('https://www.tiktok.com/@user/video/123')).toBe('tiktok');
-            expect(getVideoPlatform('https://vm.tiktok.com/abc')).toBe('tiktok');
+            assert.strictEqual(getVideoPlatform('https://www.tiktok.com/@user/video/123'), 'tiktok');
+            assert.strictEqual(getVideoPlatform('https://vm.tiktok.com/abc'), 'tiktok');
         });
 
         it('should identify Instagram', () => {
-            expect(getVideoPlatform('https://www.instagram.com/reel/ABC')).toBe('instagram');
+            assert.strictEqual(getVideoPlatform('https://www.instagram.com/reel/ABC'), 'instagram');
         });
 
         it('should identify Pinterest', () => {
-            expect(getVideoPlatform('https://pinterest.com/pin/123')).toBe('pinterest');
+            assert.strictEqual(getVideoPlatform('https://pinterest.com/pin/123'), 'pinterest');
         });
 
         it('should identify YouTube', () => {
-            expect(getVideoPlatform('https://youtube.com/shorts/abc')).toBe('youtube');
-            expect(getVideoPlatform('https://youtu.be/xyz')).toBe('youtube');
+            assert.strictEqual(getVideoPlatform('https://youtube.com/shorts/abc'), 'youtube');
+            assert.strictEqual(getVideoPlatform('https://youtu.be/xyz'), 'youtube');
         });
 
         it('should return unknown for unrecognized URLs', () => {
-            expect(getVideoPlatform('https://google.com')).toBe('unknown');
-            expect(getVideoPlatform('invalid')).toBe('unknown');
+            assert.strictEqual(getVideoPlatform('https://google.com'), 'unknown');
+            assert.strictEqual(getVideoPlatform('invalid'), 'unknown');
         });
     });
 });
