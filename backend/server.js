@@ -15,8 +15,56 @@ const PORT = process.env.PORT || 3000;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
+// CORS Configuration with Whitelist
+// Default origins for local development
+const DEFAULT_ORIGINS = [
+    'http://localhost',
+    'http://localhost:80',
+    'http://localhost:3000',
+    'http://localhost:8080',
+    'http://127.0.0.1',
+    'http://127.0.0.1:80',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:8080'
+];
+
+// Parse CORS_ORIGINS from environment variable (comma-separated)
+const envOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()).filter(Boolean)
+    : [];
+
+// Combine default and environment origins
+const allowedOrigins = [...new Set([...DEFAULT_ORIGINS, ...envOrigins])];
+
+// CORS options with whitelist validation
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow requests with no origin (e.g., mobile apps, Postman, server-to-server)
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+
+        // Check if origin is in the whitelist
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
+            callback(new Error(`Origin ${origin} not allowed by CORS policy`));
+        }
+    },
+    credentials: true, // Allow cookies and authorization headers
+    maxAge: 86400, // Preflight cache duration: 24 hours (in seconds)
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset']
+};
+
+// Log allowed origins on startup
+console.log('[CORS] Allowed origins:', allowedOrigins);
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(bodyParser.json({ limit: '10mb' }));
 
 // Swagger API Documentation

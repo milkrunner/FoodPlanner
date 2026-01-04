@@ -6,7 +6,20 @@ const options = {
         info: {
             title: 'FoodPlanner API',
             version: '1.0.0',
-            description: 'REST API für den FoodPlanner - Essenswochenplaner',
+            description: `REST API für den FoodPlanner - Essenswochenplaner
+
+## CORS-Konfiguration
+
+Die API verwendet eine Whitelist für Cross-Origin Requests:
+- **Standard**: localhost-Varianten (Port 80, 3000, 8080) sind automatisch erlaubt
+- **Produktion**: Zusätzliche Origins über \`CORS_ORIGINS\` Umgebungsvariable konfigurierbar
+- **Credentials**: Cookies und Authorization-Header werden unterstützt
+- **Preflight-Cache**: 24 Stunden (86400 Sekunden)
+
+Beispiel für CORS_ORIGINS:
+\`\`\`
+CORS_ORIGINS=https://foodplanner.example.com,https://app.example.com
+\`\`\``,
             contact: {
                 name: 'FoodPlanner',
                 url: 'https://github.com/milkrunner/FoodPlanner'
