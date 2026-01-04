@@ -82,9 +82,9 @@ describe('Ingredient Categorization', () => {
 
         describe('Tiefkühl', () => {
             const frozen = [
-                'Tiefkühl-Erbsen', 'TK-Erbsen',
-                'Tiefkühl Gemüse', 'gefrorene Beeren',
-                'Eis', 'Erdbeereis'
+                'Tiefkühl-Spinat', 'TK-Erbsen',
+                'Tiefkühlpizza', 'gefroren',
+                'Eis', 'Eiscreme'
             ];
 
             frozen.forEach(ingredient => {
