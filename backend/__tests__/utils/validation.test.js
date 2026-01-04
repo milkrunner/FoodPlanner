@@ -84,6 +84,23 @@ describe('URL Validation', () => {
                 assert.ok(ALLOWED_RECIPE_DOMAINS.includes(`www.${domain}`));
             });
         });
+
+        it('should accept URLs whose hostname is an allowed recipe domain', () => {
+            const url = 'https://www.allrecipes.com/recipe/12345/delicious-food';
+            // validateUrl should base its decision on the parsed hostname, not substring matches
+            assert.strictEqual(validateUrl(url), url);
+        });
+
+        it('should reject URLs where an allowed domain only appears as a substring in the hostname', () => {
+            const evilHostUrls = [
+                'https://allrecipes.com.evil.com/recipe/12345',
+                'https://evil-allrecipes.com/recipe/12345'
+            ];
+
+            evilHostUrls.forEach(url => {
+                assert.throws(() => validateUrl(url));
+            });
+        });
     });
 });
 
