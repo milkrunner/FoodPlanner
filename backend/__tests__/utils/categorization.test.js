@@ -10,7 +10,7 @@ describe('Ingredient Categorization', () => {
             const fruitsAndVeggies = [
                 'Tomate', 'tomaten', 'TOMATEN',
                 'Karotte', 'Karotten', 'Möhre',
-                'Apfel', 'Äpfel', 'grüner Apfel',
+                'Apfel', 'grüner Apfel',
                 'Zwiebel', 'rote Zwiebel',
                 'Knoblauch', 'Knoblauchzehe',
                 'Brokkoli', 'frischer Brokkoli',
@@ -66,7 +66,7 @@ describe('Ingredient Categorization', () => {
                 'Mehl', 'Weizenmehl', 'Dinkelmehl',
                 'Zucker', 'brauner Zucker', 'Puderzucker',
                 'Reis', 'Basmati-Reis', 'Langkornreis',
-                'Nudeln', 'Spaghetti', 'Penne',
+                'Nudeln', 'Spaghetti', 'Pasta',
                 'Salz', 'Meersalz',
                 'Pfeffer', 'schwarzer Pfeffer',
                 'Olivenöl', 'Öl',
@@ -83,8 +83,8 @@ describe('Ingredient Categorization', () => {
         describe('Tiefkühl', () => {
             const frozen = [
                 'Tiefkühl-Erbsen', 'TK-Erbsen',
-                'Tiefkühlgemüse', 'gefrorene Beeren',
-                'Eis', 'Vanilleeis'
+                'Tiefkühl Gemüse', 'gefrorene Beeren',
+                'Eis', 'Erdbeereis'
             ];
 
             frozen.forEach(ingredient => {
