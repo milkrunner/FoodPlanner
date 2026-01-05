@@ -234,7 +234,14 @@ const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/recipes`);
             if (!response.ok) throw new Error('Failed to fetch recipes');
-            return await response.json();
+            const payload = await response.json();
+            if (Array.isArray(payload)) {
+                return payload;
+            }
+            if (payload && Array.isArray(payload.recipes)) {
+                return payload.recipes;
+            }
+            return [];
         } catch (error) {
             console.error('Error fetching recipes:', error);
             return [];

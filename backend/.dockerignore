@@ -1,6 +1,3 @@
-# Node modules (will be installed in container)
-node_modules
-
 # Development files
 *.md
 
