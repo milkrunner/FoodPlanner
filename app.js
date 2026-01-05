@@ -630,13 +630,105 @@ const AppState = {
     }
 };
 
+// Mobile detection and touch utilities
+const MobileUtils = {
+    isMobile() {
+        return window.innerWidth < 640;
+    },
+
+    isTablet() {
+        return window.innerWidth >= 640 && window.innerWidth < 1024;
+    },
+
+    isTouchDevice() {
+        return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    },
+
+    // Swipe gesture detection
+    setupSwipeGestures(element, callbacks) {
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        const minSwipeDistance = 50;
+        const maxVerticalDistance = 100;
+
+        element.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+
+        element.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            const horizontalDiff = touchEndX - touchStartX;
+            const verticalDiff = Math.abs(touchEndY - touchStartY);
+
+            // Only trigger if horizontal swipe is dominant
+            if (Math.abs(horizontalDiff) > minSwipeDistance && verticalDiff < maxVerticalDistance) {
+                if (horizontalDiff > 0 && callbacks.onSwipeRight) {
+                    callbacks.onSwipeRight();
+                } else if (horizontalDiff < 0 && callbacks.onSwipeLeft) {
+                    callbacks.onSwipeLeft();
+                }
+            }
+        }
+    },
+
+    // Pull to refresh
+    setupPullToRefresh(element, onRefresh) {
+        let startY = 0;
+        let isPulling = false;
+        const threshold = 80;
+
+        element.addEventListener('touchstart', (e) => {
+            if (element.scrollTop === 0) {
+                startY = e.touches[0].clientY;
+                isPulling = true;
+            }
+        }, { passive: true });
+
+        element.addEventListener('touchmove', (e) => {
+            if (!isPulling) return;
+            const currentY = e.touches[0].clientY;
+            const diff = currentY - startY;
+
+            if (diff > 0 && diff < threshold * 2) {
+                const pullIndicator = document.querySelector('.pull-to-refresh');
+                if (pullIndicator) {
+                    pullIndicator.classList.toggle('visible', diff > threshold / 2);
+                }
+            }
+        }, { passive: true });
+
+        element.addEventListener('touchend', async (e) => {
+            if (!isPulling) return;
+            isPulling = false;
+
+            const pullIndicator = document.querySelector('.pull-to-refresh');
+            if (pullIndicator && pullIndicator.classList.contains('visible')) {
+                pullIndicator.classList.add('refreshing');
+                await onRefresh();
+                pullIndicator.classList.remove('visible', 'refreshing');
+            }
+        }, { passive: true });
+    }
+};
+
 // Main App
 const App = {
+    mobileMenuOpen: false,
+
     async init() {
         DarkMode.init();
         await AppState.init();
         this.render();
         this.setupKeyboardShortcuts();
+        this.setupMobileFeatures();
     },
 
     setupKeyboardShortcuts() {
@@ -649,16 +741,72 @@ const App = {
         });
     },
 
+    setupMobileFeatures() {
+        // Handle resize events
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (!MobileUtils.isMobile() && this.mobileMenuOpen) {
+                    this.closeMobileMenu();
+                }
+            }, 100);
+        });
+
+        // Close mobile menu on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.mobileMenuOpen) {
+                this.closeMobileMenu();
+            }
+        });
+    },
+
+    toggleMobileMenu() {
+        this.mobileMenuOpen = !this.mobileMenuOpen;
+        const overlay = document.querySelector('.mobile-nav-overlay');
+        const menu = document.querySelector('.mobile-nav-menu');
+
+        if (overlay && menu) {
+            overlay.classList.toggle('active', this.mobileMenuOpen);
+            menu.classList.toggle('active', this.mobileMenuOpen);
+            document.body.style.overflow = this.mobileMenuOpen ? 'hidden' : '';
+        }
+    },
+
+    closeMobileMenu() {
+        this.mobileMenuOpen = false;
+        const overlay = document.querySelector('.mobile-nav-overlay');
+        const menu = document.querySelector('.mobile-nav-menu');
+
+        if (overlay && menu) {
+            overlay.classList.remove('active');
+            menu.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    },
+
     render() {
         const appElement = document.getElementById('app');
         appElement.innerHTML = `
+            ${this.renderPullToRefresh()}
             ${this.renderHeader()}
+            ${this.renderMobileNavigation()}
             ${this.renderNavigation()}
-            <main class="container mx-auto px-4 py-6">
+            <main class="container mx-auto px-4 py-4 sm:py-6 pb-safe">
                 ${this.renderCurrentView()}
             </main>
         `;
         this.attachEventListeners();
+    },
+
+    renderPullToRefresh() {
+        return `
+            <div class="pull-to-refresh bg-blue-500 dark:bg-blue-600 text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+            </div>
+        `;
     },
 
     renderHeader() {
@@ -667,12 +815,20 @@ const App = {
         const moonIconClass = isDark ? '' : 'hidden';
 
         return `
-            <header class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-200">
-                <div class="container mx-auto px-4 py-4">
+            <header class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-200 sticky top-0 z-30">
+                <div class="container mx-auto px-4 py-3 sm:py-4">
                     <div class="flex justify-between items-center">
-                        <div>
-                            <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Food Planner</h1>
-                            <p class="text-gray-600 dark:text-gray-300">Dein persönlicher Essenswochenplaner</p>
+                        <div class="flex items-center gap-3">
+                            <!-- Mobile menu button -->
+                            <button id="mobile-menu-toggle" class="sm:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Menü öffnen">
+                                <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                                </svg>
+                            </button>
+                            <div>
+                                <h1 class="text-xl sm:text-3xl font-bold text-gray-800 dark:text-white">Food Planner</h1>
+                                <p class="text-xs sm:text-base text-gray-600 dark:text-gray-300 hidden sm:block">Dein persönlicher Essenswochenplaner</p>
+                            </div>
                         </div>
                         <button id="dark-mode-toggle" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Dark Mode umschalten">
                             <svg class="w-6 h-6 text-gray-800 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -686,30 +842,76 @@ const App = {
         `;
     },
 
-    renderNavigation() {
+    renderMobileNavigation() {
         const tabs = [
-            { id: 'planner', label: 'Wochenplan' },
-            { id: 'recipes', label: 'Rezepte' },
-            { id: 'ai-recipes', label: 'KI Rezepte' },
-            { id: 'parser', label: 'Rezepte Parser' },
-            { id: 'shopping', label: 'Einkaufsliste' },
-            { id: 'history', label: 'Kochverlauf' }
+            { id: 'planner', label: 'Wochenplan', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+            { id: 'recipes', label: 'Rezepte', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
+            { id: 'ai-recipes', label: 'KI Rezepte', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
+            { id: 'parser', label: 'Rezept Parser', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+            { id: 'shopping', label: 'Einkaufsliste', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
+            { id: 'history', label: 'Kochverlauf', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }
         ];
 
         return `
-            <nav class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 transition-colors duration-200">
+            <!-- Mobile navigation overlay -->
+            <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
+
+            <!-- Mobile navigation menu -->
+            <nav class="mobile-nav-menu bg-white dark:bg-gray-800">
+                <div class="p-4 border-b dark:border-gray-700">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Menü</h2>
+                        <button id="close-mobile-menu" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <svg class="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="py-2">
+                    ${tabs.map(tab => `
+                        <button class="mobile-nav-btn w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                            AppState.currentView === tab.id
+                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-l-4 border-blue-600 dark:border-blue-400'
+                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }" data-view="${tab.id}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${tab.icon}"></path>
+                            </svg>
+                            ${tab.label}
+                        </button>
+                    `).join('')}
+                </div>
+            </nav>
+        `;
+    },
+
+    renderNavigation() {
+        const tabs = [
+            { id: 'planner', label: 'Wochenplan', shortLabel: 'Plan' },
+            { id: 'recipes', label: 'Rezepte', shortLabel: 'Rezepte' },
+            { id: 'ai-recipes', label: 'KI Rezepte', shortLabel: 'KI' },
+            { id: 'parser', label: 'Rezept Parser', shortLabel: 'Parser' },
+            { id: 'shopping', label: 'Einkaufsliste', shortLabel: 'Einkauf' },
+            { id: 'history', label: 'Kochverlauf', shortLabel: 'Verlauf' }
+        ];
+
+        // Desktop navigation (hidden on mobile)
+        return `
+            <nav class="hidden sm:block bg-white dark:bg-gray-800 border-b dark:border-gray-700 transition-colors duration-200 overflow-x-auto">
                 <div class="container mx-auto px-4">
-                    <div class="flex space-x-1">
+                    <div class="flex space-x-1 min-w-max">
                         ${tabs.map(tab => `
                             <button
-                                class="nav-btn px-6 py-3 font-medium transition-colors ${
+                                class="nav-btn px-3 md:px-6 py-3 font-medium transition-colors whitespace-nowrap text-sm md:text-base ${
                                     AppState.currentView === tab.id
                                         ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
                                         : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
                                 }"
                                 data-view="${tab.id}"
                             >
-                                ${tab.label}
+                                <span class="hidden md:inline">${tab.label}</span>
+                                <span class="md:hidden">${tab.shortLabel}</span>
                             </button>
                         `).join('')}
                     </div>
@@ -747,13 +949,52 @@ const App = {
             });
         }
 
-        // Navigation
-        document.querySelectorAll('.nav-btn').forEach(btn => {
+        // Mobile menu toggle
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        if (mobileMenuToggle) {
+            mobileMenuToggle.addEventListener('click', () => this.toggleMobileMenu());
+        }
+
+        // Close mobile menu button
+        const closeMobileMenu = document.getElementById('close-mobile-menu');
+        if (closeMobileMenu) {
+            closeMobileMenu.addEventListener('click', () => this.closeMobileMenu());
+        }
+
+        // Mobile nav overlay click to close
+        const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
+        if (mobileNavOverlay) {
+            mobileNavOverlay.addEventListener('click', () => this.closeMobileMenu());
+        }
+
+        // Mobile navigation buttons
+        document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const view = e.target.dataset.view;
+                const view = e.currentTarget.dataset.view;
+                this.closeMobileMenu();
                 AppState.setView(view);
             });
         });
+
+        // Desktop navigation
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const view = e.currentTarget.dataset.view;
+                AppState.setView(view);
+            });
+        });
+
+        // Pull to refresh setup
+        if (MobileUtils.isTouchDevice()) {
+            const main = document.querySelector('main');
+            if (main) {
+                MobileUtils.setupPullToRefresh(main, async () => {
+                    await AppState.reloadData();
+                    App.render();
+                    Toast.success('Daten aktualisiert');
+                });
+            }
+        }
 
         // View-specific event listeners
         if (AppState.currentView === 'planner') {
@@ -1050,6 +1291,7 @@ const CookingHistoryView = {
 const WeekPlannerView = {
     selectedDay: null,
     selectedMealType: null,
+    mobileViewDay: 0, // Index of day to show on mobile (0-6)
 
     render() {
         if (!AppState.weekPlan || !AppState.currentWeekStart) {
@@ -1060,40 +1302,55 @@ const WeekPlannerView = {
         const weekRange = DateUtils.formatWeekRange(AppState.currentWeekStart);
         const isCurrentWeek = AppState.isCurrentWeek();
 
+        // Find today's index for mobile view
+        if (isCurrentWeek) {
+            const today = new Date();
+            const todayIndex = AppState.weekPlan.days.findIndex(day =>
+                DateUtils.isToday(new Date(day.date))
+            );
+            if (todayIndex >= 0 && this.mobileViewDay !== todayIndex) {
+                this.mobileViewDay = todayIndex;
+            }
+        }
+
         return `
-            <div class="space-y-6">
-                <div class="flex justify-between items-center flex-wrap gap-3">
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Wochenplan</h2>
+            <div class="space-y-4 sm:space-y-6">
+                <!-- Header with responsive buttons -->
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Wochenplan</h2>
                     <div class="flex gap-2 flex-wrap">
-                        <button id="save-template-btn" class="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
-                            Als Vorlage speichern
+                        <button id="save-template-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors text-sm sm:text-base">
+                            <span class="hidden sm:inline">Als Vorlage speichern</span>
+                            <span class="sm:hidden">Speichern</span>
                         </button>
-                        <button id="load-template-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors">
-                            Aus Vorlage laden
+                        <button id="load-template-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors text-sm sm:text-base">
+                            <span class="hidden sm:inline">Aus Vorlage laden</span>
+                            <span class="sm:hidden">Laden</span>
                         </button>
-                        <button id="reset-week-btn" class="px-4 py-2 bg-red-500 dark:bg-red-600 text-white rounded hover:bg-red-600 dark:hover:bg-red-700 transition-colors">
-                            Zurücksetzen
+                        <button id="reset-week-btn" class="px-3 sm:px-4 py-2 bg-red-500 dark:bg-red-600 text-white rounded hover:bg-red-600 dark:hover:bg-red-700 transition-colors text-sm sm:text-base">
+                            <span class="hidden sm:inline">Zurücksetzen</span>
+                            <span class="sm:hidden">Reset</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Week Navigation -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
                     <div class="flex items-center justify-between">
-                        <button id="prev-week-btn" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" title="Vorherige Woche">
+                        <button id="prev-week-btn" class="p-3 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95" title="Vorherige Woche">
                             <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
                         </button>
-                        <div class="text-center">
-                            <h3 class="text-xl font-semibold text-gray-800 dark:text-white">${weekRange}</h3>
+                        <div class="text-center flex-1 mx-2">
+                            <h3 class="text-base sm:text-xl font-semibold text-gray-800 dark:text-white">${weekRange}</h3>
                             ${!isCurrentWeek ? `
                                 <button id="go-to-current-week-btn" class="mt-1 text-sm text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500 transition-colors">
                                     Zur aktuellen Woche
                                 </button>
-                            ` : '<span class="mt-1 text-sm text-green-600 dark:text-green-400">Aktuelle Woche</span>'}
+                            ` : '<span class="mt-1 text-sm text-green-600 dark:text-green-400 block">Aktuelle Woche</span>'}
                         </div>
-                        <button id="next-week-btn" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" title="Nächste Woche">
+                        <button id="next-week-btn" class="p-3 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95" title="Nächste Woche">
                             <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
@@ -1101,8 +1358,50 @@ const WeekPlannerView = {
                     </div>
                 </div>
 
-                <div class="grid gap-4">
-                    ${AppState.weekPlan.days.map((day, dayIndex) => this.renderDay(day, dayIndex, mealTypes)).join('')}
+                <!-- Mobile Day Selector -->
+                <div class="sm:hidden">
+                    <div class="flex items-center justify-between mb-3">
+                        <button id="prev-day-btn" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95 ${this.mobileViewDay <= 0 ? 'opacity-50' : ''}" ${this.mobileViewDay <= 0 ? 'disabled' : ''}>
+                            <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                        <div class="flex gap-1 overflow-x-auto py-1 px-2">
+                            ${AppState.weekPlan.days.map((day, index) => {
+                                const dayDate = new Date(day.date);
+                                const isToday = DateUtils.isToday(dayDate);
+                                const dayName = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'][index];
+                                return `
+                                    <button class="day-selector-btn flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                                        this.mobileViewDay === index
+                                            ? 'bg-blue-500 text-white'
+                                            : isToday
+                                                ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
+                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                    }" data-day-index="${index}">
+                                        ${dayName}
+                                    </button>
+                                `;
+                            }).join('')}
+                        </div>
+                        <button id="next-day-btn" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95 ${this.mobileViewDay >= 6 ? 'opacity-50' : ''}" ${this.mobileViewDay >= 6 ? 'disabled' : ''}>
+                            <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <!-- Swipe hint -->
+                    <p class="text-xs text-center text-gray-400 dark:text-gray-500 mb-2">← Wischen für Tageswechsel →</p>
+                </div>
+
+                <!-- Mobile view: Single day with swipe -->
+                <div id="mobile-day-view" class="sm:hidden">
+                    ${this.renderDay(AppState.weekPlan.days[this.mobileViewDay], this.mobileViewDay, mealTypes, true)}
+                </div>
+
+                <!-- Desktop view: All days -->
+                <div class="hidden sm:grid gap-4">
+                    ${AppState.weekPlan.days.map((day, dayIndex) => this.renderDay(day, dayIndex, mealTypes, false)).join('')}
                 </div>
 
                 ${this.renderRecipeSelector()}
@@ -1112,50 +1411,59 @@ const WeekPlannerView = {
         `;
     },
 
-    renderDay(day, dayIndex, mealTypes) {
+    renderDay(day, dayIndex, mealTypes, isMobileView = false) {
         const dayDate = new Date(day.date);
         const formattedDate = DateUtils.formatDateWithDay(dayDate);
         const isToday = DateUtils.isToday(dayDate);
         const isPast = DateUtils.isPast(dayDate);
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200 ${isToday ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''} ${isPast ? 'opacity-75' : ''}">
-                <div class="flex items-center gap-2 mb-3">
-                    <h3 class="text-xl font-semibold text-gray-800 dark:text-white">${formattedDate}</h3>
-                    ${isToday ? '<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">Heute</span>' : ''}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200 ${isToday ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''} ${isPast && !isMobileView ? 'opacity-75' : ''}">
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">${formattedDate}</h3>
+                        ${isToday ? '<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">Heute</span>' : ''}
+                    </div>
+                    ${isPast ? '<span class="text-xs text-gray-400 dark:text-gray-500">Vergangen</span>' : ''}
                 </div>
-                <div class="grid md:grid-cols-3 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     ${mealTypes.map(mealType => {
                         const meal = day.meals[mealType];
                         return `
-                            <div class="border dark:border-gray-700 rounded p-3">
+                            <div class="border dark:border-gray-700 rounded-lg p-3 sm:p-3">
                                 <div class="flex justify-between items-center mb-2">
-                                    <h4 class="font-medium text-gray-700 dark:text-gray-300">${mealType}</h4>
+                                    <h4 class="font-medium text-gray-700 dark:text-gray-300 text-sm sm:text-base">${mealType}</h4>
                                     ${meal ? `
-                                        <button class="remove-meal-btn text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 text-sm"
+                                        <button class="remove-meal-btn p-2 -mr-1 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                                 data-day="${dayIndex}"
-                                                data-meal="${mealType}">
-                                            ✕
+                                                data-meal="${mealType}"
+                                                aria-label="Mahlzeit entfernen">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                            </svg>
                                         </button>
                                     ` : ''}
                                 </div>
                                 ${meal ? `
-                                    <div class="bg-blue-50 dark:bg-blue-900/30 p-2 rounded">
-                                        <p class="text-sm text-gray-800 dark:text-gray-200">${meal.recipeName}</p>
-                                        <button class="mark-cooked-btn mt-2 w-full py-1 text-xs bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
+                                    <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
+                                        <p class="text-sm text-gray-800 dark:text-gray-200 font-medium">${meal.recipeName}</p>
+                                        <button class="mark-cooked-btn mt-3 w-full py-2.5 text-sm bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center justify-center gap-2 active:scale-98"
                                                 data-recipe-id="${meal.recipeId}"
                                                 data-recipe-name="${meal.recipeName}">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                             </svg>
-                                            Gekocht
+                                            Als gekocht markieren
                                         </button>
                                     </div>
                                 ` : `
-                                    <button class="add-meal-btn w-full py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded text-gray-500 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                                    <button class="add-meal-btn w-full py-4 sm:py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-center gap-2 active:scale-98"
                                             data-day="${dayIndex}"
                                             data-meal="${mealType}">
-                                        + Rezept hinzufügen
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                        </svg>
+                                        Rezept hinzufügen
                                     </button>
                                 `}
                             </div>
@@ -1276,6 +1584,54 @@ const WeekPlannerView = {
             goToCurrentWeekBtn.addEventListener('click', () => AppState.goToCurrentWeek());
         }
 
+        // Mobile day navigation
+        const prevDayBtn = document.getElementById('prev-day-btn');
+        if (prevDayBtn) {
+            prevDayBtn.addEventListener('click', () => {
+                if (this.mobileViewDay > 0) {
+                    this.mobileViewDay--;
+                    App.render();
+                }
+            });
+        }
+
+        const nextDayBtn = document.getElementById('next-day-btn');
+        if (nextDayBtn) {
+            nextDayBtn.addEventListener('click', () => {
+                if (this.mobileViewDay < 6) {
+                    this.mobileViewDay++;
+                    App.render();
+                }
+            });
+        }
+
+        // Day selector buttons
+        document.querySelectorAll('.day-selector-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.mobileViewDay = parseInt(e.currentTarget.dataset.dayIndex);
+                App.render();
+            });
+        });
+
+        // Setup swipe gestures for mobile day view
+        const mobileDayView = document.getElementById('mobile-day-view');
+        if (mobileDayView && MobileUtils.isTouchDevice()) {
+            MobileUtils.setupSwipeGestures(mobileDayView, {
+                onSwipeLeft: () => {
+                    if (this.mobileViewDay < 6) {
+                        this.mobileViewDay++;
+                        App.render();
+                    }
+                },
+                onSwipeRight: () => {
+                    if (this.mobileViewDay > 0) {
+                        this.mobileViewDay--;
+                        App.render();
+                    }
+                }
+            });
+        }
+
         // Reset week plan
         const resetBtn = document.getElementById('reset-week-btn');
         if (resetBtn) {
@@ -1308,8 +1664,8 @@ const WeekPlannerView = {
         // Add meal buttons
         document.querySelectorAll('.add-meal-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                this.selectedDay = parseInt(e.target.dataset.day);
-                this.selectedMealType = e.target.dataset.meal;
+                this.selectedDay = parseInt(e.currentTarget.dataset.day);
+                this.selectedMealType = e.currentTarget.dataset.meal;
                 this.showRecipeSelector();
             });
         });
@@ -1317,8 +1673,8 @@ const WeekPlannerView = {
         // Remove meal buttons
         document.querySelectorAll('.remove-meal-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const dayIndex = parseInt(e.target.dataset.day);
-                const mealType = e.target.dataset.meal;
+                const dayIndex = parseInt(e.currentTarget.dataset.day);
+                const mealType = e.currentTarget.dataset.meal;
                 await this.removeMeal(dayIndex, mealType);
             });
         });
@@ -1659,29 +2015,33 @@ const RecipeDatabaseView = {
         const filteredRecipes = this.filterRecipes();
 
         return `
-            <div class="space-y-6">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Rezeptdatenbank</h2>
-                    <button id="new-recipe-btn" class="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
-                        + Neues Rezept
+            <div class="space-y-4 sm:space-y-6">
+                <!-- Header - stacks on mobile -->
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Rezeptdatenbank</h2>
+                    <button id="new-recipe-btn" class="w-full sm:w-auto px-4 py-3 sm:py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 active:scale-98">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Neues Rezept
                     </button>
                 </div>
 
                 ${AppState.recipes.length > 0 ? `
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
                         <div class="relative">
                             <input
                                 type="text"
                                 id="recipe-search-input"
                                 value="${this.searchQuery}"
-                                placeholder="Rezepte durchsuchen (Name, Kategorie, Zutaten)..."
-                                class="w-full px-4 py-2 pl-10 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                                placeholder="Rezepte durchsuchen..."
+                                class="w-full px-4 py-3 sm:py-2 pl-10 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-base"
                             />
                             <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
                             ${this.searchQuery ? `
-                                <button id="clear-search-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                                <button id="clear-search-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                     </svg>
@@ -1698,6 +2058,9 @@ const RecipeDatabaseView = {
 
                 ${AppState.recipes.length === 0 ? `
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center transition-colors duration-200">
+                        <svg class="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
                         <p class="text-gray-500 dark:text-gray-400">Noch keine Rezepte vorhanden.</p>
                         <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">Erstelle dein erstes Rezept!</p>
                     </div>
@@ -1707,13 +2070,14 @@ const RecipeDatabaseView = {
                         <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">Versuche einen anderen Suchbegriff.</p>
                     </div>
                 ` : `
-                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        ${AppState.recipes.map(recipe => {
+                    <!-- Responsive grid: 1 col on mobile, 2 on tablet, 3 on desktop -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                        ${filteredRecipes.map(recipe => {
                             const cookingStat = this.getCookingStatsForRecipe(recipe.id);
                             const lastCookedText = cookingStat ? this.formatLastCooked(cookingStat.last_cooked_at) : null;
                             return `
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200">
-                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">${recipe.name}</h3>
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99]">
+                                <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white mb-2 line-clamp-2">${recipe.name}</h3>
                                 <div class="flex flex-wrap gap-1 mb-2">
                                     ${recipe.category ? `
                                         <span class="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs rounded">
@@ -1733,35 +2097,36 @@ const RecipeDatabaseView = {
                                 </div>
                                 ${recipe.tags && recipe.tags.length > 0 ? `
                                     <div class="flex flex-wrap gap-1 mb-2">
-                                        ${recipe.tags.map(tag => `
+                                        ${recipe.tags.slice(0, 3).map(tag => `
                                             <span class="px-2 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs rounded-full">
                                                 ${tag}
                                             </span>
                                         `).join('')}
+                                        ${recipe.tags.length > 3 ? `<span class="text-xs text-gray-400">+${recipe.tags.length - 3}</span>` : ''}
                                     </div>
                                 ` : ''}
-                                ${recipe.servings ? `<p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Portionen: ${recipe.servings}</p>` : ''}
-                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                                    ${recipe.ingredients.length} Zutat${recipe.ingredients.length !== 1 ? 'en' : ''}
-                                </p>
+                                <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                    ${recipe.servings ? `<span>${recipe.servings} Portionen</span><span>•</span>` : ''}
+                                    <span>${recipe.ingredients.length} Zutat${recipe.ingredients.length !== 1 ? 'en' : ''}</span>
+                                </div>
                                 <div class="flex flex-col gap-2">
                                     ${recipe.servings && recipe.ingredients.length > 0 ? `
-                                        <button class="scale-portions-btn w-full px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors text-sm"
+                                        <button class="scale-portions-btn w-full px-3 py-2.5 sm:py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors text-sm font-medium active:scale-98"
                                                 data-recipe-id="${recipe.id}">
                                             Portionen anpassen
                                         </button>
                                     ` : ''}
-                                    <div class="flex gap-2">
-                                        <button class="edit-recipe-btn flex-1 px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm"
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <button class="edit-recipe-btn px-3 py-2.5 sm:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium active:scale-98"
                                                 data-recipe-id="${recipe.id}">
                                             Bearbeiten
                                         </button>
-                                        <button class="delete-recipe-btn px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors text-sm"
+                                        <button class="delete-recipe-btn px-3 py-2.5 sm:py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors text-sm font-medium active:scale-98"
                                                 data-recipe-id="${recipe.id}">
                                             Löschen
                                         </button>
                                     </div>
-                                    <button class="duplicate-recipe-btn w-full px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm"
+                                    <button class="duplicate-recipe-btn w-full px-3 py-2.5 sm:py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium active:scale-98"
                                             data-recipe-id="${recipe.id}">
                                         Duplizieren
                                     </button>
@@ -3496,27 +3861,32 @@ const ShoppingListView = {
 
                     <div class="divide-y dark:divide-gray-700 ${isCollapsed ? 'hidden' : ''}">
                         ${items.map(item => `
-                            <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${item.checked ? 'opacity-50' : ''} ${item.isManual ? 'border-l-4 border-green-500 dark:border-green-600' : ''}">
-                                <div class="flex items-start gap-3">
-                                    <input type="checkbox" ${item.checked ? 'checked' : ''}
-                                           class="item-checkbox mt-1 w-5 h-5 cursor-pointer accent-blue-500 dark:accent-blue-400"
-                                           data-item-index="${item.index}">
-                                    <div class="flex-1 cursor-pointer" data-item-index="${item.index}">
+                            <div class="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${item.checked ? 'bg-gray-50 dark:bg-gray-700/50' : ''} ${item.isManual ? 'border-l-4 border-green-500 dark:border-green-600' : ''}">
+                                <div class="flex items-center gap-3 sm:gap-4">
+                                    <!-- Large touch-friendly checkbox -->
+                                    <label class="relative flex items-center justify-center cursor-pointer">
+                                        <input type="checkbox" ${item.checked ? 'checked' : ''}
+                                               class="item-checkbox touch-checkbox w-7 h-7 sm:w-6 sm:h-6 cursor-pointer accent-blue-500 dark:accent-blue-400 rounded"
+                                               data-item-index="${item.index}">
+                                    </label>
+                                    <div class="flex-1 min-w-0 cursor-pointer py-1" data-item-index="${item.index}">
                                         <div class="flex items-start justify-between gap-2">
-                                            <p class="font-medium text-gray-800 dark:text-white ${item.checked ? 'line-through' : ''}">
-                                                ${item.amount} ${item.unit} ${item.name}
+                                            <p class="font-medium text-gray-800 dark:text-white text-sm sm:text-base ${item.checked ? 'line-through text-gray-500 dark:text-gray-400' : ''}">
+                                                <span class="font-semibold">${item.amount}</span> ${item.unit} ${item.name}
                                                 ${item.isManual ? '<span class="ml-2 text-xs bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">Manuell</span>' : ''}
                                             </p>
                                             ${item.isManual ? `
-                                                <button class="delete-manual-item-btn text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 text-sm px-2"
+                                                <button class="delete-manual-item-btn p-2 -mr-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                                         data-item-id="${item.id}"
-                                                        title="Artikel löschen">
-                                                    ✕
+                                                        aria-label="Artikel löschen">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                    </svg>
                                                 </button>
                                             ` : ''}
                                         </div>
                                         ${item.recipeNames.length > 0 ? `
-                                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
                                                 Für: ${item.recipeNames.join(', ')}
                                             </p>
                                         ` : ''}
