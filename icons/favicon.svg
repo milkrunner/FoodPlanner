@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Food Planner Favicon</title>
+  <desc id="desc">Rounded blue gradient tile with a white letter F and spoon silhouette</desc>
+  <defs>
+    <linearGradient id="plannerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="spoonHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.98)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.85)"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#plannerGradient)"/>
+  <path d="M24 16h18a4 4 0 0 1 0 8H32v6h10a4 4 0 0 1 0 8H32v10a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V20a4 4 0 0 1 4-4z" fill="white"/> 
+  <g transform="translate(34 12)">
+    <circle cx="13" cy="12" r="7" fill="url(#spoonHighlight)"/>
+    <rect x="11.5" y="20" width="3" height="16" rx="1.5" fill="url(#spoonHighlight)"/>
+    <circle cx="13" cy="37" r="2.5" fill="rgba(255,255,255,0.9)"/>
+  </g>
+</svg>
