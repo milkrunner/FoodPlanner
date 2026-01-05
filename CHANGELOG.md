@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.0](https://github.com/milkrunner/FoodPlanner/compare/v1.3.3...v1.4.0) (2026-01-05)
+
+
+### Features
+
+* Enhance PWA features and frontend responsiveness ([#103](https://github.com/milkrunner/FoodPlanner/issues/103)) ([45650df](https://github.com/milkrunner/FoodPlanner/commit/45650dfc26c850e403af1c008411541ac0e912d8))
+
+
+### Bug Fixes
+
+* remove leaked .env file from repository ([7eab476](https://github.com/milkrunner/FoodPlanner/commit/7eab476cacbf686a4fff3f57ce22fa8ca1453c82))
+* remove leaked .env file from repository ([2e25103](https://github.com/milkrunner/FoodPlanner/commit/2e25103366bf6ac34ff191db99c7dd9d8c377948))
+
 ## [1.3.3](https://github.com/milkrunner/FoodPlanner/compare/v1.3.2...v1.3.3) (2026-01-05)
 
 
