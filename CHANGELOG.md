@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.3](https://github.com/milkrunner/FoodPlanner/compare/v1.3.2...v1.3.3) (2026-01-05)
+
+
+### Bug Fixes
+
+* correct docker-compose filename in release workflow ([64e9eb4](https://github.com/milkrunner/FoodPlanner/commit/64e9eb45692df74373a5a9eb7c80e128b8d84349))
+* correct docker-compose filename in release workflow ([224c85d](https://github.com/milkrunner/FoodPlanner/commit/224c85d80a554131606ec9ada3a44e8ad5317ec9))
+
 ## [1.3.2](https://github.com/milkrunner/FoodPlanner/compare/v1.3.1...v1.3.2) (2026-01-05)
 
 
