@@ -90,7 +90,7 @@ jobs:
           mkdir -p release-assets
 
           # Copy only the files needed for deployment
-          cp docker-compose.prod.yml release-assets/docker-compose.yml
+          cp docker-compose.yml release-assets/
           cp .env.example release-assets/
 
           # Create archives
