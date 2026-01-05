@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6"/>
+      <stop offset="100%" style="stop-color:#2563EB"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <!-- Calendar/Planner icon -->
+  <rect x="96" y="128" width="320" height="280" rx="24" fill="white" opacity="0.95"/>
+  <!-- Calendar header -->
+  <rect x="96" y="128" width="320" height="64" rx="24" fill="white"/>
+  <rect x="96" y="168" width="320" height="24" fill="white"/>
+  <!-- Calendar dots/hooks -->
+  <circle cx="176" cy="112" r="16" fill="#3B82F6"/>
+  <circle cx="336" cy="112" r="16" fill="#3B82F6"/>
+  <rect x="168" y="96" width="16" height="48" rx="8" fill="#1E40AF"/>
+  <rect x="328" y="96" width="16" height="48" rx="8" fill="#1E40AF"/>
+  <!-- Grid lines -->
+  <line x1="96" y1="220" x2="416" y2="220" stroke="#E5E7EB" stroke-width="2"/>
+  <line x1="96" y1="280" x2="416" y2="280" stroke="#E5E7EB" stroke-width="2"/>
+  <line x1="96" y1="340" x2="416" y2="340" stroke="#E5E7EB" stroke-width="2"/>
+  <line x1="203" y1="192" x2="203" y2="408" stroke="#E5E7EB" stroke-width="2"/>
+  <line x1="309" y1="192" x2="309" y2="408" stroke="#E5E7EB" stroke-width="2"/>
+  <!-- Food items (simplified) -->
+  <!-- Apple -->
+  <circle cx="150" cy="250" r="20" fill="#EF4444"/>
+  <path d="M150 230 Q155 220 160 225" stroke="#22C55E" stroke-width="4" fill="none"/>
+  <!-- Carrot -->
+  <ellipse cx="256" cy="310" rx="12" ry="24" fill="#F97316"/>
+  <path d="M256 286 L250 276 M256 286 L262 276 M256 286 L256 272" stroke="#22C55E" stroke-width="3"/>
+  <!-- Cheese -->
+  <path d="M340 360 L370 360 L355 330 Z" fill="#FCD34D"/>
+  <circle cx="352" cy="350" r="4" fill="#FBBF24"/>
+  <circle cx="360" cy="355" r="3" fill="#FBBF24"/>
+</svg>

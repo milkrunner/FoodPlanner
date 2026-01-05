@@ -1,8 +1,5 @@
-# Production Docker Compose - uses pre-built images from GitHub Releases
-# Usage:
-#   1. Copy this file and .env.example to your server
-#   2. Rename .env.example to .env and configure your values
-#   3. Run: docker-compose up -d
+# Development Docker Compose - uses local files with hot reload
+# Usage: docker compose -f docker-compose.dev.yml up -d --build
 
 services:
   postgres:
@@ -14,6 +11,11 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-foodplanner_secret}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./backend/db/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
+      - ./backend/db/migrations/002_cooking_history.sql:/docker-entrypoint-initdb.d/002_cooking_history.sql:ro
+      - ./backend/db/migrations/003_shopping_budget.sql:/docker-entrypoint-initdb.d/003_shopping_budget.sql:ro
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U foodplanner -d foodplanner"]
       interval: 5s
@@ -22,21 +24,28 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ghcr.io/milkrunner/foodplanner/backend:${VERSION:-latest}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: foodplanner-backend:dev
     container_name: foodplanner-backend
     ports:
       - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - backend-node-modules:/app/node_modules
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       DATABASE_URL: postgresql://foodplanner:${DB_PASSWORD:-foodplanner_secret}@postgres:5432/foodplanner
     depends_on:
       postgres:
         condition: service_healthy
+    command: sh -c "npm install && node server.js"
     restart: unless-stopped
 
   nginx:
-    image: ghcr.io/milkrunner/foodplanner/frontend:${VERSION:-latest}
+    image: nginx:latest
     container_name: foodplanner-nginx
     depends_on:
       - backend
@@ -53,3 +62,4 @@ services:
 
 volumes:
   postgres-data:
+  backend-node-modules:
