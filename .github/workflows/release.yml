@@ -43,11 +43,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata for Docker
-        id: meta
+      - name: Extract metadata for backend
+        id: meta-backend
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}/backend
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.release-please.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-please.outputs.version }}
+            type=raw,value=latest
+
+      - name: Extract metadata for frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/frontend
           tags: |
             type=semver,pattern={{version}},value=${{ needs.release-please.outputs.version }}
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-please.outputs.version }}
@@ -58,27 +68,30 @@ jobs:
         with:
           context: ./backend
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.frontend
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Create deployment archive
         run: |
-          # Create a deployment package
+          # Create a minimal deployment package (only config files needed)
           mkdir -p release-assets
 
-          # Copy relevant files
-          cp docker-compose.yml release-assets/
+          # Copy only the files needed for deployment
+          cp docker-compose.prod.yml release-assets/docker-compose.yml
           cp .env.example release-assets/
-          cp nginx.conf release-assets/
-          cp index.html release-assets/
-          cp app.js release-assets/
-          cp -r backend release-assets/
-
-          # Remove node_modules and data if present
-          rm -rf release-assets/backend/node_modules
-          rm -rf release-assets/backend/data
 
           # Create archives
           cd release-assets
