@@ -7,6 +7,7 @@ const cheerio = require('cheerio');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
 const db = require('./db');
+const { logger, requestLogger } = require('./utils/logger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,7 +50,7 @@ const corsOptions = {
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
+            logger.warn('Blocked request from unauthorized origin', { origin, component: 'cors' });
             callback(new Error(`Origin ${origin} not allowed by CORS policy`));
         }
     },
@@ -61,11 +62,12 @@ const corsOptions = {
 };
 
 // Log allowed origins on startup
-console.log('[CORS] Allowed origins:', allowedOrigins);
+logger.info('CORS configuration loaded', { allowedOrigins, component: 'cors' });
 
 // Middleware
 app.use(cors(corsOptions));
 app.use(bodyParser.json({ limit: '10mb' }));
+app.use(requestLogger);
 
 // Swagger API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -95,7 +97,13 @@ const generalLimiter = rateLimit({
         return req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1';
     },
     handler: (req, res) => {
-        console.log(`[RATE LIMIT] General API limit exceeded for IP: ${req.ip} on ${req.method} ${req.path}`);
+        logger.warn('General API rate limit exceeded', {
+            component: 'rate-limit',
+            ip: req.ip,
+            method: req.method,
+            path: req.path,
+            requestId: req.requestId
+        });
         res.status(429).json({
             error: 'Too many requests from this IP, please try again after 15 minutes.',
             retryAfter: '15 minutes'
@@ -118,7 +126,13 @@ const aiLimiter = rateLimit({
         return req.ip === '127.0.0.1' || req.ip === '::1' || req.ip === '::ffff:127.0.0.1';
     },
     handler: (req, res) => {
-        console.log(`[RATE LIMIT] AI API limit exceeded for IP: ${req.ip} on ${req.method} ${req.path}`);
+        logger.warn('AI API rate limit exceeded', {
+            component: 'rate-limit',
+            ip: req.ip,
+            method: req.method,
+            path: req.path,
+            requestId: req.requestId
+        });
         res.status(429).json({
             error: 'Too many AI requests from this IP. AI endpoints are limited to 20 requests per 15 minutes.',
             retryAfter: '15 minutes'
@@ -140,9 +154,10 @@ app.use(generalLimiter);
 (async () => {
     const connected = await db.checkConnection();
     if (!connected) {
-        console.error('Failed to connect to database. Exiting...');
+        logger.error('Failed to connect to database. Exiting...', { component: 'database' });
         process.exit(1);
     }
+    logger.info('Database connection established', { component: 'database' });
 })();
 
 // ========== RECIPES ENDPOINTS ==========
@@ -197,7 +212,14 @@ app.get('/recipes', async (req, res) => {
             : await db.query(query, [pageSize, offset]);
 
         const queryTime = Date.now() - startTime;
-        console.log(`[PERF] GET /recipes - ${rows.length}/${totalItems} recipes loaded in ${queryTime}ms (page: ${returnAll ? 'all' : page})`);
+        logger.debug('Recipes fetched', {
+            requestId: req.requestId,
+            count: rows.length,
+            totalItems,
+            page: returnAll ? 'all' : page,
+            duration: queryTime,
+            component: 'recipes'
+        });
 
         // Return paginated response
         res.json({
@@ -212,7 +234,12 @@ app.get('/recipes', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error fetching recipes:', error);
+        logger.error('Error fetching recipes', {
+            requestId: req.requestId,
+            error: error.message,
+            stack: error.stack,
+            component: 'recipes'
+        });
         res.status(500).json({ error: error.message });
     }
 });
@@ -252,10 +279,21 @@ app.get('/recipes/:id', async (req, res) => {
             return res.status(404).json({ error: 'Recipe not found' });
         }
 
-        console.log(`[PERF] GET /recipes/${req.params.id} - loaded in ${queryTime}ms (single query)`);
+        logger.debug('Recipe fetched', {
+            requestId: req.requestId,
+            recipeId: req.params.id,
+            duration: queryTime,
+            component: 'recipes'
+        });
         res.json(rows[0]);
     } catch (error) {
-        console.error('Error fetching recipe:', error);
+        logger.error('Error fetching recipe', {
+            requestId: req.requestId,
+            recipeId: req.params.id,
+            error: error.message,
+            stack: error.stack,
+            component: 'recipes'
+        });
         res.status(500).json({ error: error.message });
     }
 });
@@ -295,7 +333,7 @@ app.post('/recipes', async (req, res) => {
 
         res.status(201).json({ id, message: 'Recipe created successfully' });
     } catch (error) {
-        console.error('Error creating recipe:', error);
+        logger.error('Error creating recipe', { error: error.message, requestId: req.requestId, component: 'recipes' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -339,7 +377,7 @@ app.put('/recipes/:id', async (req, res) => {
 
         res.json({ message: 'Recipe updated successfully' });
     } catch (error) {
-        console.error('Error updating recipe:', error);
+        logger.error('Error updating recipe', { error: error.message, recipeId: req.params.id, requestId: req.requestId, component: 'recipes' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -350,7 +388,7 @@ app.delete('/recipes/:id', async (req, res) => {
         await db.query('DELETE FROM recipes WHERE id = $1', [req.params.id]);
         res.json({ message: 'Recipe deleted successfully' });
     } catch (error) {
-        console.error('Error deleting recipe:', error);
+        logger.error('Error deleting recipe', { error: error.message, recipeId: req.params.id, requestId: req.requestId, component: 'recipes' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -404,7 +442,7 @@ app.get('/weekplan', async (req, res) => {
             }))
         });
     } catch (error) {
-        console.error('Error fetching week plan:', error);
+        logger.error('Error fetching week plan', { error: error.message, requestId: req.requestId, component: 'weekplan' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -445,7 +483,7 @@ app.post('/weekplan', async (req, res) => {
 
         res.status(201).json({ message: 'Week plan saved successfully' });
     } catch (error) {
-        console.error('Error saving week plan:', error);
+        logger.error('Error saving week plan', { error: error.message, requestId: req.requestId, component: 'weekplan' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -456,7 +494,7 @@ app.delete('/weekplan', async (req, res) => {
         await db.query('DELETE FROM week_plans');
         res.json({ message: 'Week plan deleted successfully' });
     } catch (error) {
-        console.error('Error deleting week plan:', error);
+        logger.error('Error deleting week plan', { error: error.message, requestId: req.requestId, component: 'weekplan' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -521,7 +559,7 @@ app.get('/weekplan/by-date/:date', async (req, res) => {
             }))
         });
     } catch (error) {
-        console.error('Error fetching week plan by date:', error);
+        logger.error('Error fetching week plan by date', { error: error.message, date: req.params.date, requestId: req.requestId, component: 'weekplan' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -546,7 +584,7 @@ app.get('/weekplan/templates', async (req, res) => {
 
         res.json(parsedTemplates);
     } catch (error) {
-        console.error('Error fetching templates:', error);
+        logger.error('Error fetching templates', { error: error.message, requestId: req.requestId, component: 'templates' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -573,7 +611,7 @@ app.get('/weekplan/templates/:id', async (req, res) => {
             updatedAt: template.updated_at
         });
     } catch (error) {
-        console.error('Error fetching template:', error);
+        logger.error('Error fetching template', { error: error.message, templateId: req.params.id, requestId: req.requestId, component: 'templates' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -597,7 +635,7 @@ app.post('/weekplan/templates', async (req, res) => {
             id: id
         });
     } catch (error) {
-        console.error('Error saving template:', error);
+        logger.error('Error saving template', { error: error.message, requestId: req.requestId, component: 'templates' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -622,7 +660,7 @@ app.put('/weekplan/templates/:id', async (req, res) => {
 
         res.json({ message: 'Template updated successfully' });
     } catch (error) {
-        console.error('Error updating template:', error);
+        logger.error('Error updating template', { error: error.message, templateId: req.params.id, requestId: req.requestId, component: 'templates' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -641,7 +679,7 @@ app.delete('/weekplan/templates/:id', async (req, res) => {
 
         res.json({ message: 'Template deleted successfully' });
     } catch (error) {
-        console.error('Error deleting template:', error);
+        logger.error('Error deleting template', { error: error.message, templateId: req.params.id, requestId: req.requestId, component: 'templates' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -656,7 +694,7 @@ app.get('/shopping/manual', async (req, res) => {
         );
         res.json(rows);
     } catch (error) {
-        console.error('Error fetching manual shopping items:', error);
+        logger.error('Error fetching manual shopping items', { error: error.message, requestId: req.requestId, component: 'shopping' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -680,7 +718,7 @@ app.post('/shopping/manual', async (req, res) => {
             id: id
         });
     } catch (error) {
-        console.error('Error adding manual shopping item:', error);
+        logger.error('Error adding manual shopping item', { error: error.message, requestId: req.requestId, component: 'shopping' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -699,7 +737,7 @@ app.delete('/shopping/manual/:id', async (req, res) => {
 
         res.json({ message: 'Manual shopping item deleted successfully' });
     } catch (error) {
-        console.error('Error deleting manual shopping item:', error);
+        logger.error('Error deleting manual shopping item', { error: error.message, itemId: req.params.id, requestId: req.requestId, component: 'shopping' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -710,7 +748,7 @@ app.delete('/shopping/manual', async (req, res) => {
         await db.query('DELETE FROM manual_shopping_items');
         res.json({ message: 'All manual shopping items deleted successfully' });
     } catch (error) {
-        console.error('Error deleting all manual shopping items:', error);
+        logger.error('Error deleting all manual shopping items', { error: error.message, requestId: req.requestId, component: 'shopping' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -732,7 +770,7 @@ app.get('/shopping/budget/:weekStart', async (req, res) => {
 
         res.json(rows[0]);
     } catch (error) {
-        console.error('Error fetching budget:', error);
+        logger.error('Error fetching budget', { error: error.message, weekStart: req.params.weekStart, requestId: req.requestId, component: 'budget' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -756,7 +794,7 @@ app.post('/shopping/budget', async (req, res) => {
 
         res.json(rows[0]);
     } catch (error) {
-        console.error('Error saving budget:', error);
+        logger.error('Error saving budget', { error: error.message, requestId: req.requestId, component: 'budget' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -769,7 +807,7 @@ app.get('/shopping/substitutions', async (req, res) => {
         );
         res.json(rows);
     } catch (error) {
-        console.error('Error fetching substitutions:', error);
+        logger.error('Error fetching substitutions', { error: error.message, requestId: req.requestId, component: 'substitutions' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -793,7 +831,7 @@ app.post('/shopping/substitutions', async (req, res) => {
 
         res.status(201).json(rows[0]);
     } catch (error) {
-        console.error('Error saving substitution:', error);
+        logger.error('Error saving substitution', { error: error.message, requestId: req.requestId, component: 'substitutions' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -807,7 +845,7 @@ app.delete('/shopping/substitutions/:id', async (req, res) => {
         );
         res.json({ message: 'Substitution preference deactivated' });
     } catch (error) {
-        console.error('Error deactivating substitution:', error);
+        logger.error('Error deactivating substitution', { error: error.message, substitutionId: req.params.id, requestId: req.requestId, component: 'substitutions' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -905,7 +943,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format:
 
         res.json(optimization);
     } catch (error) {
-        console.error('Shopping optimization error:', error);
+        logger.error('Shopping optimization error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
             error: 'Failed to optimize shopping list',
             details: error.message
@@ -1055,7 +1093,7 @@ app.get('/cooking-history', async (req, res) => {
             offset
         });
     } catch (error) {
-        console.error('Error fetching cooking history:', error);
+        logger.error('Error fetching cooking history', { error: error.message, requestId: req.requestId, component: 'cooking-history' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1077,7 +1115,7 @@ app.get('/cooking-history/stats', async (req, res) => {
 
         res.json(rows);
     } catch (error) {
-        console.error('Error fetching cooking stats:', error);
+        logger.error('Error fetching cooking stats', { error: error.message, requestId: req.requestId, component: 'cooking-history' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1094,7 +1132,7 @@ app.get('/cooking-history/recipe/:recipeId', async (req, res) => {
 
         res.json(rows);
     } catch (error) {
-        console.error('Error fetching recipe cooking history:', error);
+        logger.error('Error fetching recipe cooking history', { error: error.message, recipeId: req.params.recipeId, requestId: req.requestId, component: 'cooking-history' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1129,7 +1167,7 @@ app.post('/cooking-history', async (req, res) => {
             recipe_name: recipeCheck[0].name
         });
     } catch (error) {
-        console.error('Error marking recipe as cooked:', error);
+        logger.error('Error marking recipe as cooked', { error: error.message, recipeId: req.body.recipeId, requestId: req.requestId, component: 'cooking-history' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1148,7 +1186,7 @@ app.delete('/cooking-history/:id', async (req, res) => {
 
         res.json({ message: 'Entry deleted successfully' });
     } catch (error) {
-        console.error('Error deleting cooking history entry:', error);
+        logger.error('Error deleting cooking history entry', { error: error.message, entryId: req.params.id, requestId: req.requestId, component: 'cooking-history' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1172,7 +1210,7 @@ app.get('/cooking-history/not-cooked-recently', async (req, res) => {
 
         res.json(rows);
     } catch (error) {
-        console.error('Error fetching not recently cooked recipes:', error);
+        logger.error('Error fetching not recently cooked recipes', { error: error.message, days: req.query.days, requestId: req.requestId, component: 'cooking-history' });
         res.status(500).json({ error: error.message });
     }
 });
@@ -1244,7 +1282,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
 
         res.json({ recipes });
     } catch (error) {
-        console.error('AI generation error:', error);
+        logger.error('AI generation error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
             error: 'Failed to generate recipes',
             details: error.message
@@ -1301,12 +1339,12 @@ WICHTIG: Antworte NUR mit dem Namen der Kategorie, ohne zusätzlichen Text oder 
                 return res.json({ category: ruleBased, source: 'rule-based-fallback' });
             }
         } catch (aiError) {
-            console.error('AI categorization error:', aiError);
+            logger.error('AI categorization error', { error: aiError.message, ingredient: ingredientName, requestId: req.requestId, component: 'ai' });
             // AI failed, use rule-based
             return res.json({ category: ruleBased, source: 'rule-based-fallback' });
         }
     } catch (error) {
-        console.error('Categorization error:', error);
+        logger.error('Categorization error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
             error: 'Failed to categorize ingredient',
             details: error.message
@@ -1434,7 +1472,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
 
         res.json({ ingredients: scaledIngredients });
     } catch (error) {
-        console.error('AI portion scaling error:', error);
+        logger.error('AI portion scaling error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
             error: 'Failed to scale portions',
             details: error.message
@@ -1626,11 +1664,11 @@ app.post('/ai/parse-recipe', aiLimiter, async (req, res) => {
         // Fetch content from URL if needed
         if (type === 'url') {
             const url = input.trim();
-            console.log(`Fetching recipe from URL: ${url}`);
+            logger.debug('Fetching recipe from URL', { url, requestId: req.requestId, component: 'ai' });
 
             try {
                 input = await fetchRecipeFromUrl(url);
-                console.log(`Fetched ${input.length} characters from URL`);
+                logger.debug('Fetched content from URL', { contentLength: input.length, requestId: req.requestId, component: 'ai' });
             } catch (fetchError) {
                 return res.status(400).json({
                     error: 'Failed to fetch recipe from URL',
@@ -1678,7 +1716,7 @@ Regeln:
         const response = result.response;
         let jsonText = response.text().trim();
 
-        console.log('AI Response:', jsonText);
+        logger.debug('AI Response received', { responseLength: jsonText.length, requestId: req.requestId, component: 'ai' });
 
         // Remove markdown code blocks if present
         if (jsonText.startsWith('```')) {
@@ -1690,7 +1728,7 @@ Regeln:
         try {
             recipe = JSON.parse(jsonText);
         } catch (parseError) {
-            console.error('JSON parse error:', parseError);
+            logger.error('JSON parse error', { error: parseError.message, requestId: req.requestId, component: 'ai' });
             return res.status(500).json({
                 error: 'Failed to parse AI response as JSON',
                 details: parseError.message,
@@ -1725,7 +1763,7 @@ Regeln:
             source: 'ai-parsed'
         });
     } catch (error) {
-        console.error('Recipe parsing error:', error);
+        logger.error('Recipe parsing error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
             error: 'Failed to parse recipe',
             details: error.message
@@ -1798,7 +1836,7 @@ function downloadVideo(url, outputPath) {
 
         execFile('yt-dlp', args, { timeout: 120000 }, (error, stdout, stderr) => {
             if (error) {
-                console.error('yt-dlp error:', stderr);
+                logger.error('yt-dlp error', { error: error.message, stderr, component: 'video' });
                 reject(new Error(`Video download failed: ${error.message}`));
                 return;
             }
@@ -1814,7 +1852,7 @@ function cleanupTempFiles(filePath) {
             fs.unlinkSync(filePath);
         }
     } catch (e) {
-        console.error('Cleanup error:', e);
+        logger.warn('Cleanup error', { error: e.message, filePath, component: 'video' });
     }
 }
 
@@ -1857,7 +1895,7 @@ app.post('/ai/parse-video-recipe', aiLimiter, async (req, res) => {
     const videoPath = path.join(tempDir, `recipe_video_${videoId}.mp4`);
 
     try {
-        console.log(`Downloading video from: ${videoUrl}`);
+        logger.debug('Downloading video', { url: videoUrl, requestId: req.requestId, component: 'video' });
 
         // Download the video
         await downloadVideo(videoUrl, videoPath);
@@ -1867,7 +1905,7 @@ app.post('/ai/parse-video-recipe', aiLimiter, async (req, res) => {
         }
 
         const videoStats = fs.statSync(videoPath);
-        console.log(`Video downloaded: ${(videoStats.size / 1024 / 1024).toFixed(2)} MB`);
+        logger.debug('Video downloaded', { sizeInMB: (videoStats.size / 1024 / 1024).toFixed(2), requestId: req.requestId, component: 'video' });
 
         // Check file size (Gemini limit is ~20MB for inline, we use File API for larger)
         if (videoStats.size > 20 * 1024 * 1024) {
@@ -1938,7 +1976,7 @@ Regeln:
         const response = result.response;
         let jsonText = response.text().trim();
 
-        console.log('Video AI Response:', jsonText.substring(0, 500) + '...');
+        logger.debug('Video AI Response received', { responseLength: jsonText.length, requestId: req.requestId, component: 'video' });
 
         // Remove markdown code blocks if present
         if (jsonText.startsWith('```')) {
@@ -1950,7 +1988,7 @@ Regeln:
         try {
             recipe = JSON.parse(jsonText);
         } catch (parseError) {
-            console.error('JSON parse error:', parseError);
+            logger.error('JSON parse error', { error: parseError.message, requestId: req.requestId, component: 'video' });
             return res.status(500).json({
                 error: 'Failed to parse AI response as JSON',
                 details: parseError.message,
@@ -1992,7 +2030,7 @@ Regeln:
         // Clean up on error
         cleanupTempFiles(videoPath);
 
-        console.error('Video recipe parsing error:', error);
+        logger.error('Video recipe parsing error', { error: error.message, requestId: req.requestId, component: 'video' });
         res.status(500).json({
             error: 'Failed to parse video recipe',
             details: error.message
@@ -2008,20 +2046,32 @@ app.get('/ai/video-platforms', (req, res) => {
     });
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Food Planner Backend running on port ${PORT}`);
-});
+// Start server with migrations
+const startServer = async () => {
+    try {
+        // Run migrations before starting the server
+        await db.runMigrations();
+
+        app.listen(PORT, '0.0.0.0', () => {
+            logger.info('Food Planner Backend started', { port: PORT, component: 'server' });
+        });
+    } catch (error) {
+        logger.error('Failed to start server', { error: error.message, component: 'server' });
+        process.exit(1);
+    }
+};
+
+startServer();
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-    console.log('SIGTERM received, closing database...');
+    logger.info('SIGTERM received, closing database...', { component: 'server' });
     await db.close();
     process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-    console.log('SIGINT received, closing database...');
+    logger.info('SIGINT received, closing database...', { component: 'server' });
     await db.close();
     process.exit(0);
 });

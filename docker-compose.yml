@@ -23,10 +23,12 @@ services:
 
   backend:
     image: ghcr.io/milkrunner/foodplanner/backend:${VERSION:-latest}
+    image: ghcr.io/milkrunner/foodplanner/backend:${VERSION:-latest}
     container_name: foodplanner-backend
     ports:
       - "3000:3000"
     environment:
+      NODE_ENV: production
       NODE_ENV: production
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       DATABASE_URL: postgresql://foodplanner:${DB_PASSWORD:-foodplanner_secret}@postgres:5432/foodplanner
@@ -36,6 +38,7 @@ services:
     restart: unless-stopped
 
   nginx:
+    image: ghcr.io/milkrunner/foodplanner/frontend:${VERSION:-latest}
     image: ghcr.io/milkrunner/foodplanner/frontend:${VERSION:-latest}
     container_name: foodplanner-nginx
     depends_on:

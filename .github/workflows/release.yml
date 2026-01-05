@@ -86,20 +86,12 @@ jobs:
 
       - name: Create deployment archive
         run: |
-          # Create a deployment package
+          # Create a minimal deployment package (only config files needed)
           mkdir -p release-assets
 
-          # Copy relevant files
-          cp docker-compose.yml release-assets/
+          # Copy only the files needed for deployment
+          cp docker-compose.prod.yml release-assets/docker-compose.yml
           cp .env.example release-assets/
-          cp nginx.conf release-assets/
-          cp index.html release-assets/
-          cp app.js release-assets/
-          cp -r backend release-assets/
-
-          # Remove node_modules and data if present
-          rm -rf release-assets/backend/node_modules
-          rm -rf release-assets/backend/data
 
           # Create archives
           cd release-assets

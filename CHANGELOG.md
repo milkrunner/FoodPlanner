@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/milkrunner/FoodPlanner/compare/v1.2.0...v1.3.0) (2026-01-05)
+
+
+### Features
+
+* enhance Docker setup with separate metadata extraction for frontend and backend, add health checks, and improve logging in backend ([45ceaa4](https://github.com/milkrunner/FoodPlanner/commit/45ceaa4a425be9630dde276b923dbf83eebdbd84))
+
 ## [1.2.0](https://github.com/milkrunner/FoodPlanner/compare/v1.1.0...v1.2.0) (2026-01-04)
 
 
