@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/milkrunner/FoodPlanner/compare/v1.3.0...v1.3.1) (2026-01-05)
+
+
+### Bug Fixes
+
+* remove duplicate lines in docker-compose.yml ([#92](https://github.com/milkrunner/FoodPlanner/issues/92)) ([57aca73](https://github.com/milkrunner/FoodPlanner/commit/57aca73ee4de51f1695d793b77c28a8b27b0d89c))
+
 ## [1.3.0](https://github.com/milkrunner/FoodPlanner/compare/v1.2.0...v1.3.0) (2026-01-05)
 
 
