@@ -3,7 +3,6 @@ nul
 
 # Dependencies
 node_modules/
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
@@ -35,6 +34,7 @@ lerna-debug.log*
 # Docker
 .dockerignore
 docker-compose.override.yml
+docker-compose.dev.yml
 *.pid
 *.seed
 *.pid.lock

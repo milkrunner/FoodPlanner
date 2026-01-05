@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.3.3](https://github.com/milkrunner/FoodPlanner/compare/v1.3.2...v1.3.3) (2026-01-05)
+
+
+### Bug Fixes
+
+* correct docker-compose filename in release workflow ([64e9eb4](https://github.com/milkrunner/FoodPlanner/commit/64e9eb45692df74373a5a9eb7c80e128b8d84349))
+* correct docker-compose filename in release workflow ([224c85d](https://github.com/milkrunner/FoodPlanner/commit/224c85d80a554131606ec9ada3a44e8ad5317ec9))
+
+## [1.3.2](https://github.com/milkrunner/FoodPlanner/compare/v1.3.1...v1.3.2) (2026-01-05)
+
+
+### Bug Fixes
+
+* use --omit=dev instead of deprecated --only=production ([ebe25a7](https://github.com/milkrunner/FoodPlanner/commit/ebe25a718742466450ae79f01e15741dd5c5078c))
+* use --omit=dev instead of deprecated --only=production ([0e933f6](https://github.com/milkrunner/FoodPlanner/commit/0e933f67345bf9aec2b933045343427754226fbe))
+
+## [1.3.1](https://github.com/milkrunner/FoodPlanner/compare/v1.3.0...v1.3.1) (2026-01-05)
+
+
+### Bug Fixes
+
+* remove duplicate lines in docker-compose.yml ([#92](https://github.com/milkrunner/FoodPlanner/issues/92)) ([57aca73](https://github.com/milkrunner/FoodPlanner/commit/57aca73ee4de51f1695d793b77c28a8b27b0d89c))
+
+## [1.3.0](https://github.com/milkrunner/FoodPlanner/compare/v1.2.0...v1.3.0) (2026-01-05)
+
+
+### Features
+
+* enhance Docker setup with separate metadata extraction for frontend and backend, add health checks, and improve logging in backend ([45ceaa4](https://github.com/milkrunner/FoodPlanner/commit/45ceaa4a425be9630dde276b923dbf83eebdbd84))
+
 ## [1.2.0](https://github.com/milkrunner/FoodPlanner/compare/v1.1.0...v1.2.0) (2026-01-04)
 
 
