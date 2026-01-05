@@ -3,6 +3,326 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
     ? 'http://localhost:3000'
     : '/api';
 
+// PWA & Offline Support
+const PWA = {
+    isOnline: navigator.onLine,
+    deferredPrompt: null,
+    swRegistration: null,
+
+    async init() {
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            try {
+                this.swRegistration = await navigator.serviceWorker.register('/sw.js');
+                console.log('[PWA] Service Worker registered');
+
+                // Check for updates
+                this.swRegistration.addEventListener('updatefound', () => {
+                    const newWorker = this.swRegistration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            Toast.show('Neue Version verfügbar. Seite neu laden für Updates.', {
+                                type: 'default',
+                                duration: 10000
+                            });
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('[PWA] Service Worker registration failed:', error);
+            }
+        }
+
+        // Listen for online/offline events
+        window.addEventListener('online', () => this.handleOnlineStatus(true));
+        window.addEventListener('offline', () => this.handleOnlineStatus(false));
+
+        // Handle install prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            this.deferredPrompt = e;
+            this.showInstallButton();
+        });
+
+        // Track successful installation
+        window.addEventListener('appinstalled', () => {
+            console.log('[PWA] App installed');
+            this.deferredPrompt = null;
+            this.hideInstallButton();
+        });
+
+        // Initialize IndexedDB
+        await OfflineDB.init();
+
+        // Update offline indicator
+        this.updateOfflineIndicator();
+    },
+
+    handleOnlineStatus(online) {
+        this.isOnline = online;
+        this.updateOfflineIndicator();
+
+        if (online) {
+            Toast.show('Wieder online', { type: 'success', duration: 2000 });
+            // Sync pending data
+            this.syncPendingData();
+        } else {
+            Toast.show('Offline-Modus aktiv', { type: 'default', duration: 3000 });
+        }
+    },
+
+    updateOfflineIndicator() {
+        let indicator = document.getElementById('offline-indicator');
+
+        if (!this.isOnline) {
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'offline-indicator';
+                indicator.className = 'fixed top-0 left-0 right-0 bg-yellow-500 text-yellow-900 text-center py-1 text-sm font-medium z-50';
+                indicator.textContent = 'Offline - Daten werden lokal gespeichert';
+                document.body.prepend(indicator);
+            }
+        } else if (indicator) {
+            indicator.remove();
+        }
+    },
+
+    showInstallButton() {
+        // Will be rendered in the UI
+        const existingBtn = document.getElementById('pwa-install-btn');
+        if (existingBtn) existingBtn.classList.remove('hidden');
+    },
+
+    hideInstallButton() {
+        const btn = document.getElementById('pwa-install-btn');
+        if (btn) btn.classList.add('hidden');
+    },
+
+    async promptInstall() {
+        if (!this.deferredPrompt) return;
+
+        this.deferredPrompt.prompt();
+        const { outcome } = await this.deferredPrompt.userChoice;
+        console.log('[PWA] Install prompt outcome:', outcome);
+        this.deferredPrompt = null;
+    },
+
+    async syncPendingData() {
+        if (!this.isOnline) return;
+
+        // Request background sync if available
+        if (this.swRegistration && 'sync' in this.swRegistration) {
+            try {
+                await this.swRegistration.sync.register('sync-recipes');
+                await this.swRegistration.sync.register('sync-weekplan');
+                await this.swRegistration.sync.register('sync-shopping');
+            } catch (error) {
+                console.error('[PWA] Background sync failed:', error);
+                // Fallback to manual sync
+                await this.manualSync();
+            }
+        } else {
+            await this.manualSync();
+        }
+    },
+
+    async manualSync() {
+        try {
+            const pendingRecipes = await OfflineDB.getPending('recipes');
+            for (const item of pendingRecipes) {
+                try {
+                    await fetch(`${API_BASE_URL}/recipes`, {
+                        method: item.method || 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(item.data)
+                    });
+                    await OfflineDB.removePending('recipes', item.id);
+                } catch (e) {
+                    console.error('[PWA] Failed to sync recipe:', e);
+                }
+            }
+
+            const pendingWeekplans = await OfflineDB.getPending('weekplan');
+            for (const item of pendingWeekplans) {
+                try {
+                    await fetch(`${API_BASE_URL}/weekplan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(item.data)
+                    });
+                    await OfflineDB.removePending('weekplan', item.id);
+                } catch (e) {
+                    console.error('[PWA] Failed to sync weekplan:', e);
+                }
+            }
+        } catch (error) {
+            console.error('[PWA] Manual sync failed:', error);
+        }
+    }
+};
+
+// IndexedDB for Offline Storage
+const OfflineDB = {
+    db: null,
+    DB_NAME: 'foodplanner-offline',
+    DB_VERSION: 1,
+
+    async init() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
+
+            request.onerror = () => {
+                console.error('[OfflineDB] Failed to open database');
+                reject(request.error);
+            };
+
+            request.onsuccess = () => {
+                this.db = request.result;
+                console.log('[OfflineDB] Database opened');
+                resolve();
+            };
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+
+                // Store for cached recipes
+                if (!db.objectStoreNames.contains('recipes')) {
+                    db.createObjectStore('recipes', { keyPath: 'id' });
+                }
+
+                // Store for cached weekplans
+                if (!db.objectStoreNames.contains('weekplan')) {
+                    db.createObjectStore('weekplan', { keyPath: 'id' });
+                }
+
+                // Store for shopping list
+                if (!db.objectStoreNames.contains('shopping')) {
+                    db.createObjectStore('shopping', { keyPath: 'id' });
+                }
+
+                // Store for pending sync operations
+                if (!db.objectStoreNames.contains('pending-recipes')) {
+                    const store = db.createObjectStore('pending-recipes', { keyPath: 'id', autoIncrement: true });
+                    store.createIndex('timestamp', 'timestamp');
+                }
+
+                if (!db.objectStoreNames.contains('pending-weekplan')) {
+                    const store = db.createObjectStore('pending-weekplan', { keyPath: 'id', autoIncrement: true });
+                    store.createIndex('timestamp', 'timestamp');
+                }
+
+                if (!db.objectStoreNames.contains('pending-shopping')) {
+                    const store = db.createObjectStore('pending-shopping', { keyPath: 'id', autoIncrement: true });
+                    store.createIndex('timestamp', 'timestamp');
+                }
+
+                console.log('[OfflineDB] Database upgraded');
+            };
+        });
+    },
+
+    async saveRecipes(recipes) {
+        if (!this.db) return;
+        const transaction = this.db.transaction('recipes', 'readwrite');
+        const store = transaction.objectStore('recipes');
+
+        // Clear and save all
+        await new Promise((resolve, reject) => {
+            const clearRequest = store.clear();
+            clearRequest.onsuccess = resolve;
+            clearRequest.onerror = reject;
+        });
+
+        for (const recipe of recipes) {
+            store.put(recipe);
+        }
+
+        return new Promise((resolve, reject) => {
+            transaction.oncomplete = resolve;
+            transaction.onerror = reject;
+        });
+    },
+
+    async getRecipes() {
+        if (!this.db) return [];
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction('recipes', 'readonly');
+            const store = transaction.objectStore('recipes');
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    async saveWeekplan(weekplan) {
+        if (!this.db) return;
+        const transaction = this.db.transaction('weekplan', 'readwrite');
+        const store = transaction.objectStore('weekplan');
+        store.put({ ...weekplan, id: weekplan.id || 'current' });
+        return new Promise((resolve, reject) => {
+            transaction.oncomplete = resolve;
+            transaction.onerror = reject;
+        });
+    },
+
+    async getWeekplan(id = 'current') {
+        if (!this.db) return null;
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction('weekplan', 'readonly');
+            const store = transaction.objectStore('weekplan');
+            const request = store.get(id);
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    async addPending(storeName, data, method = 'POST') {
+        if (!this.db) return;
+        const fullStoreName = `pending-${storeName}`;
+        if (!this.db.objectStoreNames.contains(fullStoreName)) return;
+
+        const transaction = this.db.transaction(fullStoreName, 'readwrite');
+        const store = transaction.objectStore(fullStoreName);
+        store.add({
+            data,
+            method,
+            timestamp: Date.now()
+        });
+        return new Promise((resolve, reject) => {
+            transaction.oncomplete = resolve;
+            transaction.onerror = reject;
+        });
+    },
+
+    async getPending(storeName) {
+        if (!this.db) return [];
+        const fullStoreName = `pending-${storeName}`;
+        if (!this.db.objectStoreNames.contains(fullStoreName)) return [];
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(fullStoreName, 'readonly');
+            const store = transaction.objectStore(fullStoreName);
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result || []);
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    async removePending(storeName, id) {
+        if (!this.db) return;
+        const fullStoreName = `pending-${storeName}`;
+        if (!this.db.objectStoreNames.contains(fullStoreName)) return;
+
+        const transaction = this.db.transaction(fullStoreName, 'readwrite');
+        const store = transaction.objectStore(fullStoreName);
+        store.delete(id);
+        return new Promise((resolve, reject) => {
+            transaction.oncomplete = resolve;
+            transaction.onerror = reject;
+        });
+    }
+};
+
 // HTML escape utility to prevent XSS
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -228,15 +548,29 @@ const DarkMode = {
     }
 };
 
-// Storage Service with API integration
+// Storage Service with API integration and offline support
 const StorageService = {
     async getRecipes() {
         try {
             const response = await fetch(`${API_BASE_URL}/recipes`);
             if (!response.ok) throw new Error('Failed to fetch recipes');
-            return await response.json();
+            const payload = await response.json();
+            // Handle paginated response
+            const recipes = Array.isArray(payload) ? payload :
+                           (payload && Array.isArray(payload.recipes)) ? payload.recipes : [];
+            // Cache recipes for offline use
+            await OfflineDB.saveRecipes(recipes);
+            return recipes;
         } catch (error) {
             console.error('Error fetching recipes:', error);
+            // Try to get from offline cache
+            if (!PWA.isOnline) {
+                const cachedRecipes = await OfflineDB.getRecipes();
+                if (cachedRecipes.length > 0) {
+                    console.log('[StorageService] Using cached recipes');
+                    return cachedRecipes;
+                }
+            }
             return [];
         }
     },
@@ -252,6 +586,12 @@ const StorageService = {
             return await response.json();
         } catch (error) {
             console.error('Error adding recipe:', error);
+            // Queue for sync if offline
+            if (!PWA.isOnline) {
+                await OfflineDB.addPending('recipes', recipe, 'POST');
+                Toast.show('Rezept wird synchronisiert, sobald du online bist', { type: 'default' });
+                return { ...recipe, id: `offline-${Date.now()}`, offline: true };
+            }
             throw error;
         }
     },
@@ -4307,6 +4647,9 @@ const ShoppingListView = {
 };
 
 // Initialize app when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize PWA first
+    await PWA.init();
+    // Then initialize the app
     App.init();
 });

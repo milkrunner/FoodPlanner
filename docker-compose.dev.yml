@@ -1,3 +1,6 @@
+# Development Docker Compose - uses local files with hot reload
+# Usage: docker compose -f docker-compose.dev.yml up -d --build
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -24,6 +27,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: foodplanner-backend:dev
     container_name: foodplanner-backend
     ports:
       - "3000:3000"
@@ -37,7 +41,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: sh -c "npm config set registry https://registry.npmmirror.com && npm install && node server.js"
+    command: sh -c "npm install && node server.js"
     restart: unless-stopped
 
   nginx:
