@@ -1,4 +1,6 @@
 # Backend Dockerfile - Node.js API
+FROM ghcr.io/milkrunner/foodplanner/backend:latest AS deps
+
 FROM node:20-alpine
 
 # Install system dependencies for video processing
@@ -13,13 +15,10 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /app
 
-# Copy package files first for better layer caching
-COPY package*.json ./
+# Reuse dependencies from the published image to avoid npm during build
+COPY --from=deps /app/node_modules ./node_modules
 
-# Install dependencies
-RUN npm ci --omit=dev
-
-# Copy all application files
+# Copy all application files including custom overrides
 COPY . .
 
 # Expose port

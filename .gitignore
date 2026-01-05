@@ -34,6 +34,7 @@ lerna-debug.log*
 # Docker
 .dockerignore
 docker-compose.override.yml
+docker-compose.dev.yml
 *.pid
 *.seed
 *.pid.lock
