@@ -33,6 +33,7 @@ Screenshots hier einfügen:
 - **Wochenplanung**: Plane Mahlzeiten für die gesamte Woche (Frühstück, Mittagessen, Abendessen)
 - **Wochenplan-Vorlagen**: Speichere häufig genutzte Wochenpläne als Vorlagen
 - **Rezeptdatenbank**: Erstelle und verwalte Rezepte mit Zutaten und Anleitung
+- **Rezept-Favoriten**: Markiere Lieblingsrezepte und greife per Schnellzugriff auf sie zu
 - **Rezept-Tags**: Organisiere Rezepte mit Tags (vegetarisch, vegan, glutenfrei, schnell, etc.)
 - **Einkaufsliste**: Automatische Generierung mit Kategorisierung nach Warengruppen
 - **Kochverlauf**: Verfolge wann du welches Rezept zuletzt gekocht hast

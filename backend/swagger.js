@@ -71,6 +71,11 @@ CORS_ORIGINS=https://foodplanner.example.com,https://app.example.com
                             description: 'Zubereitungsanleitung',
                             example: '1. Spaghetti kochen...'
                         },
+                        is_favorite: {
+                            type: 'boolean',
+                            description: 'Gibt an, ob das Rezept als Favorit markiert ist',
+                            example: true
+                        },
                         ingredients: {
                             type: 'array',
                             items: { $ref: '#/components/schemas/Ingredient' }

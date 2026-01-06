@@ -8,6 +8,7 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
 const db = require('./db');
 const { logger, requestLogger } = require('./utils/logger');
+const { resolveFavoriteFlagFromBody, resolveToggleTarget } = require('./utils/favorites');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -176,18 +177,29 @@ app.get('/recipes', async (req, res) => {
 
         // Parse pagination parameters
         const returnAll = req.query.all === 'true';
+        const favoritesOnly = req.query.favorites === 'true';
         const page = Math.max(1, parseInt(req.query.page) || 1);
         const pageSize = returnAll ? null : Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(req.query.pageSize) || DEFAULT_PAGE_SIZE));
         const offset = returnAll ? 0 : (page - 1) * pageSize;
 
         // Get total count for pagination metadata
-        const { rows: countResult } = await db.query('SELECT COUNT(*) FROM recipes');
+        const countQuery = favoritesOnly
+            ? 'SELECT COUNT(*) FROM recipes WHERE is_favorite = TRUE'
+            : 'SELECT COUNT(*) FROM recipes';
+        const { rows: countResult } = await db.query(countQuery);
         const totalItems = parseInt(countResult[0].count);
 
         // Single query with JSON aggregation - replaces N+1 queries
         const query = `
             SELECT
-                r.id, r.name, r.category, r.servings, r.instructions, r.created_at, r.updated_at,
+                r.id,
+                r.name,
+                r.category,
+                r.servings,
+                r.instructions,
+                r.is_favorite,
+                r.created_at,
+                r.updated_at,
                 COALESCE(
                     json_agg(DISTINCT jsonb_build_object(
                         'name', i.name,
@@ -204,7 +216,8 @@ app.get('/recipes', async (req, res) => {
             FROM recipes r
             LEFT JOIN ingredients i ON r.id = i.recipe_id
             LEFT JOIN recipe_tags t ON r.id = t.recipe_id
-            GROUP BY r.id, r.name, r.category, r.servings, r.instructions, r.created_at, r.updated_at
+            ${favoritesOnly ? 'WHERE r.is_favorite = TRUE' : ''}
+            GROUP BY r.id, r.name, r.category, r.servings, r.instructions, r.is_favorite, r.created_at, r.updated_at
             ORDER BY r.created_at DESC
             ${returnAll ? '' : 'LIMIT $1 OFFSET $2'}
         `;
@@ -219,6 +232,7 @@ app.get('/recipes', async (req, res) => {
             count: rows.length,
             totalItems,
             page: returnAll ? 'all' : page,
+            favoritesOnly,
             duration: queryTime,
             component: 'recipes'
         });
@@ -254,7 +268,14 @@ app.get('/recipes/:id', async (req, res) => {
         // Single query with JSON aggregation - replaces 3 separate queries
         const { rows } = await db.query(`
             SELECT
-                r.id, r.name, r.category, r.servings, r.instructions, r.created_at, r.updated_at,
+                r.id,
+                r.name,
+                r.category,
+                r.servings,
+                r.instructions,
+                r.is_favorite,
+                r.created_at,
+                r.updated_at,
                 COALESCE(
                     json_agg(DISTINCT jsonb_build_object(
                         'name', i.name,
@@ -272,7 +293,7 @@ app.get('/recipes/:id', async (req, res) => {
             LEFT JOIN ingredients i ON r.id = i.recipe_id
             LEFT JOIN recipe_tags t ON r.id = t.recipe_id
             WHERE r.id = $1
-            GROUP BY r.id, r.name, r.category, r.servings, r.instructions, r.created_at, r.updated_at
+            GROUP BY r.id, r.name, r.category, r.servings, r.instructions, r.is_favorite, r.created_at, r.updated_at
         `, [req.params.id]);
 
         const queryTime = Date.now() - startTime;
@@ -303,13 +324,14 @@ app.get('/recipes/:id', async (req, res) => {
 // Create recipe
 app.post('/recipes', async (req, res) => {
     const { id, name, category, servings, instructions, ingredients, tags } = req.body;
+    const favoriteValue = resolveFavoriteFlagFromBody(req.body, false);
 
     try {
         await db.transaction(async (client) => {
             // Insert recipe
             await client.query(
-                'INSERT INTO recipes (id, name, category, servings, instructions) VALUES ($1, $2, $3, $4, $5)',
-                [id, name, category, servings, instructions]
+                'INSERT INTO recipes (id, name, category, servings, instructions, is_favorite) VALUES ($1, $2, $3, $4, $5, $6)',
+                [id, name, category, servings, instructions, favoriteValue]
             );
 
             // Insert ingredients
@@ -333,7 +355,7 @@ app.post('/recipes', async (req, res) => {
             }
         });
 
-        res.status(201).json({ id, message: 'Recipe created successfully' });
+        res.status(201).json({ id, is_favorite: favoriteValue, message: 'Recipe created successfully' });
     } catch (error) {
         logger.error('Error creating recipe', { error: error.message, requestId: req.requestId, component: 'recipes' });
         res.status(500).json({ error: error.message });
@@ -343,14 +365,19 @@ app.post('/recipes', async (req, res) => {
 // Update recipe
 app.put('/recipes/:id', async (req, res) => {
     const { name, category, servings, instructions, ingredients, tags } = req.body;
+    const favoriteValue = resolveFavoriteFlagFromBody(req.body, null);
+    let updatedFavorite = favoriteValue;
 
     try {
         await db.transaction(async (client) => {
             // Update recipe
-            await client.query(
-                'UPDATE recipes SET name = $1, category = $2, servings = $3, instructions = $4 WHERE id = $5',
-                [name, category, servings, instructions, req.params.id]
+            const { rows: recipeRows } = await client.query(
+                'UPDATE recipes SET name = $1, category = $2, servings = $3, instructions = $4, is_favorite = COALESCE($5, is_favorite) WHERE id = $6 RETURNING is_favorite',
+                [name, category, servings, instructions, favoriteValue, req.params.id]
             );
+            if (recipeRows[0]) {
+                updatedFavorite = recipeRows[0].is_favorite;
+            }
 
             // Delete old ingredients and insert new ones
             await client.query('DELETE FROM ingredients WHERE recipe_id = $1', [req.params.id]);
@@ -377,9 +404,53 @@ app.put('/recipes/:id', async (req, res) => {
             }
         });
 
-        res.json({ message: 'Recipe updated successfully' });
+        res.json({ message: 'Recipe updated successfully', is_favorite: updatedFavorite });
     } catch (error) {
         logger.error('Error updating recipe', { error: error.message, recipeId: req.params.id, requestId: req.requestId, component: 'recipes' });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Toggle favorite status
+app.put('/recipes/:id/favorite', async (req, res) => {
+    try {
+        const recipeId = req.params.id;
+        const { rows: existingRows } = await db.query('SELECT is_favorite FROM recipes WHERE id = $1', [recipeId]);
+        if (existingRows.length === 0) {
+            return res.status(404).json({ error: 'Recipe not found' });
+        }
+
+        const favoriteValue = resolveToggleTarget(req.body, existingRows[0].is_favorite);
+
+        const { rows, rowCount } = await db.query(
+            'UPDATE recipes SET is_favorite = $1 WHERE id = $2 RETURNING id, is_favorite',
+            [favoriteValue, recipeId]
+        );
+
+        if (rowCount === 0) {
+            return res.status(404).json({ error: 'Recipe not found' });
+        }
+
+        logger.info('Recipe favorite status updated', {
+            requestId: req.requestId,
+            recipeId,
+            is_favorite: rows[0].is_favorite,
+            component: 'recipes'
+        });
+
+        res.json({
+            id: rows[0].id,
+            is_favorite: rows[0].is_favorite,
+            message: rows[0].is_favorite ? 'Recipe marked as favorite' : 'Recipe removed from favorites'
+        });
+    } catch (error) {
+        logger.error('Error toggling recipe favorite', {
+            requestId: req.requestId,
+            recipeId: req.params.id,
+            error: error.message,
+            stack: error.stack,
+            component: 'recipes'
+        });
         res.status(500).json({ error: error.message });
     }
 });
