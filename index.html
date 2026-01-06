@@ -111,6 +111,52 @@
             transition: opacity 0.2s ease-out;
         }
 
+        .favorite-heart {
+            color: #9ca3af;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+        .favorite-heart:hover {
+            transform: scale(1.08);
+        }
+        .favorite-heart.is-favorite {
+            color: #ef4444;
+        }
+        .dark .favorite-heart {
+            color: #6b7280;
+        }
+        .dark .favorite-heart.is-favorite {
+            color: #f87171;
+        }
+        .favorite-heart-animate {
+            animation: heartBounce 0.35s ease-in-out;
+        }
+        @keyframes heartBounce {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.3); }
+            60% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+        .favorite-highlight {
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.35);
+            transition: box-shadow 0.3s ease;
+        }
+        .dark .favorite-highlight {
+            box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.4);
+        }
+        .favorite-quick-scroll {
+            scrollbar-width: thin;
+        }
+        .favorite-quick-scroll::-webkit-scrollbar {
+            height: 6px;
+        }
+        .favorite-quick-scroll::-webkit-scrollbar-thumb {
+            background-color: rgba(239, 68, 68, 0.35);
+            border-radius: 9999px;
+        }
+        .favorite-quick-scroll::-webkit-scrollbar-track {
+            background-color: rgba(239, 68, 68, 0.15);
+        }
+
         /* Mobile toast positioning */
         @media (max-width: 640px) {
             #toast-notification {

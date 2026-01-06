@@ -36,6 +36,14 @@ Rate-Limit-Header in Responses:
 GET /recipes
 ```
 
+**Query-Parameter (optional):**
+| Name | Typ | Beschreibung |
+|------|-----|--------------|
+| `page` | integer | Seitennummer (Standard: 1) |
+| `pageSize` | integer | Anzahl Rezepte pro Seite (Standard: 20) |
+| `all` | boolean | Wenn `true`, werden alle Rezepte zurückgegeben |
+| `favorites` | boolean | Wenn `true`, werden nur favorisierte Rezepte geliefert |
+
 **Response:**
 ```json
 [
@@ -45,6 +53,7 @@ GET /recipes
     "category": "Hauptgericht",
     "servings": 4,
     "instructions": "1. Spaghetti kochen...",
+    "is_favorite": true,
     "created_at": "2024-01-15T10:30:00Z",
     "updated_at": "2024-01-15T10:30:00Z",
     "ingredients": [
@@ -89,6 +98,7 @@ POST /recipes
   "name": "Spaghetti Carbonara",
   "category": "Hauptgericht",
   "servings": 4,
+  "is_favorite": true,
   "instructions": "1. Spaghetti kochen...",
   "ingredients": [
     {
@@ -120,6 +130,7 @@ POST /recipes
 ```json
 {
   "id": "1234567890",
+  "is_favorite": true,
   "message": "Recipe created successfully"
 }
 ```
@@ -135,7 +146,8 @@ PUT /recipes/:id
 **Response:**
 ```json
 {
-  "message": "Recipe updated successfully"
+  "message": "Recipe updated successfully",
+  "is_favorite": true
 }
 ```
 
@@ -149,6 +161,30 @@ DELETE /recipes/:id
 ```json
 {
   "message": "Recipe deleted successfully"
+}
+```
+
+### Favoritenstatus aktualisieren
+
+```http
+PUT /recipes/:id/favorite
+```
+
+**Beschreibung:** Setzt den Favoritenstatus explizit (über `is_favorite` oder `isFavorite`) oder toggelt ihn, wenn kein Wert übermittelt wird.
+
+**Optionaler Request Body:**
+```json
+{
+  "is_favorite": true
+}
+```
+
+**Response:**
+```json
+{
+  "id": "1234567890",
+  "is_favorite": true,
+  "message": "Recipe marked as favorite"
 }
 ```
 

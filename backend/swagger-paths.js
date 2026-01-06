@@ -29,6 +29,12 @@
  *           type: boolean
  *           default: false
  *         description: Wenn true, werden alle Rezepte ohne Pagination zurückgegeben
+ *       - in: query
+ *         name: favorites
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Wenn true, werden nur als Favorit markierte Rezepte zurückgegeben
  *     responses:
  *       200:
  *         description: Paginierte Liste der Rezepte
@@ -87,6 +93,7 @@
  *             name: "Spaghetti Carbonara"
  *             category: "Hauptgericht"
  *             servings: 4
+ *             is_favorite: true
  *             ingredients:
  *               - name: "Spaghetti"
  *                 amount: "400"
@@ -172,6 +179,41 @@
  *         description: Rezept gelöscht
  *       500:
  *         description: Serverfehler
+ */
+
+/**
+ * @swagger
+ * /recipes/{id}/favorite:
+ *   put:
+ *     summary: Favoritenstatus eines Rezepts aktualisieren
+ *     description: Setzt den Favoritenstatus direkt oder toggelt ihn, wenn kein Wert übergeben wird.
+ *     tags: [Recipes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               is_favorite:
+ *                 type: boolean
+ *                 description: Expliziter Favoritenstatus
+ *               isFavorite:
+ *                 type: boolean
+ *                 description: Alternativer camelCase Parameter für Clients
+ *           example:
+ *             is_favorite: true
+ *     responses:
+ *       200:
+ *         description: Favoritenstatus aktualisiert
+ *       404:
+ *         description: Rezept nicht gefunden
  */
 
 /**

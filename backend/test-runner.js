@@ -123,6 +123,10 @@ const {
     getVideoPlatform,
     ALLOWED_RECIPE_DOMAINS
 } = require('./utils/validation');
+const {
+    resolveFavoriteFlagFromBody,
+    resolveToggleTarget
+} = require('./utils/favorites');
 
 describe('URL Validation', () => {
     describe('  validateUrl', () => {
@@ -194,6 +198,40 @@ describe('URL Validation', () => {
 
         it('should return unknown for unrecognized URLs', () => {
             expect(getVideoPlatform('https://google.com')).toBe('unknown');
+        });
+    });
+});
+
+describe('Favorites Helpers', () => {
+    describe('resolveFavoriteFlagFromBody', () => {
+        it('should prefer is_favorite flag when present', () => {
+            const body = { is_favorite: true, isFavorite: false };
+            expect(resolveFavoriteFlagFromBody(body, false)).toBe(true);
+        });
+
+        it('should read camelCase property when snake_case missing', () => {
+            const body = { isFavorite: true };
+            expect(resolveFavoriteFlagFromBody(body, false)).toBe(true);
+        });
+
+        it('should fall back to provided default when missing', () => {
+            expect(resolveFavoriteFlagFromBody({}, null)).toBe(null);
+        });
+    });
+
+    describe('resolveToggleTarget', () => {
+        it('should honor explicit is_favorite flag', () => {
+            const body = { is_favorite: false };
+            expect(resolveToggleTarget(body, true)).toBe(false);
+        });
+
+        it('should invert current state when no flag provided', () => {
+            expect(resolveToggleTarget({}, true)).toBe(false);
+        });
+
+        it('should support camelCase flag', () => {
+            const body = { isFavorite: false };
+            expect(resolveToggleTarget(body, true)).toBe(false);
         });
     });
 });

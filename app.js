@@ -550,9 +550,20 @@ const DarkMode = {
 
 // Storage Service with API integration and offline support
 const StorageService = {
-    async getRecipes() {
+    async getRecipes(options = {}) {
+        const params = new URLSearchParams();
+        const favoritesOnly = options.favorites === true;
+
+        if (options.page) params.set('page', String(options.page));
+        if (options.pageSize) params.set('pageSize', String(options.pageSize));
+        if (options.all) params.set('all', 'true');
+        if (favoritesOnly) params.set('favorites', 'true');
+
+        const queryString = params.toString();
+        const url = queryString ? `${API_BASE_URL}/recipes?${queryString}` : `${API_BASE_URL}/recipes`;
+
         try {
-            const response = await fetch(`${API_BASE_URL}/recipes`);
+            const response = await fetch(url);
             if (!response.ok) throw new Error('Failed to fetch recipes');
             const payload = await response.json();
             // Handle paginated response
@@ -567,11 +578,32 @@ const StorageService = {
             if (!PWA.isOnline) {
                 const cachedRecipes = await OfflineDB.getRecipes();
                 if (cachedRecipes.length > 0) {
+                    if (favoritesOnly) {
+                        return cachedRecipes.filter(recipe => recipe.is_favorite);
+                    }
                     console.log('[StorageService] Using cached recipes');
                     return cachedRecipes;
                 }
             }
             return [];
+        }
+    },
+
+    async toggleFavorite(recipeId, isFavorite) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/recipes/${recipeId}/favorite`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isFavorite })
+            });
+            if (!response.ok) {
+                const errorBody = await response.json().catch(() => ({}));
+                throw new Error(errorBody.error || 'Failed to update favorite');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+            throw error;
         }
     },
 
@@ -889,7 +921,7 @@ const AppState = {
     weekPlansCache: {}, // Cache for multiple week plans
 
     async init() {
-        this.recipes = await StorageService.getRecipes();
+        this.recipes = await StorageService.getRecipes({ all: true });
         // Set current week to Monday of current week
         this.currentWeekStart = DateUtils.getMonday(new Date());
         await this.loadWeekPlan(this.currentWeekStart);
@@ -962,7 +994,7 @@ const AppState = {
     },
 
     async reloadData() {
-        this.recipes = await StorageService.getRecipes();
+        this.recipes = await StorageService.getRecipes({ all: true });
         // Reload current week
         const weekId = DateUtils.getWeekId(this.currentWeekStart);
         delete this.weekPlansCache[weekId]; // Clear cache for this week
@@ -1146,6 +1178,50 @@ const App = {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
             </div>
+        `;
+    },
+
+    getFavoriteRecipes() {
+        return AppState.recipes.filter(recipe => recipe.is_favorite);
+    },
+
+    renderFavoritesQuickAccess(favorites) {
+        if (!favorites || favorites.length === 0) {
+            return '';
+        }
+
+        const limitedFavorites = favorites.slice(0, 8);
+        const overflow = favorites.length - limitedFavorites.length;
+
+        return `
+            <section class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-500 dark:text-red-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                        </svg>
+                        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Favoriten Schnellzugriff</h3>
+                    </div>
+                </div>
+                <div class="flex gap-3 overflow-x-auto favorite-quick-scroll pb-1">
+                    ${limitedFavorites.map(recipe => `
+                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-red-100 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-left transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="font-medium text-red-700 dark:text-red-200 truncate">${recipe.name}</span>
+                                <svg class="w-4 h-4 text-red-400 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-300 truncate">${recipe.category || 'Ohne Kategorie'}</p>
+                        </button>
+                    `).join('')}
+                    ${overflow > 0 ? `
+                        <div class="flex-shrink-0 min-w-[140px] px-4 py-3 rounded-lg border border-dashed border-red-200 dark:border-red-700 text-red-500 dark:text-red-300 flex items-center justify-center text-sm">
+                            +${overflow} weitere
+                        </div>
+                    ` : ''}
+                </div>
+            </section>
         `;
     },
 
@@ -2311,6 +2387,7 @@ const RecipeDatabaseView = {
     ingredients: [{ name: '', amount: '', unit: '', category: 'Sonstiges' }],
     tags: [],
     searchQuery: '',
+    showFavoritesOnly: false,
     selectedTags: [],
     categories: ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'],
     availableTags: ['vegetarisch', 'vegan', 'glutenfrei', 'laktosefrei', 'schnell', 'günstig', 'meal-prep', 'Frühling', 'Sommer', 'Herbst', 'Winter'],
@@ -2352,6 +2429,8 @@ const RecipeDatabaseView = {
         if (!this.cookingStats) {
             this.loadCookingStats().then(() => App.render());
         }
+        const favoriteRecipes = this.getFavoriteRecipes();
+        const favoriteCount = favoriteRecipes.length;
         const filteredRecipes = this.filterRecipes();
 
         return `
@@ -2366,6 +2445,8 @@ const RecipeDatabaseView = {
                         Neues Rezept
                     </button>
                 </div>
+
+                ${this.renderFavoritesQuickAccess(favoriteRecipes)}
 
                 ${AppState.recipes.length > 0 ? `
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
@@ -2388,6 +2469,17 @@ const RecipeDatabaseView = {
                                 </button>
                             ` : ''}
                         </div>
+                        ${favoriteCount > 0 ? `
+                            <div class="flex flex-wrap items-center justify-between gap-2 mt-3 text-sm">
+                                <button id="favorites-filter-btn" class="favorites-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showFavoritesOnly ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-600 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}" aria-pressed="${this.showFavoritesOnly}">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                                    </svg>
+                                    ${this.showFavoritesOnly ? 'Alle Rezepte anzeigen' : 'Nur Favoriten anzeigen'}
+                                </button>
+                                <span class="text-gray-500 dark:text-gray-400">${favoriteCount} Favorit${favoriteCount !== 1 ? 'en' : ''}</span>
+                            </div>
+                        ` : ''}
                         ${this.searchQuery ? `
                             <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
                                 ${filteredRecipes.length} von ${AppState.recipes.length} Rezept${filteredRecipes.length !== 1 ? 'en' : ''} gefunden
@@ -2416,8 +2508,15 @@ const RecipeDatabaseView = {
                             const cookingStat = this.getCookingStatsForRecipe(recipe.id);
                             const lastCookedText = cookingStat ? this.formatLastCooked(cookingStat.last_cooked_at) : null;
                             return `
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99]">
-                                <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white mb-2 line-clamp-2">${recipe.name}</h3>
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99] recipe-card" data-recipe-card-id="${recipe.id}">
+                                <div class="flex items-start justify-between gap-3 mb-2">
+                                    <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white line-clamp-2 flex-1">${recipe.name}</h3>
+                                    <button type="button" class="favorite-toggle-btn ${recipe.is_favorite ? 'is-favorite' : ''} p-2 rounded-full transition transform favorite-heart" data-recipe-id="${recipe.id}" title="${recipe.is_favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" aria-label="${recipe.is_favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">
+                                        <svg class="w-5 h-5 favorite-heart-icon" viewBox="0 0 24 24" fill="${recipe.is_favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8">
+                                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
                                 <div class="flex flex-wrap gap-1 mb-2">
                                     ${recipe.category ? `
                                         <span class="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs rounded">
@@ -2585,6 +2684,15 @@ const RecipeDatabaseView = {
             });
         }
 
+        const favoritesFilterBtn = document.getElementById('favorites-filter-btn');
+        if (favoritesFilterBtn) {
+            favoritesFilterBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showFavoritesOnly = !this.showFavoritesOnly;
+                App.render();
+            });
+        }
+
         // New recipe button
         const newBtn = document.getElementById('new-recipe-btn');
         if (newBtn) {
@@ -2620,6 +2728,24 @@ const RecipeDatabaseView = {
             btn.addEventListener('click', async (e) => {
                 const recipeId = e.target.dataset.recipeId;
                 await this.showPortionScaling(recipeId);
+            });
+        });
+
+        // Favorite toggle buttons
+        document.querySelectorAll('.favorite-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const recipeId = btn.dataset.recipeId;
+                await this.toggleFavorite(recipeId);
+            });
+        });
+
+        // Quick access buttons
+        document.querySelectorAll('.favorite-quick-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const recipeId = btn.dataset.recipeId;
+                this.focusRecipeCard(recipeId);
             });
         });
 
@@ -2667,13 +2793,19 @@ const RecipeDatabaseView = {
     },
 
     filterRecipes() {
+        let recipes = AppState.recipes;
+
+        if (this.showFavoritesOnly) {
+            recipes = recipes.filter(recipe => recipe.is_favorite);
+        }
+
         if (!this.searchQuery.trim()) {
-            return AppState.recipes;
+            return recipes;
         }
 
         const query = this.searchQuery.toLowerCase().trim();
 
-        return AppState.recipes.filter(recipe => {
+        return recipes.filter(recipe => {
             // Search in recipe name
             if (recipe.name.toLowerCase().includes(query)) {
                 return true;
@@ -2759,6 +2891,57 @@ const RecipeDatabaseView = {
                 this.renderIngredients();
             });
         });
+    },
+
+    async toggleFavorite(recipeId) {
+        const recipe = AppState.recipes.find(item => item.id === recipeId);
+        if (!recipe) {
+            return;
+        }
+
+        const nextState = !recipe.is_favorite;
+
+        try {
+            const result = await StorageService.toggleFavorite(recipeId, nextState);
+            recipe.is_favorite = result.is_favorite;
+            await OfflineDB.saveRecipes(AppState.recipes);
+
+            App.render();
+            requestAnimationFrame(() => {
+                this.animateFavoriteHeart(recipeId);
+            });
+
+            const message = recipe.is_favorite ? 'Rezept zu Favoriten hinzugefügt' : 'Rezept aus Favoriten entfernt';
+            const type = recipe.is_favorite ? 'success' : 'default';
+            Toast.show(message, { type });
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+            Toast.error('Favoritenstatus konnte nicht aktualisiert werden');
+        }
+    },
+
+    focusRecipeCard(recipeId) {
+        this.searchQuery = '';
+        App.render();
+
+        requestAnimationFrame(() => {
+            const card = document.querySelector(`.recipe-card[data-recipe-card-id="${recipeId}"]`);
+            if (!card) return;
+
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.classList.add('favorite-highlight');
+            setTimeout(() => {
+                card.classList.remove('favorite-highlight');
+            }, 1200);
+        });
+    },
+
+    animateFavoriteHeart(recipeId) {
+        const heartButton = document.querySelector(`.favorite-toggle-btn[data-recipe-id="${recipeId}"]`);
+        if (!heartButton) return;
+
+        heartButton.classList.add('favorite-heart-animate');
+        setTimeout(() => heartButton.classList.remove('favorite-heart-animate'), 400);
     },
 
     renderPortionScalingModal() {
@@ -3002,6 +3185,8 @@ const RecipeDatabaseView = {
             ingredients: recipe.ingredients.map(ing => ({ ...ing })) // Deep copy ingredients
         };
 
+        duplicatedRecipe.is_favorite = false;
+
         await StorageService.addRecipe(duplicatedRecipe);
         await AppState.reloadData();
 
@@ -3029,7 +3214,8 @@ const RecipeDatabaseView = {
             servings: servings ? parseInt(servings) : undefined,
             instructions: instructions || undefined,
             ingredients: validIngredients,
-            tags: this.tags
+            tags: this.tags,
+            is_favorite: this.editingRecipe?.is_favorite ?? false
         };
 
         if (this.editingRecipe) {
