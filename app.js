@@ -1862,7 +1862,8 @@ const WeekPlannerView = {
                                 </div>
                                 ${meal ? `
                                     <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
-                                        <p class="text-sm text-gray-800 dark:text-gray-200 font-medium">${meal.recipeName}</p>
+                                        <p class="text-sm text-gray-800 dark:text-gray-200 font-medium ${meal.recipeId ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline open-recipe-btn' : ''}"
+                                           ${meal.recipeId ? `data-recipe-id="${meal.recipeId}"` : ''}>${meal.recipeName}</p>
                                         <button class="mark-cooked-btn mt-3 w-full py-2.5 text-sm bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center justify-center gap-2 active:scale-98"
                                                 data-recipe-id="${meal.recipeId}"
                                                 data-recipe-name="${meal.recipeName}">
@@ -2102,6 +2103,21 @@ const WeekPlannerView = {
                 const recipeId = e.currentTarget.dataset.recipeId;
                 const recipeName = e.currentTarget.dataset.recipeName;
                 await this.markRecipeAsCooked(recipeId, recipeName);
+            });
+        });
+
+        // Open recipe from week plan
+        document.querySelectorAll('.open-recipe-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const recipeId = e.currentTarget.dataset.recipeId;
+                if (recipeId) {
+                    // Switch to recipes view and open the recipe detail
+                    AppState.setView('recipes');
+                    // Wait for render, then open recipe detail view
+                    setTimeout(() => {
+                        RecipeDatabaseView.viewRecipe(recipeId);
+                    }, 100);
+                }
             });
         });
 
@@ -2384,6 +2400,7 @@ const WeekPlannerView = {
 // Recipe Database View
 const RecipeDatabaseView = {
     editingRecipe: null,
+    viewingRecipe: null, // For detail view (read-only)
     ingredients: [{ name: '', amount: '', unit: '', category: 'Sonstiges' }],
     tags: [],
     searchQuery: '',
@@ -2397,6 +2414,50 @@ const RecipeDatabaseView = {
     isScaling: false,
     categoryCache: new Map(), // Local cache for ingredient categories
     cookingStats: null, // Cache for cooking statistics
+
+    getFavoriteRecipes() {
+        return AppState.recipes.filter(recipe => recipe.is_favorite);
+    },
+
+    renderFavoritesQuickAccess(favorites) {
+        if (!favorites || favorites.length === 0) {
+            return '';
+        }
+
+        const limitedFavorites = favorites.slice(0, 8);
+        const overflow = favorites.length - limitedFavorites.length;
+
+        return `
+            <section class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-500 dark:text-red-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                        </svg>
+                        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Favoriten Schnellzugriff</h3>
+                    </div>
+                </div>
+                <div class="flex gap-3 overflow-x-auto favorite-quick-scroll pb-1">
+                    ${limitedFavorites.map(recipe => `
+                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-red-100 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-left transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="font-medium text-red-700 dark:text-red-200 truncate">${recipe.name}</span>
+                                <svg class="w-4 h-4 text-red-400 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-300 truncate">${recipe.category || 'Ohne Kategorie'}</p>
+                        </button>
+                    `).join('')}
+                    ${overflow > 0 ? `
+                        <div class="flex-shrink-0 min-w-[140px] px-4 py-3 rounded-lg border border-dashed border-red-200 dark:border-red-700 text-red-500 dark:text-red-300 flex items-center justify-center text-sm">
+                            +${overflow} weitere
+                        </div>
+                    ` : ''}
+                </div>
+            </section>
+        `;
+    },
 
     async loadCookingStats() {
         if (!this.cookingStats) {
@@ -2508,7 +2569,7 @@ const RecipeDatabaseView = {
                             const cookingStat = this.getCookingStatsForRecipe(recipe.id);
                             const lastCookedText = cookingStat ? this.formatLastCooked(cookingStat.last_cooked_at) : null;
                             return `
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99] recipe-card" data-recipe-card-id="${recipe.id}">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99] cursor-pointer recipe-card" data-recipe-card-id="${recipe.id}">
                                 <div class="flex items-start justify-between gap-3 mb-2">
                                     <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white line-clamp-2 flex-1">${recipe.name}</h3>
                                     <button type="button" class="favorite-toggle-btn ${recipe.is_favorite ? 'is-favorite' : ''} p-2 rounded-full transition transform favorite-heart" data-recipe-id="${recipe.id}" title="${recipe.is_favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" aria-label="${recipe.is_favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">
@@ -2575,8 +2636,207 @@ const RecipeDatabaseView = {
                     </div>
                 `}
 
+                ${this.renderRecipeDetail()}
                 ${this.renderRecipeForm()}
                 ${this.renderPortionScalingModal()}
+            </div>
+        `;
+    },
+
+    renderRecipeDetail() {
+        if (!this.viewingRecipe) return '';
+
+        const recipe = this.viewingRecipe;
+        const cookingStat = this.getCookingStatsForRecipe(recipe.id);
+        const lastCookedText = cookingStat ? this.formatLastCooked(cookingStat.last_cooked_at) : null;
+
+        // Parse markdown for instructions
+        const renderMarkdown = (text) => {
+            if (!text) return '<p class="text-gray-500 dark:text-gray-400 italic">Keine Anleitung vorhanden</p>';
+
+            const preprocessInstructions = (raw) => {
+                // First, split inline "Schritt X:" patterns onto new lines
+                let processed = raw.replace(/([.!?])\s*(Schritt\s*\d+\s*[:.])/gi, '$1\n\n$2');
+
+                const lines = processed.split('\n');
+                const processedLines = [];
+
+                lines.forEach((line) => {
+                    const trimmed = line.trim();
+                    if (!trimmed) {
+                        processedLines.push('');
+                        return;
+                    }
+
+                    // Match "Schritt X:" or "Schritt X." at the beginning of a line
+                    const stepMatch = trimmed.match(/^schritt\s*(\d+)\s*[:.\-]\s*(.*)$/i);
+
+                    if (stepMatch) {
+                        const stepNumber = stepMatch[1];
+                        const remainder = stepMatch[2] ? stepMatch[2].trim() : '';
+
+                        // Add blank line before heading if needed
+                        if (processedLines.length > 0 && processedLines[processedLines.length - 1] !== '') {
+                            processedLines.push('');
+                        }
+                        processedLines.push(`### Schritt ${stepNumber}`);
+                        processedLines.push('');
+
+                        if (remainder.length > 0) {
+                            processedLines.push(remainder);
+                        }
+                    } else {
+                        processedLines.push(trimmed);
+                    }
+                });
+
+                return processedLines.join('\n');
+            };
+
+            const enhancedText = preprocessInstructions(text);
+
+            if (typeof marked !== 'undefined') {
+                // Configure marked for safety
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true
+                });
+                return marked.parse(enhancedText);
+            }
+
+            // Fallback: simple line breaks
+            return enhancedText.split('\n').map(line => `<p>${line}</p>`).join('');
+        };
+
+        // Group ingredients by category
+        const ingredientsByCategory = {};
+        (recipe.ingredients || []).forEach(ing => {
+            const cat = ing.category || 'Sonstiges';
+            if (!ingredientsByCategory[cat]) ingredientsByCategory[cat] = [];
+            ingredientsByCategory[cat].push(ing);
+        });
+
+        return `
+            <div id="recipe-detail-modal" class="modal active">
+                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
+                    <!-- Header -->
+                    <div class="p-4 sm:p-6 border-b dark:border-gray-700 bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h2 class="text-xl sm:text-2xl font-bold text-white mb-2">${recipe.name}</h2>
+                                <div class="flex flex-wrap gap-2">
+                                    ${recipe.category ? `
+                                        <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full">
+                                            ${recipe.category}
+                                        </span>
+                                    ` : ''}
+                                    ${recipe.servings ? `
+                                        <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full">
+                                            ${recipe.servings} Portionen
+                                        </span>
+                                    ` : ''}
+                                    ${lastCookedText ? `
+                                        <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full">
+                                            Zuletzt: ${lastCookedText}
+                                        </span>
+                                    ` : ''}
+                                    ${cookingStat && cookingStat.times_cooked > 0 ? `
+                                        <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full">
+                                            ${cookingStat.times_cooked}x gekocht
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <button id="close-recipe-detail" class="text-white/80 hover:text-white text-2xl p-1">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="p-4 sm:p-6 flex-1">
+                        <!-- Tags -->
+                        ${recipe.tags && recipe.tags.length > 0 ? `
+                            <div class="flex flex-wrap gap-2 mb-6">
+                                ${recipe.tags.map(tag => `
+                                    <span class="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-sm rounded-full">
+                                        ${tag}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Ingredients -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                    </svg>
+                                    Zutaten
+                                </h3>
+                                ${recipe.ingredients && recipe.ingredients.length > 0 ? `
+                                    <div class="space-y-4">
+                                        ${Object.entries(ingredientsByCategory).map(([category, ingredients]) => `
+                                            <div>
+                                                <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">${category}</h4>
+                                                <ul class="space-y-2">
+                                                    ${ingredients.map(ing => `
+                                                        <li class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                                                            <span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
+                                                            <span class="font-medium">${ing.amount || ''} ${ing.unit || ''}</span>
+                                                            <span>${ing.name}</span>
+                                                        </li>
+                                                    `).join('')}
+                                                </ul>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : `
+                                    <p class="text-gray-500 dark:text-gray-400 italic">Keine Zutaten vorhanden</p>
+                                `}
+                            </div>
+
+                            <!-- Instructions -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
+                                    </svg>
+                                    Zubereitung
+                                </h3>
+                                <div class="prose prose-sm dark:prose-invert max-w-none recipe-instructions">
+                                    ${renderMarkdown(recipe.instructions)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="p-4 sm:p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-wrap gap-3 flex-shrink-0">
+                        <button id="edit-recipe-from-detail" class="flex-1 sm:flex-none px-4 py-2.5 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                                data-recipe-id="${recipe.id}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                            Bearbeiten
+                        </button>
+                        <button id="mark-cooked-from-detail" class="flex-1 sm:flex-none px-4 py-2.5 bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                                data-recipe-id="${recipe.id}" data-recipe-name="${recipe.name}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Als gekocht markieren
+                        </button>
+                        <button id="favorite-from-detail" class="px-4 py-2.5 ${recipe.is_favorite ? 'bg-red-500 dark:bg-red-600' : 'bg-gray-200 dark:bg-gray-700'} ${recipe.is_favorite ? 'text-white' : 'text-gray-700 dark:text-gray-200'} rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+                                data-recipe-id="${recipe.id}">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="${recipe.is_favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                            </svg>
+                            ${recipe.is_favorite ? 'Favorit' : 'Favorisieren'}
+                        </button>
+                    </div>
+                </div>
             </div>
         `;
     },
@@ -2645,9 +2905,25 @@ const RecipeDatabaseView = {
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Zubereitung</label>
-                                <textarea id="recipe-instructions" rows="5" placeholder="Beschreibe die Zubereitungsschritte..."
-                                          class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"></textarea>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Zubereitung
+                                    <span class="text-xs font-normal text-gray-500 dark:text-gray-400 ml-2">(Markdown unterstützt)</span>
+                                </label>
+                                <textarea id="recipe-instructions" rows="8" placeholder="## Vorbereitung
+1. Gemüse waschen und schneiden
+2. Gewürze bereitstellen
+
+## Zubereitung
+1. Öl in der Pfanne erhitzen (*ca. 2 Min*)
+2. Zwiebeln **glasig** dünsten
+3. Restliches Gemüse hinzufügen
+
+## Tipps
+- Kann gut vorbereitet werden"
+                                          class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 font-mono text-sm"></textarea>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Nutze **fett**, *kursiv*, ## Überschriften und nummerierte Listen
+                                </p>
                             </div>
                         </div>
 
@@ -2699,13 +2975,60 @@ const RecipeDatabaseView = {
             newBtn.addEventListener('click', () => this.showRecipeForm());
         }
 
-        // Edit recipe buttons
+        // Recipe card click - open detail view
+        document.querySelectorAll('.recipe-card').forEach(card => {
+            card.addEventListener('click', async (e) => {
+                // Don't trigger if clicking on a button inside the card
+                if (e.target.closest('button')) return;
+                const recipeId = card.dataset.recipeCardId;
+                await this.viewRecipe(recipeId);
+            });
+        });
+
+        // Edit recipe buttons (from card)
         document.querySelectorAll('.edit-recipe-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const recipeId = e.target.dataset.recipeId;
+                e.stopPropagation();
+                const recipeId = e.target.closest('button').dataset.recipeId;
                 await this.editRecipe(recipeId);
             });
         });
+
+        // Recipe detail modal event listeners
+        const closeDetailBtn = document.getElementById('close-recipe-detail');
+        if (closeDetailBtn) {
+            closeDetailBtn.addEventListener('click', () => this.hideRecipeDetail());
+        }
+
+        const editFromDetailBtn = document.getElementById('edit-recipe-from-detail');
+        if (editFromDetailBtn) {
+            editFromDetailBtn.addEventListener('click', () => this.editRecipeFromDetail());
+        }
+
+        const markCookedFromDetailBtn = document.getElementById('mark-cooked-from-detail');
+        if (markCookedFromDetailBtn) {
+            markCookedFromDetailBtn.addEventListener('click', async (e) => {
+                const recipeId = e.currentTarget.dataset.recipeId;
+                const recipeName = e.currentTarget.dataset.recipeName;
+                await this.markRecipeAsCooked(recipeId, recipeName);
+                // Refresh detail view
+                if (this.viewingRecipe) {
+                    await this.viewRecipe(recipeId);
+                }
+            });
+        }
+
+        const favoriteFromDetailBtn = document.getElementById('favorite-from-detail');
+        if (favoriteFromDetailBtn) {
+            favoriteFromDetailBtn.addEventListener('click', async (e) => {
+                const recipeId = e.currentTarget.dataset.recipeId;
+                await this.toggleFavorite(recipeId);
+                // Refresh detail view
+                if (this.viewingRecipe) {
+                    await this.viewRecipe(recipeId);
+                }
+            });
+        }
 
         // Delete recipe buttons
         document.querySelectorAll('.delete-recipe-btn').forEach(btn => {
@@ -3142,10 +3465,32 @@ const RecipeDatabaseView = {
         });
     },
 
+    async viewRecipe(recipeId) {
+        const recipe = await StorageService.getRecipeById(recipeId);
+        if (recipe) {
+            this.viewingRecipe = recipe;
+            App.render();
+        }
+    },
+
+    hideRecipeDetail() {
+        this.viewingRecipe = null;
+        App.render();
+    },
+
     async editRecipe(recipeId) {
         const recipe = await StorageService.getRecipeById(recipeId);
         if (recipe) {
+            this.viewingRecipe = null; // Close detail view if open
             this.showRecipeForm(recipe);
+        }
+    },
+
+    async editRecipeFromDetail() {
+        if (this.viewingRecipe) {
+            const recipeId = this.viewingRecipe.id;
+            this.viewingRecipe = null;
+            await this.editRecipe(recipeId);
         }
     },
 
@@ -3192,6 +3537,19 @@ const RecipeDatabaseView = {
 
         // Open the duplicated recipe in edit mode
         this.showRecipeForm(duplicatedRecipe);
+    },
+
+    async markRecipeAsCooked(recipeId, recipeName) {
+        try {
+            await StorageService.markAsCooked(recipeId);
+            Toast.success(`"${recipeName}" als gekocht markiert`);
+            // Refresh cooking stats
+            this.cookingStats = null;
+            await this.loadCookingStats();
+        } catch (error) {
+            Toast.error('Fehler beim Markieren als gekocht');
+            console.error(error);
+        }
     },
 
     async saveRecipe() {
