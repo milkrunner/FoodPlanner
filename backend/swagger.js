@@ -290,6 +290,27 @@ CORS_ORIGINS=https://foodplanner.example.com,https://app.example.com
                         generalTips: { type: 'array', items: { type: 'string' } }
                     }
                 },
+                AIGeneratedMeal: {
+                    type: 'object',
+                    description: 'Von der KI generierter Mahlzeitenvorschlag',
+                    properties: {
+                        name: {
+                            type: 'string',
+                            description: 'Name des Gerichts',
+                            example: 'Gemüse-Curry mit Basmatireis'
+                        },
+                        description: {
+                            type: 'string',
+                            description: 'Kurze Beschreibung des Gerichts',
+                            example: 'Cremiges Thai-Curry mit saisonalem Gemüse'
+                        },
+                        category: {
+                            type: 'string',
+                            description: 'Kategorie des Gerichts',
+                            example: 'Hauptgericht'
+                        }
+                    }
+                },
                 Error: {
                     type: 'object',
                     properties: {

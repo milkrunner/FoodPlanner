@@ -575,21 +575,18 @@ app.delete('/weekplan', async (req, res) => {
 // Get week plan by date (finds week containing the given date)
 app.get('/weekplan/by-date/:date', async (req, res) => {
     try {
-        const requestedDate = new Date(req.params.date);
+        // Parse date string directly - expected format: YYYY-MM-DD
+        const dateStr = req.params.date.split('T')[0];
 
-        // Calculate Monday of the requested week
-        const day = requestedDate.getDay();
-        const diff = requestedDate.getDate() - day + (day === 0 ? -6 : 1);
-        const monday = new Date(requestedDate);
-        monday.setDate(diff);
-        monday.setHours(0, 0, 0, 0);
-
-        // Format as YYYY-MM-DD for comparison
-        const mondayStr = monday.toISOString().split('T')[0];
-
+        // Find the week plan where the requested date falls within the 7-day range
+        // This is more robust than calculating Monday, as it handles timezone edge cases
         const { rows: weekPlans } = await db.query(
-            'SELECT * FROM week_plans WHERE start_date::date = $1::date',
-            [mondayStr]
+            `SELECT * FROM week_plans
+             WHERE start_date::date <= $1::date
+             AND start_date::date + interval '6 days' >= $1::date
+             ORDER BY start_date DESC
+             LIMIT 1`,
+            [dateStr]
         );
 
         if (weekPlans.length === 0) {
@@ -2117,6 +2114,239 @@ app.get('/ai/video-platforms', (req, res) => {
         platforms: Object.keys(VIDEO_PLATFORMS),
         disclaimer: 'Dieses Feature ist nur für Videos gedacht, zu deren Nutzung du berechtigt bist. Die Originalvideos werden nicht gespeichert. Bitte respektiere die Urheberrechte der Content-Creator.'
     });
+});
+
+// AI-powered weekly meal plan generation
+app.post('/ai/generate-weekplan', aiLimiter, async (req, res) => {
+    if (!genAI) {
+        return res.status(503).json({
+            error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
+        });
+    }
+
+    try {
+        const { mealTypes, days, preferences } = req.body;
+
+        // Validate mealTypes
+        const validMealTypes = ['Frühstück', 'Mittagessen', 'Abendessen'];
+        if (!mealTypes || !Array.isArray(mealTypes) || mealTypes.length === 0) {
+            return res.status(400).json({
+                error: 'Bitte wähle mindestens eine Mahlzeit aus (Frühstück, Mittagessen, Abendessen)'
+            });
+        }
+
+        const invalidMeals = mealTypes.filter(m => !validMealTypes.includes(m));
+        if (invalidMeals.length > 0) {
+            return res.status(400).json({
+                error: `Ungültige Mahlzeiten: ${invalidMeals.join(', ')}. Erlaubt sind: ${validMealTypes.join(', ')}`
+            });
+        }
+
+        // Default to 7 days if not specified
+        const numDays = days && Number.isInteger(days) && days >= 1 && days <= 7 ? days : 7;
+
+        // Fetch existing recipes for context
+        let existingRecipes = [];
+        try {
+            const recipesResult = await db.query('SELECT name, category FROM recipes LIMIT 50');
+            existingRecipes = recipesResult.rows.map(r => `${r.name} (${r.category || 'Ohne Kategorie'})`);
+        } catch (dbError) {
+            logger.warn('Could not fetch existing recipes for AI context', {
+                error: dbError.message,
+                requestId: req.requestId,
+                component: 'ai'
+            });
+        }
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+        const selectedDays = dayNames.slice(0, numDays);
+
+        const prompt = `Du bist ein erfahrener Ernährungsberater und Meal-Prep-Experte. Erstelle einen abwechslungsreichen Wochenplan für ${numDays} Tage.
+
+Erstelle Vorschläge für folgende Mahlzeiten: ${mealTypes.join(', ')}
+Tage: ${selectedDays.join(', ')}
+
+${preferences?.dietary ? `Ernährungspräferenzen: ${preferences.dietary}` : ''}
+${preferences?.cuisines ? `Bevorzugte Küchen: ${preferences.cuisines}` : ''}
+${preferences?.avoidIngredients ? `Diese Zutaten vermeiden: ${preferences.avoidIngredients}` : ''}
+${preferences?.budget ? `Budget: ${preferences.budget}` : ''}
+${preferences?.cookingSkill ? `Kochkenntnisse: ${preferences.cookingSkill}` : ''}
+
+${existingRecipes.length > 0 ? `
+Der Nutzer hat bereits diese Rezepte in seiner Datenbank (nutze gerne ähnliche oder passende Vorschläge):
+${existingRecipes.slice(0, 20).join(', ')}
+` : ''}
+
+Beachte folgende Regeln:
+1. Sorge für Abwechslung - keine Wiederholungen innerhalb der Woche
+2. Achte auf eine ausgewogene Ernährung
+3. Frühstück sollte schnell und einfach sein
+4. Mittagessen kann als Meal-Prep vorbereitet werden
+5. Abendessen darf aufwändiger sein (besonders am Wochenende)
+6. Nutze saisonale Zutaten
+
+WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zusätzlichen Text:
+
+{
+  "weekPlan": {
+    "Montag": {
+      "Frühstück": {
+        "name": "Rezeptname",
+        "description": "Kurzbeschreibung (1 Satz)",
+        "category": "Kategorie",
+        "servings": 2,
+        "ingredients": [
+          { "name": "Zutat 1", "amount": "200", "unit": "g", "category": "Obst & Gemüse" },
+          { "name": "Zutat 2", "amount": "1", "unit": "Stück", "category": "Milchprodukte" }
+        ],
+        "instructions": "Schritt 1: ... Schritt 2: ... Schritt 3: ..."
+      },
+      "Mittagessen": { ... },
+      "Abendessen": { ... }
+    }
+  },
+  "shoppingTips": ["Tipp 1", "Tipp 2"],
+  "mealPrepSuggestions": ["Vorschlag 1", "Vorschlag 2"]
+}
+
+Gib nur die ausgewählten Mahlzeiten (${mealTypes.join(', ')}) im JSON zurück.
+Kategorien für Rezepte: Frühstück, Hauptgericht, Suppe, Salat, Snack, Dessert, Beilage, Getränk
+Kategorien für Zutaten: Obst & Gemüse, Milchprodukte, Fleisch & Fisch, Trockenwaren, Tiefkühl, Sonstiges
+Einheiten für Zutaten: g, kg, ml, l, Stück, EL, TL, Prise, Bund, Dose, Packung`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        let jsonText = response.text().trim();
+
+        // Extract JSON from response (remove markdown code blocks if present)
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '').trim();
+        }
+
+        const generatedPlan = JSON.parse(jsonText);
+
+        // Validate response structure
+        if (!generatedPlan.weekPlan || typeof generatedPlan.weekPlan !== 'object') {
+            throw new Error('Invalid response structure: missing weekPlan');
+        }
+
+        // Save generated recipes to database and collect recipe IDs
+        const savedRecipes = {};
+
+        for (const [dayName, meals] of Object.entries(generatedPlan.weekPlan)) {
+            savedRecipes[dayName] = {};
+
+            for (const [mealType, meal] of Object.entries(meals)) {
+                if (!meal || !meal.name) continue;
+
+                try {
+                    // Generate unique ID for the recipe
+                    const recipeId = `ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+                    // Insert recipe into database
+                    await db.query(
+                        `INSERT INTO recipes (id, name, category, servings, instructions)
+                         VALUES ($1, $2, $3, $4, $5)`,
+                        [
+                            recipeId,
+                            meal.name,
+                            meal.category || 'Hauptgericht',
+                            meal.servings || 2,
+                            meal.instructions || meal.description || ''
+                        ]
+                    );
+
+                    // Insert ingredients if provided
+                    if (meal.ingredients && Array.isArray(meal.ingredients)) {
+                        for (const ingredient of meal.ingredients) {
+                            if (!ingredient.name) continue;
+
+                            await db.query(
+                                `INSERT INTO ingredients (recipe_id, name, amount, unit, category)
+                                 VALUES ($1, $2, $3, $4, $5)`,
+                                [
+                                    recipeId,
+                                    ingredient.name,
+                                    ingredient.amount || '',
+                                    ingredient.unit || '',
+                                    ingredient.category || 'Sonstiges'
+                                ]
+                            );
+                        }
+                    }
+
+                    // Store the recipe ID for the response
+                    savedRecipes[dayName][mealType] = {
+                        ...meal,
+                        recipeId: recipeId
+                    };
+
+                    logger.info('AI recipe saved to database', {
+                        recipeId,
+                        recipeName: meal.name,
+                        dayName,
+                        mealType,
+                        requestId: req.requestId,
+                        component: 'ai'
+                    });
+
+                } catch (dbError) {
+                    logger.error('Failed to save AI recipe to database', {
+                        error: dbError.message,
+                        recipeName: meal.name,
+                        requestId: req.requestId,
+                        component: 'ai'
+                    });
+                    // Continue with other recipes even if one fails
+                    savedRecipes[dayName][mealType] = {
+                        ...meal,
+                        recipeId: null
+                    };
+                }
+            }
+        }
+
+        logger.info('AI week plan generated successfully', {
+            days: numDays,
+            mealTypes,
+            requestId: req.requestId,
+            component: 'ai'
+        });
+
+        res.json({
+            success: true,
+            weekPlan: savedRecipes,
+            shoppingTips: generatedPlan.shoppingTips || [],
+            mealPrepSuggestions: generatedPlan.mealPrepSuggestions || [],
+            metadata: {
+                generatedAt: new Date().toISOString(),
+                mealTypes,
+                days: numDays
+            }
+        });
+
+    } catch (error) {
+        logger.error('AI week plan generation error', {
+            error: error.message,
+            requestId: req.requestId,
+            component: 'ai'
+        });
+
+        // Check for JSON parse errors
+        if (error instanceof SyntaxError) {
+            return res.status(500).json({
+                error: 'Die KI-Antwort konnte nicht verarbeitet werden. Bitte versuche es erneut.',
+                details: 'JSON parsing failed'
+            });
+        }
+
+        res.status(500).json({
+            error: 'Fehler bei der Wochenplan-Generierung',
+            details: error.message
+        });
+    }
 });
 
 // Start server with migrations
