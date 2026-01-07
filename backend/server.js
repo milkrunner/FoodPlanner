@@ -575,21 +575,18 @@ app.delete('/weekplan', async (req, res) => {
 // Get week plan by date (finds week containing the given date)
 app.get('/weekplan/by-date/:date', async (req, res) => {
     try {
-        const requestedDate = new Date(req.params.date);
+        // Parse date string directly - expected format: YYYY-MM-DD
+        const dateStr = req.params.date.split('T')[0];
 
-        // Calculate Monday of the requested week
-        const day = requestedDate.getDay();
-        const diff = requestedDate.getDate() - day + (day === 0 ? -6 : 1);
-        const monday = new Date(requestedDate);
-        monday.setDate(diff);
-        monday.setHours(0, 0, 0, 0);
-
-        // Format as YYYY-MM-DD for comparison
-        const mondayStr = monday.toISOString().split('T')[0];
-
+        // Find the week plan where the requested date falls within the 7-day range
+        // This is more robust than calculating Monday, as it handles timezone edge cases
         const { rows: weekPlans } = await db.query(
-            'SELECT * FROM week_plans WHERE start_date::date = $1::date',
-            [mondayStr]
+            `SELECT * FROM week_plans
+             WHERE start_date::date <= $1::date
+             AND start_date::date + interval '6 days' >= $1::date
+             ORDER BY start_date DESC
+             LIMIT 1`,
+            [dateStr]
         );
 
         if (weekPlans.length === 0) {
@@ -2195,9 +2192,19 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zu
 {
   "weekPlan": {
     "Montag": {
-      "Frühstück": { "name": "Rezeptname", "description": "Kurzbeschreibung (1 Satz)", "category": "Kategorie" },
-      "Mittagessen": { "name": "Rezeptname", "description": "Kurzbeschreibung", "category": "Kategorie" },
-      "Abendessen": { "name": "Rezeptname", "description": "Kurzbeschreibung", "category": "Kategorie" }
+      "Frühstück": {
+        "name": "Rezeptname",
+        "description": "Kurzbeschreibung (1 Satz)",
+        "category": "Kategorie",
+        "servings": 2,
+        "ingredients": [
+          { "name": "Zutat 1", "amount": "200", "unit": "g", "category": "Obst & Gemüse" },
+          { "name": "Zutat 2", "amount": "1", "unit": "Stück", "category": "Milchprodukte" }
+        ],
+        "instructions": "Schritt 1: ... Schritt 2: ... Schritt 3: ..."
+      },
+      "Mittagessen": { ... },
+      "Abendessen": { ... }
     }
   },
   "shoppingTips": ["Tipp 1", "Tipp 2"],
@@ -2205,7 +2212,9 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zu
 }
 
 Gib nur die ausgewählten Mahlzeiten (${mealTypes.join(', ')}) im JSON zurück.
-Kategorien können sein: Frühstück, Hauptgericht, Suppe, Salat, Snack, Dessert, Beilage, Getränk`;
+Kategorien für Rezepte: Frühstück, Hauptgericht, Suppe, Salat, Snack, Dessert, Beilage, Getränk
+Kategorien für Zutaten: Obst & Gemüse, Milchprodukte, Fleisch & Fisch, Trockenwaren, Tiefkühl, Sonstiges
+Einheiten für Zutaten: g, kg, ml, l, Stück, EL, TL, Prise, Bund, Dose, Packung`;
 
         const result = await model.generateContent(prompt);
         const response = result.response;
@@ -2223,6 +2232,82 @@ Kategorien können sein: Frühstück, Hauptgericht, Suppe, Salat, Snack, Dessert
             throw new Error('Invalid response structure: missing weekPlan');
         }
 
+        // Save generated recipes to database and collect recipe IDs
+        const savedRecipes = {};
+
+        for (const [dayName, meals] of Object.entries(generatedPlan.weekPlan)) {
+            savedRecipes[dayName] = {};
+
+            for (const [mealType, meal] of Object.entries(meals)) {
+                if (!meal || !meal.name) continue;
+
+                try {
+                    // Generate unique ID for the recipe
+                    const recipeId = `ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+                    // Insert recipe into database
+                    await db.query(
+                        `INSERT INTO recipes (id, name, category, servings, instructions)
+                         VALUES ($1, $2, $3, $4, $5)`,
+                        [
+                            recipeId,
+                            meal.name,
+                            meal.category || 'Hauptgericht',
+                            meal.servings || 2,
+                            meal.instructions || meal.description || ''
+                        ]
+                    );
+
+                    // Insert ingredients if provided
+                    if (meal.ingredients && Array.isArray(meal.ingredients)) {
+                        for (const ingredient of meal.ingredients) {
+                            if (!ingredient.name) continue;
+
+                            await db.query(
+                                `INSERT INTO ingredients (recipe_id, name, amount, unit, category)
+                                 VALUES ($1, $2, $3, $4, $5)`,
+                                [
+                                    recipeId,
+                                    ingredient.name,
+                                    ingredient.amount || '',
+                                    ingredient.unit || '',
+                                    ingredient.category || 'Sonstiges'
+                                ]
+                            );
+                        }
+                    }
+
+                    // Store the recipe ID for the response
+                    savedRecipes[dayName][mealType] = {
+                        ...meal,
+                        recipeId: recipeId
+                    };
+
+                    logger.info('AI recipe saved to database', {
+                        recipeId,
+                        recipeName: meal.name,
+                        dayName,
+                        mealType,
+                        requestId: req.requestId,
+                        component: 'ai'
+                    });
+
+                } catch (dbError) {
+                    logger.error('Failed to save AI recipe to database', {
+                        error: dbError.message,
+                        recipeName: meal.name,
+                        requestId: req.requestId,
+                        component: 'ai'
+                    });
+                    // Continue with other recipes even if one fails
+                    savedRecipes[dayName][mealType] = {
+                        ...meal,
+                        recipeId: null
+                    };
+                }
+            }
+        }
+
         logger.info('AI week plan generated successfully', {
             days: numDays,
             mealTypes,
@@ -2232,7 +2317,9 @@ Kategorien können sein: Frühstück, Hauptgericht, Suppe, Salat, Snack, Dessert
 
         res.json({
             success: true,
-            ...generatedPlan,
+            weekPlan: savedRecipes,
+            shoppingTips: generatedPlan.shoppingTips || [],
+            mealPrepSuggestions: generatedPlan.mealPrepSuggestions || [],
             metadata: {
                 generatedAt: new Date().toISOString(),
                 mealTypes,

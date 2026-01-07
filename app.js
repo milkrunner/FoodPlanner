@@ -1875,7 +1875,8 @@ const WeekPlannerView = {
                                 </div>
                                 ${meal ? `
                                     <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
-                                        <p class="text-sm text-gray-800 dark:text-gray-200 font-medium">${meal.recipeName}</p>
+                                        <p class="text-sm text-gray-800 dark:text-gray-200 font-medium ${meal.recipeId ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline open-recipe-btn' : ''}"
+                                           ${meal.recipeId ? `data-recipe-id="${meal.recipeId}"` : ''}>${meal.recipeName}</p>
                                         <button class="mark-cooked-btn mt-3 w-full py-2.5 text-sm bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center justify-center gap-2 active:scale-98"
                                                 data-recipe-id="${meal.recipeId}"
                                                 data-recipe-name="${meal.recipeName}">
@@ -2199,6 +2200,21 @@ const WeekPlannerView = {
                 const recipeId = e.currentTarget.dataset.recipeId;
                 const recipeName = e.currentTarget.dataset.recipeName;
                 await this.markRecipeAsCooked(recipeId, recipeName);
+            });
+        });
+
+        // Open recipe from week plan
+        document.querySelectorAll('.open-recipe-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const recipeId = e.currentTarget.dataset.recipeId;
+                if (recipeId) {
+                    // Switch to recipes view and open the recipe
+                    AppState.setView('recipes');
+                    // Wait for render, then open recipe
+                    setTimeout(() => {
+                        RecipeDatabaseView.editRecipe(recipeId);
+                    }, 100);
+                }
             });
         });
 
@@ -2579,8 +2595,8 @@ const WeekPlannerView = {
                     const aiMeal = aiDay[mealType];
                     if (aiMeal && aiMeal.name) {
                         day.meals[mealType] = {
-                            id: `ai-${Date.now()}-${index}-${mealType}`,
-                            recipeId: null, // AI-generated meals don't have recipe IDs
+                            id: aiMeal.recipeId || `ai-${Date.now()}-${index}-${mealType}`,
+                            recipeId: aiMeal.recipeId || null, // Use real recipe ID from backend
                             recipeName: aiMeal.name,
                             mealType: mealType,
                             aiGenerated: true,
@@ -2590,6 +2606,9 @@ const WeekPlannerView = {
                     }
                 });
             });
+
+            // Reload recipes to include newly created AI recipes
+            AppState.recipes = await StorageService.getRecipes({ all: true });
 
             // Save the updated week plan
             await StorageService.saveWeekPlan(AppState.weekPlan);
@@ -2805,7 +2824,7 @@ const RecipeDatabaseView = {
                             const cookingStat = this.getCookingStatsForRecipe(recipe.id);
                             const lastCookedText = cookingStat ? this.formatLastCooked(cookingStat.last_cooked_at) : null;
                             return `
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99] recipe-card" data-recipe-card-id="${recipe.id}">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99] cursor-pointer recipe-card" data-recipe-card-id="${recipe.id}">
                                 <div class="flex items-start justify-between gap-3 mb-2">
                                     <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white line-clamp-2 flex-1">${recipe.name}</h3>
                                     <button type="button" class="favorite-toggle-btn ${recipe.is_favorite ? 'is-favorite' : ''} p-2 rounded-full transition transform favorite-heart" data-recipe-id="${recipe.id}" title="${recipe.is_favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" aria-label="${recipe.is_favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">
@@ -2995,6 +3014,16 @@ const RecipeDatabaseView = {
         if (newBtn) {
             newBtn.addEventListener('click', () => this.showRecipeForm());
         }
+
+        // Recipe card click (open recipe details)
+        document.querySelectorAll('.recipe-card').forEach(card => {
+            card.addEventListener('click', async (e) => {
+                // Don't trigger if clicking on a button inside the card
+                if (e.target.closest('button')) return;
+                const recipeId = card.dataset.recipeCardId;
+                await this.editRecipe(recipeId);
+            });
+        });
 
         // Edit recipe buttons
         document.querySelectorAll('.edit-recipe-btn').forEach(btn => {
