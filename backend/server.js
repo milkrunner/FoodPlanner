@@ -1489,6 +1489,334 @@ function categorizeIngredientRuleBased(ingredient) {
     return 'Sonstiges';
 }
 
+// ========== SEASONAL CALENDAR ==========
+
+// Seasonal ingredient data - German seasons
+const SEASONAL_CALENDAR = {
+    // Frühling (März-Mai): 3, 4, 5
+    spring: {
+        name: 'Frühling',
+        months: [3, 4, 5],
+        ingredients: [
+            'spargel', 'rhabarber', 'bärlauch', 'radieschen', 'spinat', 'rucola',
+            'frühlingszwiebel', 'kohlrabi', 'mangold', 'kresse', 'schnittlauch',
+            'petersilie', 'erdbeere', 'waldmeister', 'kopfsalat', 'feldsalat',
+            'löwenzahn', 'brennnessel', 'sauerampfer', 'minze'
+        ]
+    },
+    // Sommer (Juni-August): 6, 7, 8
+    summer: {
+        name: 'Sommer',
+        months: [6, 7, 8],
+        ingredients: [
+            'tomate', 'tomaten', 'zucchini', 'gurke', 'paprika', 'aubergine',
+            'bohne', 'bohnen', 'erbse', 'erbsen', 'mais', 'fenchel',
+            'erdbeere', 'erdbeeren', 'himbeere', 'himbeeren', 'johannisbeere',
+            'brombeere', 'heidelbeere', 'blaubeere', 'kirsche', 'kirschen',
+            'pfirsich', 'aprikose', 'nektarine', 'melone', 'wassermelone',
+            'basilikum', 'oregano', 'thymian', 'rosmarin', 'salbei',
+            'mangold', 'salat', 'kopfsalat', 'eisbergsalat', 'lollo'
+        ]
+    },
+    // Herbst (September-November): 9, 10, 11
+    autumn: {
+        name: 'Herbst',
+        months: [9, 10, 11],
+        ingredients: [
+            'kürbis', 'hokkaido', 'butternut', 'pilz', 'pilze', 'champignon',
+            'pfifferling', 'steinpilz', 'apfel', 'birne', 'zwetschge', 'pflaume',
+            'traube', 'weintraube', 'quitte', 'kohl', 'weißkohl', 'rotkohl',
+            'wirsing', 'grünkohl', 'rosenkohl', 'blumenkohl', 'brokkoli',
+            'karotte', 'möhre', 'rote bete', 'sellerie', 'knollensellerie',
+            'pastinake', 'kartoffel', 'süßkartoffel', 'maroni', 'kastanie',
+            'walnuss', 'haselnuss', 'lauch', 'porree', 'fenchel', 'chinakohl'
+        ]
+    },
+    // Winter (Dezember-Februar): 12, 1, 2
+    winter: {
+        name: 'Winter',
+        months: [12, 1, 2],
+        ingredients: [
+            'grünkohl', 'rosenkohl', 'wirsing', 'weißkohl', 'rotkohl', 'chinakohl',
+            'feldsalat', 'chicorée', 'radicchio', 'endivie', 'schwarzwurzel',
+            'topinambur', 'pastinake', 'steckrübe', 'rote bete', 'sellerie',
+            'kartoffel', 'karotte', 'möhre', 'lauch', 'porree', 'zwiebel',
+            'knoblauch', 'meerrettich', 'apfel', 'birne', 'orange', 'mandarine',
+            'clementine', 'grapefruit', 'zitrone', 'granatapfel', 'kaki'
+        ]
+    }
+};
+
+// Get current season based on month
+function getCurrentSeason() {
+    const month = new Date().getMonth() + 1; // JavaScript months are 0-indexed
+
+    for (const [season, data] of Object.entries(SEASONAL_CALENDAR)) {
+        if (data.months.includes(month)) {
+            return { key: season, ...data };
+        }
+    }
+    return { key: 'spring', ...SEASONAL_CALENDAR.spring }; // Fallback
+}
+
+// Check if an ingredient is in season
+function isIngredientInSeason(ingredientName, seasonKey = null) {
+    const lowerName = ingredientName.toLowerCase();
+    const season = seasonKey ? SEASONAL_CALENDAR[seasonKey] : getCurrentSeason();
+
+    return season.ingredients.some(seasonal =>
+        lowerName.includes(seasonal) || seasonal.includes(lowerName)
+    );
+}
+
+// Calculate seasonal score for a recipe (percentage of seasonal ingredients)
+function calculateSeasonalScore(ingredients, seasonKey = null) {
+    if (!ingredients || ingredients.length === 0) return 0;
+
+    const seasonalCount = ingredients.filter(ing =>
+        isIngredientInSeason(ing.name, seasonKey)
+    ).length;
+
+    return Math.round((seasonalCount / ingredients.length) * 100);
+}
+
+// Get seasonal information for ingredients
+function getSeasonalInfo(ingredients) {
+    const currentSeason = getCurrentSeason();
+
+    return ingredients.map(ing => ({
+        ...ing,
+        isInSeason: isIngredientInSeason(ing.name),
+        seasonalNote: isIngredientInSeason(ing.name)
+            ? `In Saison (${currentSeason.name})`
+            : null
+    }));
+}
+
+// ========== SEASONAL API ENDPOINTS ==========
+
+// Get current season info and calendar
+app.get('/seasons', (req, res) => {
+    const currentSeason = getCurrentSeason();
+
+    res.json({
+        current: {
+            key: currentSeason.key,
+            name: currentSeason.name,
+            months: currentSeason.months,
+            topIngredients: currentSeason.ingredients.slice(0, 15)
+        },
+        calendar: Object.entries(SEASONAL_CALENDAR).map(([key, data]) => ({
+            key,
+            name: data.name,
+            months: data.months,
+            ingredientCount: data.ingredients.length,
+            sampleIngredients: data.ingredients.slice(0, 10)
+        }))
+    });
+});
+
+// Get seasonal ingredients for a specific season or current season
+app.get('/seasons/:season/ingredients', (req, res) => {
+    const { season } = req.params;
+
+    if (season === 'current') {
+        const currentSeason = getCurrentSeason();
+        return res.json({
+            season: currentSeason.name,
+            seasonKey: currentSeason.key,
+            ingredients: currentSeason.ingredients
+        });
+    }
+
+    if (!SEASONAL_CALENDAR[season]) {
+        return res.status(404).json({ error: 'Season not found. Valid seasons: spring, summer, autumn, winter' });
+    }
+
+    const seasonData = SEASONAL_CALENDAR[season];
+    res.json({
+        season: seasonData.name,
+        seasonKey: season,
+        ingredients: seasonData.ingredients
+    });
+});
+
+// Check if specific ingredients are in season
+app.post('/seasons/check', (req, res) => {
+    const { ingredients, season } = req.body;
+
+    if (!ingredients || !Array.isArray(ingredients)) {
+        return res.status(400).json({ error: 'ingredients array is required' });
+    }
+
+    const currentSeason = getCurrentSeason();
+    const seasonKey = season || currentSeason.key;
+
+    const result = ingredients.map(ing => {
+        const name = typeof ing === 'string' ? ing : ing.name;
+        return {
+            name,
+            isInSeason: isIngredientInSeason(name, seasonKey),
+            season: SEASONAL_CALENDAR[seasonKey].name
+        };
+    });
+
+    res.json({
+        season: SEASONAL_CALENDAR[seasonKey].name,
+        seasonKey,
+        ingredients: result,
+        seasonalCount: result.filter(i => i.isInSeason).length,
+        totalCount: result.length
+    });
+});
+
+// Get recipes filtered by season (recipes with seasonal ingredients)
+app.get('/recipes/seasonal', async (req, res) => {
+    try {
+        const { season, minScore } = req.query;
+        const minimumScore = parseInt(minScore) || 30; // Default: at least 30% seasonal ingredients
+        const currentSeason = getCurrentSeason();
+        const seasonKey = season || currentSeason.key;
+
+        // Fetch all recipes with ingredients
+        const { rows } = await db.query(`
+            SELECT
+                r.id,
+                r.name,
+                r.category,
+                r.servings,
+                r.instructions,
+                r.is_favorite,
+                r.created_at,
+                COALESCE(
+                    json_agg(DISTINCT jsonb_build_object(
+                        'name', i.name,
+                        'amount', i.amount,
+                        'unit', i.unit,
+                        'category', i.category
+                    )) FILTER (WHERE i.name IS NOT NULL),
+                    '[]'::json
+                ) as ingredients,
+                COALESCE(
+                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
+                    '[]'::json
+                ) as tags
+            FROM recipes r
+            LEFT JOIN ingredients i ON r.id = i.recipe_id
+            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
+            GROUP BY r.id
+            ORDER BY r.created_at DESC
+        `);
+
+        // Calculate seasonal score and filter
+        const seasonalRecipes = rows
+            .map(recipe => {
+                const score = calculateSeasonalScore(recipe.ingredients, seasonKey);
+                const seasonalIngredients = recipe.ingredients.filter(ing =>
+                    isIngredientInSeason(ing.name, seasonKey)
+                );
+
+                return {
+                    ...recipe,
+                    seasonalScore: score,
+                    seasonalIngredients: seasonalIngredients.map(i => i.name),
+                    seasonInfo: {
+                        season: SEASONAL_CALENDAR[seasonKey].name,
+                        seasonKey,
+                        score,
+                        seasonalCount: seasonalIngredients.length,
+                        totalIngredients: recipe.ingredients.length
+                    }
+                };
+            })
+            .filter(recipe => recipe.seasonalScore >= minimumScore)
+            .sort((a, b) => b.seasonalScore - a.seasonalScore);
+
+        res.json({
+            season: SEASONAL_CALENDAR[seasonKey].name,
+            seasonKey,
+            minimumScore,
+            totalRecipes: rows.length,
+            seasonalRecipes: seasonalRecipes.length,
+            recipes: seasonalRecipes
+        });
+    } catch (error) {
+        logger.error('Error fetching seasonal recipes', { error: error.message, requestId: req.requestId, component: 'seasons' });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get seasonal recommendations for the start page
+app.get('/recipes/seasonal/recommendations', async (req, res) => {
+    try {
+        const { limit } = req.query;
+        const maxResults = Math.min(parseInt(limit) || 6, 20);
+        const currentSeason = getCurrentSeason();
+
+        // Fetch all recipes with ingredients
+        const { rows } = await db.query(`
+            SELECT
+                r.id,
+                r.name,
+                r.category,
+                r.servings,
+                r.is_favorite,
+                COALESCE(
+                    json_agg(DISTINCT jsonb_build_object(
+                        'name', i.name,
+                        'amount', i.amount,
+                        'unit', i.unit,
+                        'category', i.category
+                    )) FILTER (WHERE i.name IS NOT NULL),
+                    '[]'::json
+                ) as ingredients,
+                COALESCE(
+                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
+                    '[]'::json
+                ) as tags
+            FROM recipes r
+            LEFT JOIN ingredients i ON r.id = i.recipe_id
+            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
+            GROUP BY r.id
+            ORDER BY r.created_at DESC
+        `);
+
+        // Calculate seasonal score and get top recommendations
+        const recommendations = rows
+            .map(recipe => {
+                const score = calculateSeasonalScore(recipe.ingredients);
+                const seasonalIngredients = recipe.ingredients.filter(ing =>
+                    isIngredientInSeason(ing.name)
+                );
+
+                return {
+                    id: recipe.id,
+                    name: recipe.name,
+                    category: recipe.category,
+                    servings: recipe.servings,
+                    is_favorite: recipe.is_favorite,
+                    tags: recipe.tags,
+                    seasonalScore: score,
+                    seasonalIngredients: seasonalIngredients.map(i => i.name),
+                    totalIngredients: recipe.ingredients.length
+                };
+            })
+            .filter(recipe => recipe.seasonalScore >= 30) // At least 30% seasonal
+            .sort((a, b) => b.seasonalScore - a.seasonalScore)
+            .slice(0, maxResults);
+
+        res.json({
+            season: currentSeason.name,
+            seasonKey: currentSeason.key,
+            topSeasonalIngredients: currentSeason.ingredients.slice(0, 8),
+            recommendations
+        });
+    } catch (error) {
+        logger.error('Error fetching seasonal recommendations', { error: error.message, requestId: req.requestId, component: 'seasons' });
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // AI-based portion scaling
 app.post('/ai/scale-portions', aiLimiter, async (req, res) => {
     if (!genAI) {

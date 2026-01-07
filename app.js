@@ -909,6 +909,73 @@ const StorageService = {
             console.error('Error fetching not recently cooked recipes:', error);
             return [];
         }
+    },
+
+    // Seasonal methods
+    async getSeasonInfo() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/seasons`);
+            if (!response.ok) throw new Error('Failed to fetch season info');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching season info:', error);
+            return null;
+        }
+    },
+
+    async getSeasonalIngredients(season = 'current') {
+        try {
+            const response = await fetch(`${API_BASE_URL}/seasons/${season}/ingredients`);
+            if (!response.ok) throw new Error('Failed to fetch seasonal ingredients');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching seasonal ingredients:', error);
+            return { ingredients: [] };
+        }
+    },
+
+    async getSeasonalRecipes(options = {}) {
+        try {
+            const params = new URLSearchParams();
+            if (options.season) params.set('season', options.season);
+            if (options.minScore) params.set('minScore', String(options.minScore));
+
+            const queryString = params.toString();
+            const url = queryString ? `${API_BASE_URL}/recipes/seasonal?${queryString}` : `${API_BASE_URL}/recipes/seasonal`;
+
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch seasonal recipes');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching seasonal recipes:', error);
+            return { recipes: [], season: '', seasonKey: '' };
+        }
+    },
+
+    async getSeasonalRecommendations(limit = 6) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/recipes/seasonal/recommendations?limit=${limit}`);
+            if (!response.ok) throw new Error('Failed to fetch seasonal recommendations');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching seasonal recommendations:', error);
+            return { recommendations: [], season: '', seasonKey: '', topSeasonalIngredients: [] };
+        }
+    },
+
+    async checkIngredientsInSeason(ingredients, season = null) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/seasons/check`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ingredients, season })
+            });
+            if (!response.ok) throw new Error('Failed to check ingredients');
+            return await response.json();
+        } catch (error) {
+            console.error('Error checking ingredients:', error);
+            return { ingredients: [] };
+        }
     }
 };
 
@@ -1708,10 +1775,81 @@ const WeekPlannerView = {
     selectedDay: null,
     selectedMealType: null,
     mobileViewDay: 0, // Index of day to show on mobile (0-6)
+    seasonalRecommendations: null, // Cache for seasonal recommendations
+
+    async loadSeasonalRecommendations() {
+        if (!this.seasonalRecommendations) {
+            this.seasonalRecommendations = await StorageService.getSeasonalRecommendations(4);
+        }
+        return this.seasonalRecommendations;
+    },
+
+    getSeasonIcon(seasonKey) {
+        const icons = {
+            spring: '🌸',
+            summer: '☀️',
+            autumn: '🍂',
+            winter: '❄️'
+        };
+        return icons[seasonKey] || '🌿';
+    },
+
+    renderSeasonalRecommendations() {
+        if (!this.seasonalRecommendations || !this.seasonalRecommendations.recommendations || this.seasonalRecommendations.recommendations.length === 0) {
+            return '';
+        }
+
+        const { season, seasonKey, recommendations, topSeasonalIngredients } = this.seasonalRecommendations;
+        const seasonIcon = this.getSeasonIcon(seasonKey);
+
+        return `
+            <section class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xl">${seasonIcon}</span>
+                        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Saisonale Empfehlungen (${season})</h3>
+                    </div>
+                    <span class="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-2 py-1 rounded-full">
+                        ${topSeasonalIngredients.slice(0, 3).join(', ')}...
+                    </span>
+                </div>
+                <div class="flex gap-3 overflow-x-auto pb-1">
+                    ${recommendations.map(recipe => `
+                        <div class="seasonal-recipe-card flex-shrink-0 min-w-[180px] max-w-[200px] px-4 py-3 rounded-lg border border-green-200 dark:border-green-800 bg-white dark:bg-gray-800 text-left transition-colors hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer" data-recipe-id="${recipe.id}">
+                            <div class="flex items-start justify-between gap-2 mb-1">
+                                <span class="font-medium text-gray-800 dark:text-white text-sm line-clamp-2">${recipe.name}</span>
+                                ${recipe.is_favorite ? `
+                                    <svg class="w-4 h-4 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                                    </svg>
+                                ` : ''}
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">${recipe.category || 'Rezept'}</p>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+                                    ${recipe.seasonalScore}% saisonal
+                                </span>
+                            </div>
+                            ${recipe.seasonalIngredients && recipe.seasonalIngredients.length > 0 ? `
+                                <p class="text-xs text-green-600 dark:text-green-400 mt-2 line-clamp-1" title="${recipe.seasonalIngredients.join(', ')}">
+                                    ${seasonIcon} ${recipe.seasonalIngredients.slice(0, 2).join(', ')}${recipe.seasonalIngredients.length > 2 ? '...' : ''}
+                                </p>
+                            ` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </section>
+        `;
+    },
 
     render() {
         if (!AppState.weekPlan || !AppState.currentWeekStart) {
             return '<div class="text-gray-800 dark:text-gray-200">Lade Wochenplan...</div>';
+        }
+
+        // Load seasonal recommendations if not loaded
+        if (!this.seasonalRecommendations) {
+            this.loadSeasonalRecommendations().then(() => App.render());
         }
 
         const mealTypes = ['Frühstück', 'Mittagessen', 'Abendessen'];
@@ -1749,6 +1887,8 @@ const WeekPlannerView = {
                         </button>
                     </div>
                 </div>
+
+                ${this.renderSeasonalRecommendations()}
 
                 <!-- Week Navigation -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
@@ -1985,6 +2125,20 @@ const WeekPlannerView = {
     },
 
     attachEventListeners() {
+        // Seasonal recipe cards - click to open recipe detail
+        document.querySelectorAll('.seasonal-recipe-card').forEach(card => {
+            card.addEventListener('click', async () => {
+                const recipeId = card.dataset.recipeId;
+                // Switch to recipes view and open recipe detail
+                AppState.currentView = 'recipes';
+                App.render();
+                // Wait for render then open detail
+                setTimeout(async () => {
+                    await RecipeDatabaseView.viewRecipe(recipeId);
+                }, 100);
+            });
+        });
+
         // Week navigation buttons
         const prevWeekBtn = document.getElementById('prev-week-btn');
         if (prevWeekBtn) {
@@ -2405,6 +2559,9 @@ const RecipeDatabaseView = {
     tags: [],
     searchQuery: '',
     showFavoritesOnly: false,
+    showSeasonalOnly: false, // Filter for seasonal recipes
+    seasonalData: null, // Cache for seasonal recipe data
+    currentSeasonInfo: null, // Current season info
     selectedTags: [],
     categories: ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'],
     availableTags: ['vegetarisch', 'vegan', 'glutenfrei', 'laktosefrei', 'schnell', 'günstig', 'meal-prep', 'Frühling', 'Sommer', 'Herbst', 'Winter'],
@@ -2417,6 +2574,41 @@ const RecipeDatabaseView = {
 
     getFavoriteRecipes() {
         return AppState.recipes.filter(recipe => recipe.is_favorite);
+    },
+
+    async loadSeasonalData() {
+        if (!this.seasonalData) {
+            this.seasonalData = await StorageService.getSeasonalRecipes();
+        }
+        if (!this.currentSeasonInfo) {
+            this.currentSeasonInfo = await StorageService.getSeasonInfo();
+        }
+        return this.seasonalData;
+    },
+
+    getSeasonalRecipeIds() {
+        if (!this.seasonalData || !this.seasonalData.recipes) return new Set();
+        return new Set(this.seasonalData.recipes.map(r => r.id));
+    },
+
+    getSeasonalScoreForRecipe(recipeId) {
+        if (!this.seasonalData || !this.seasonalData.recipes) return 0;
+        const recipe = this.seasonalData.recipes.find(r => r.id === recipeId);
+        return recipe ? recipe.seasonalScore : 0;
+    },
+
+    getCurrentSeasonName() {
+        return this.currentSeasonInfo?.current?.name || 'Saison';
+    },
+
+    getSeasonIcon(seasonKey) {
+        const icons = {
+            spring: '🌸',
+            summer: '☀️',
+            autumn: '🍂',
+            winter: '❄️'
+        };
+        return icons[seasonKey] || '🌿';
     },
 
     renderFavoritesQuickAccess(favorites) {
@@ -2490,9 +2682,18 @@ const RecipeDatabaseView = {
         if (!this.cookingStats) {
             this.loadCookingStats().then(() => App.render());
         }
+        // Load seasonal data if not loaded
+        if (!this.seasonalData) {
+            this.loadSeasonalData().then(() => App.render());
+        }
         const favoriteRecipes = this.getFavoriteRecipes();
         const favoriteCount = favoriteRecipes.length;
         const filteredRecipes = this.filterRecipes();
+        const seasonalRecipeIds = this.getSeasonalRecipeIds();
+        const seasonalCount = seasonalRecipeIds.size;
+        const seasonName = this.getCurrentSeasonName();
+        const seasonKey = this.currentSeasonInfo?.current?.key || 'winter';
+        const seasonIcon = this.getSeasonIcon(seasonKey);
 
         return `
             <div class="space-y-4 sm:space-y-6">
@@ -2530,17 +2731,27 @@ const RecipeDatabaseView = {
                                 </button>
                             ` : ''}
                         </div>
-                        ${favoriteCount > 0 ? `
-                            <div class="flex flex-wrap items-center justify-between gap-2 mt-3 text-sm">
+                        <div class="flex flex-wrap items-center gap-2 mt-3 text-sm">
+                            ${favoriteCount > 0 ? `
                                 <button id="favorites-filter-btn" class="favorites-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showFavoritesOnly ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-600 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}" aria-pressed="${this.showFavoritesOnly}">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
                                     </svg>
-                                    ${this.showFavoritesOnly ? 'Alle Rezepte anzeigen' : 'Nur Favoriten anzeigen'}
+                                    <span class="hidden sm:inline">${this.showFavoritesOnly ? 'Alle' : 'Favoriten'}</span>
+                                    <span class="sm:hidden">${favoriteCount}</span>
                                 </button>
-                                <span class="text-gray-500 dark:text-gray-400">${favoriteCount} Favorit${favoriteCount !== 1 ? 'en' : ''}</span>
-                            </div>
-                        ` : ''}
+                            ` : ''}
+                            ${seasonalCount > 0 ? `
+                                <button id="seasonal-filter-btn" class="seasonal-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showSeasonalOnly ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-600 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}" aria-pressed="${this.showSeasonalOnly}" title="Rezepte mit saisonalen Zutaten (${seasonName})">
+                                    <span class="text-base">${seasonIcon}</span>
+                                    <span class="hidden sm:inline">${this.showSeasonalOnly ? 'Alle' : seasonName}</span>
+                                    <span class="sm:hidden">${seasonalCount}</span>
+                                </button>
+                            ` : ''}
+                            <span class="ml-auto text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
+                                ${filteredRecipes.length} von ${AppState.recipes.length} Rezepte
+                            </span>
+                        </div>
                         ${this.searchQuery ? `
                             <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
                                 ${filteredRecipes.length} von ${AppState.recipes.length} Rezept${filteredRecipes.length !== 1 ? 'en' : ''} gefunden
@@ -2969,6 +3180,16 @@ const RecipeDatabaseView = {
             });
         }
 
+        // Seasonal filter button
+        const seasonalFilterBtn = document.getElementById('seasonal-filter-btn');
+        if (seasonalFilterBtn) {
+            seasonalFilterBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showSeasonalOnly = !this.showSeasonalOnly;
+                App.render();
+            });
+        }
+
         // New recipe button
         const newBtn = document.getElementById('new-recipe-btn');
         if (newBtn) {
@@ -3120,6 +3341,12 @@ const RecipeDatabaseView = {
 
         if (this.showFavoritesOnly) {
             recipes = recipes.filter(recipe => recipe.is_favorite);
+        }
+
+        // Filter by seasonal recipes
+        if (this.showSeasonalOnly) {
+            const seasonalIds = this.getSeasonalRecipeIds();
+            recipes = recipes.filter(recipe => seasonalIds.has(recipe.id));
         }
 
         if (!this.searchQuery.trim()) {
