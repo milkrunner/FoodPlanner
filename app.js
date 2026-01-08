@@ -976,6 +976,54 @@ const StorageService = {
             console.error('Error checking ingredients:', error);
             return { ingredients: [] };
         }
+    },
+
+    // AI Recipe Analysis & Variants
+    async analyzeRecipe(recipe) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/analyze-recipe`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ recipe })
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to analyze recipe');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error analyzing recipe:', error);
+            throw error;
+        }
+    },
+
+    async generateRecipeVariant(recipe, variantType) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/generate-variant`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ recipe, variantType })
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to generate variant');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error generating recipe variant:', error);
+            throw error;
+        }
+    },
+
+    async getVariantTypes() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/variant-types`);
+            if (!response.ok) throw new Error('Failed to get variant types');
+            return await response.json();
+        } catch (error) {
+            console.error('Error getting variant types:', error);
+            return { variantTypes: [] };
+        }
     }
 };
 
@@ -2571,6 +2619,14 @@ const RecipeDatabaseView = {
     isScaling: false,
     categoryCache: new Map(), // Local cache for ingredient categories
     cookingStats: null, // Cache for cooking statistics
+    // AI Analysis & Variants
+    analysisData: null, // Current analysis results
+    isAnalyzing: false,
+    variantData: null, // Current variant results
+    isGeneratingVariant: false,
+    showAnalysisModal: false,
+    showVariantModal: false,
+    variantTypes: null, // Cached variant types
 
     getFavoriteRecipes() {
         return AppState.recipes.filter(recipe => recipe.is_favorite);
@@ -2850,6 +2906,8 @@ const RecipeDatabaseView = {
                 ${this.renderRecipeDetail()}
                 ${this.renderRecipeForm()}
                 ${this.renderPortionScalingModal()}
+                ${this.renderAnalysisModal()}
+                ${this.renderVariantModal()}
             </div>
         `;
     },
@@ -3018,6 +3076,34 @@ const RecipeDatabaseView = {
                                 </h3>
                                 <div class="prose prose-sm dark:prose-invert max-w-none recipe-instructions">
                                     ${renderMarkdown(recipe.instructions)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AI Assistant -->
+                        <div class="mt-6">
+                            <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl p-4 sm:p-5">
+                                <div class="flex items-start gap-3">
+                                    <span class="text-2xl">🤖</span>
+                                    <div class="flex-1 space-y-3">
+                                        <div>
+                                            <h4 class="font-semibold text-gray-800 dark:text-white">KI-Assistent</h4>
+                                            <p class="text-sm text-gray-600 dark:text-gray-400">Erhalte Verbesserungsvorschläge oder erstelle direkt eine Variante dieses Rezepts.</p>
+                                        </div>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button id="analyze-recipe-btn"
+                                                    class="px-4 py-2 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                                                    data-recipe-id="${recipe.id}" ${this.isAnalyzing ? 'disabled' : ''}>
+                                                ${this.isAnalyzing ? 'Analysiere...' : 'Analysieren'}
+                                            </button>
+                                            <button id="open-variant-modal-btn"
+                                                    class="px-4 py-2 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-400 transition-colors disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                                                    data-recipe-id="${recipe.id}" ${this.isGeneratingVariant ? 'disabled' : ''}>
+                                                ${this.isGeneratingVariant ? 'Erstelle...' : 'Variante erstellen'}
+                                            </button>
+                                        </div>
+                                        ${!this.variantTypes ? '<p class="text-xs text-indigo-600 dark:text-indigo-300">Tipp: Wähle im nächsten Schritt zwischen vegetarisch, vegan, Low-Carb und weiteren Varianten.</p>' : ''}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -3251,6 +3337,24 @@ const RecipeDatabaseView = {
             });
         }
 
+        const analyzeBtn = document.getElementById('analyze-recipe-btn');
+        if (analyzeBtn) {
+            analyzeBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const recipeId = e.currentTarget.dataset.recipeId;
+                await this.analyzeRecipe(recipeId);
+            });
+        }
+
+        const openVariantBtn = document.getElementById('open-variant-modal-btn');
+        if (openVariantBtn) {
+            openVariantBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const recipeId = e.currentTarget.dataset.recipeId;
+                await this.showVariantSelector(recipeId);
+            });
+        }
+
         // Delete recipe buttons
         document.querySelectorAll('.delete-recipe-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -3332,6 +3436,69 @@ const RecipeDatabaseView = {
                 await this.saveRecipe();
             });
         }
+
+        const analysisBackdrop = document.getElementById('analysis-modal-backdrop');
+        if (analysisBackdrop) {
+            analysisBackdrop.addEventListener('click', (e) => {
+                if (e.target === analysisBackdrop) {
+                    this.hideAnalysisModal();
+                }
+            });
+        }
+
+        const closeAnalysisModalBtn = document.getElementById('close-analysis-modal');
+        if (closeAnalysisModalBtn) {
+            closeAnalysisModalBtn.addEventListener('click', () => this.hideAnalysisModal());
+        }
+
+        const closeAnalysisBtn = document.getElementById('close-analysis-btn');
+        if (closeAnalysisBtn) {
+            closeAnalysisBtn.addEventListener('click', () => this.hideAnalysisModal());
+        }
+
+        const variantBackdrop = document.getElementById('variant-modal-backdrop');
+        if (variantBackdrop) {
+            variantBackdrop.addEventListener('click', (e) => {
+                if (e.target === variantBackdrop) {
+                    this.hideVariantModal();
+                }
+            });
+        }
+
+        const closeVariantModalBtn = document.getElementById('close-variant-modal');
+        if (closeVariantModalBtn) {
+            closeVariantModalBtn.addEventListener('click', () => this.hideVariantModal());
+        }
+
+        const closeVariantBtn = document.getElementById('close-variant-btn');
+        if (closeVariantBtn) {
+            closeVariantBtn.addEventListener('click', () => this.hideVariantModal());
+        }
+
+        const backToVariantsBtn = document.getElementById('back-to-variants-btn');
+        if (backToVariantsBtn) {
+            backToVariantsBtn.addEventListener('click', () => {
+                this.variantData = null;
+                this.isGeneratingVariant = false;
+                App.render();
+            });
+        }
+
+        const saveVariantBtn = document.getElementById('save-variant-btn');
+        if (saveVariantBtn) {
+            saveVariantBtn.addEventListener('click', async () => {
+                await this.saveVariantAsNewRecipe();
+            });
+        }
+
+        document.querySelectorAll('.variant-type-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (this.isGeneratingVariant) return;
+                const variantType = e.currentTarget.dataset.variantType;
+                await this.generateVariant(variantType);
+            });
+        });
 
         this.renderIngredients();
     },
@@ -3777,6 +3944,336 @@ const RecipeDatabaseView = {
             Toast.error('Fehler beim Markieren als gekocht');
             console.error(error);
         }
+    },
+
+    // ========== AI RECIPE ANALYSIS & VARIANTS ==========
+
+    async loadVariantTypes() {
+        if (!this.variantTypes) {
+            const result = await StorageService.getVariantTypes();
+            this.variantTypes = result.variantTypes || [];
+        }
+        return this.variantTypes;
+    },
+
+    async analyzeRecipe(recipeId) {
+        const recipe = await StorageService.getRecipeById(recipeId);
+        if (!recipe) {
+            Toast.error('Rezept nicht gefunden');
+            return;
+        }
+
+        this.isAnalyzing = true;
+        this.analysisData = null;
+        this.showAnalysisModal = true;
+        App.render();
+
+        try {
+            const analysis = await StorageService.analyzeRecipe(recipe);
+            this.analysisData = analysis;
+            this.isAnalyzing = false;
+            App.render();
+        } catch (error) {
+            this.isAnalyzing = false;
+            this.showAnalysisModal = false;
+            Toast.error('Fehler bei der Rezeptanalyse: ' + error.message);
+            App.render();
+        }
+    },
+
+    hideAnalysisModal() {
+        this.showAnalysisModal = false;
+        this.analysisData = null;
+        this.isAnalyzing = false;
+        App.render();
+    },
+
+    async showVariantSelector(recipeId) {
+        await this.loadVariantTypes();
+        const recipe = await StorageService.getRecipeById(recipeId);
+        if (!recipe) {
+            Toast.error('Rezept nicht gefunden');
+            return;
+        }
+
+        this.viewingRecipe = recipe;
+        this.showVariantModal = true;
+        this.variantData = null;
+        App.render();
+    },
+
+    async generateVariant(variantType) {
+        if (!this.viewingRecipe) return;
+
+        this.isGeneratingVariant = true;
+        this.variantData = null;
+        App.render();
+
+        try {
+            const variant = await StorageService.generateRecipeVariant(this.viewingRecipe, variantType);
+            this.variantData = variant;
+            this.isGeneratingVariant = false;
+            App.render();
+        } catch (error) {
+            this.isGeneratingVariant = false;
+            Toast.error('Fehler bei der Varianten-Generierung: ' + error.message);
+            App.render();
+        }
+    },
+
+    hideVariantModal() {
+        this.showVariantModal = false;
+        this.variantData = null;
+        this.isGeneratingVariant = false;
+        App.render();
+    },
+
+    async saveVariantAsNewRecipe() {
+        if (!this.variantData) return;
+
+        try {
+            // Clean up ingredients (remove isNew and replaces fields)
+            const cleanIngredients = this.variantData.ingredients.map(ing => ({
+                name: ing.name,
+                amount: ing.amount,
+                unit: ing.unit,
+                category: ing.category
+            }));
+
+            const newRecipe = {
+                id: `variant-${Date.now()}`,
+                name: this.variantData.variantName,
+                category: this.variantData.category,
+                servings: this.variantData.servings,
+                instructions: this.variantData.instructions,
+                ingredients: cleanIngredients,
+                tags: [this.variantData.variantType],
+                is_favorite: false
+            };
+
+            await StorageService.addRecipe(newRecipe);
+            await AppState.reloadData();
+            Toast.success(`Variante "${newRecipe.name}" gespeichert!`);
+            this.hideVariantModal();
+            App.render();
+        } catch (error) {
+            Toast.error('Fehler beim Speichern: ' + error.message);
+        }
+    },
+
+    getAnalysisIcon(iconType) {
+        const icons = {
+            taste: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>`,
+            health: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>`,
+            time: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
+            chef: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>`
+        };
+        return icons[iconType] || icons.chef;
+    },
+
+    renderAnalysisModal() {
+        if (!this.showAnalysisModal) return '';
+
+        const loadingContent = `
+            <div class="flex flex-col items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
+                <p class="text-gray-600 dark:text-gray-400">Analysiere Rezept mit KI...</p>
+                <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Dies kann einige Sekunden dauern</p>
+            </div>
+        `;
+
+        const analysisContent = this.analysisData ? `
+            <div class="space-y-4">
+                <!-- Overall Rating -->
+                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg p-4">
+                    <h4 class="font-medium text-gray-800 dark:text-white mb-3">Gesamtbewertung</h4>
+                    <div class="grid grid-cols-3 gap-4 mb-3">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">${this.analysisData.overallRating?.taste || '-'}/5</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Geschmack</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600 dark:text-green-400">${this.analysisData.overallRating?.health || '-'}/5</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Gesundheit</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-orange-600 dark:text-orange-400">${this.analysisData.overallRating?.difficulty || '-'}/5</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Schwierigkeit</div>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">${this.analysisData.overallRating?.comment || ''}</p>
+                </div>
+
+                <!-- Suggestions -->
+                <div class="space-y-3">
+                    ${(this.analysisData.suggestions || []).map(suggestion => `
+                        <div class="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                                    suggestion.icon === 'taste' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' :
+                                    suggestion.icon === 'health' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
+                                    suggestion.icon === 'time' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
+                                    'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+                                }">
+                                    ${this.getAnalysisIcon(suggestion.icon)}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-xs font-medium px-2 py-0.5 rounded-full ${
+                                            suggestion.icon === 'taste' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300' :
+                                            suggestion.icon === 'health' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
+                                            suggestion.icon === 'time' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                                            'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                        }">${suggestion.category}</span>
+                                        ${suggestion.impact === 'high' ? '<span class="text-xs text-green-600 dark:text-green-400 font-medium">Hoher Einfluss</span>' : ''}
+                                    </div>
+                                    <h5 class="font-medium text-gray-800 dark:text-white">${suggestion.title}</h5>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${suggestion.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        ` : '';
+
+        return `
+            <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" id="analysis-modal-backdrop">
+                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+                    <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 flex-shrink-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🤖</span>
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">KI-Rezeptanalyse</h3>
+                        </div>
+                        <button id="close-analysis-modal" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4">
+                        ${this.isAnalyzing ? loadingContent : analysisContent}
+                    </div>
+                    <div class="p-4 border-t dark:border-gray-700 flex-shrink-0">
+                        <button id="close-analysis-btn" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                            Schließen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderVariantModal() {
+        if (!this.showVariantModal) return '';
+
+        const variantTypesHtml = (this.variantTypes || []).map(vt => `
+            <button class="variant-type-btn flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${this.isGeneratingVariant ? 'opacity-50 cursor-not-allowed' : ''}" data-variant-type="${vt.id}" ${this.isGeneratingVariant ? 'disabled' : ''}>
+                <span class="text-2xl">${vt.icon}</span>
+                <div class="text-left">
+                    <div class="font-medium text-gray-800 dark:text-white">${vt.name}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">${vt.description}</div>
+                </div>
+            </button>
+        `).join('');
+        const hasVariantTypes = Array.isArray(this.variantTypes) && this.variantTypes.length > 0;
+        const variantSelectionHtml = `
+            <div class="space-y-3">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Wähle eine Variante, die du von diesem Rezept erstellen möchtest:</p>
+                ${hasVariantTypes ? variantTypesHtml : '<div class="p-4 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-400">Keine Varianten verfügbar. Bitte prüfe deine KI-Konfiguration oder versuche es später erneut.</div>'}
+            </div>
+        `;
+
+        const loadingContent = `
+            <div class="flex flex-col items-center justify-center py-8">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
+                <p class="text-gray-600 dark:text-gray-400">Generiere Variante mit KI...</p>
+                <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Dies kann einige Sekunden dauern</p>
+            </div>
+        `;
+
+        const variantResultHtml = this.variantData ? `
+            <div class="space-y-4">
+                <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-xl">${(this.variantTypes || []).find(v => v.id === this.variantData.variantType)?.icon || '🍽️'}</span>
+                        <h4 class="font-semibold text-gray-800 dark:text-white">${this.variantData.variantName}</h4>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">${this.variantData.nutritionNote || ''}</p>
+                    <div class="flex gap-4 mt-3 text-sm">
+                        <span class="text-gray-500 dark:text-gray-400">${this.variantData.servings} Portionen</span>
+                        <span class="text-gray-500 dark:text-gray-400">${this.variantData.prepTime || ''}</span>
+                        <span class="text-gray-500 dark:text-gray-400">${this.variantData.difficulty || ''}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <h5 class="font-medium text-gray-800 dark:text-white mb-2">Wichtigste Änderungen:</h5>
+                    <ul class="space-y-1">
+                        ${(this.variantData.changes || []).map(change => `
+                            <li class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <span class="text-green-500 mt-0.5">✓</span>
+                                ${change}
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="font-medium text-gray-800 dark:text-white mb-2">Zutaten (${this.variantData.ingredients?.length || 0}):</h5>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                        ${(this.variantData.ingredients || []).map(ing => `
+                            <div class="flex items-center gap-2 text-sm ${ing.isNew ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}">
+                                ${ing.isNew ? '<span class="text-xs bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">Neu</span>' : ''}
+                                <span>${ing.amount || ''} ${ing.unit || ''} ${ing.name}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <button id="save-variant-btn" class="w-full px-4 py-3 bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Als neues Rezept speichern
+                </button>
+            </div>
+        ` : '';
+
+        return `
+            <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" id="variant-modal-backdrop">
+                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+                    <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 flex-shrink-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🔄</span>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Rezept-Variante erstellen</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">${this.viewingRecipe?.name || ''}</p>
+                            </div>
+                        </div>
+                        <button id="close-variant-modal" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-4">
+                        ${this.isGeneratingVariant ? loadingContent : (this.variantData ? variantResultHtml : variantSelectionHtml)}
+                    </div>
+                    <div class="p-4 border-t dark:border-gray-700 flex-shrink-0">
+                        ${this.variantData ? `
+                            <button id="back-to-variants-btn" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                Andere Variante wählen
+                            </button>
+                        ` : `
+                            <button id="close-variant-btn" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                Abbrechen
+                            </button>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
     },
 
     async saveRecipe() {

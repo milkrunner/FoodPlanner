@@ -1881,6 +1881,236 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
     }
 });
 
+// ========== AI RECIPE IMPROVEMENT & VARIANTS ==========
+
+// AI-based recipe analysis and improvement suggestions
+app.post('/ai/analyze-recipe', aiLimiter, async (req, res) => {
+    if (!genAI) {
+        return res.status(503).json({
+            error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
+        });
+    }
+
+    try {
+        const { recipe } = req.body;
+
+        if (!recipe || !recipe.name) {
+            return res.status(400).json({ error: 'Recipe with name is required' });
+        }
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const ingredientsList = recipe.ingredients && recipe.ingredients.length > 0
+            ? recipe.ingredients.map(i => `- ${i.amount || ''} ${i.unit || ''} ${i.name}`.trim()).join('\n')
+            : 'Keine Zutaten angegeben';
+
+        const prompt = `Du bist ein erfahrener Koch und Ernährungsexperte. Analysiere das folgende Rezept und gib konkrete Verbesserungsvorschläge.
+
+REZEPT:
+Name: ${recipe.name}
+Kategorie: ${recipe.category || 'Nicht angegeben'}
+Portionen: ${recipe.servings || 'Nicht angegeben'}
+
+Zutaten:
+${ingredientsList}
+
+Zubereitung:
+${recipe.instructions || 'Keine Zubereitungsanleitung angegeben'}
+
+Gib mir genau 4 Verbesserungsvorschläge in den folgenden Kategorien:
+1. GESCHMACK: Wie kann der Geschmack verbessert oder intensiviert werden?
+2. GESUNDHEIT: Welche gesünderen Alternativen oder Ergänzungen gibt es?
+3. ZEITERSPARNIS: Tipps zur schnelleren oder effizienteren Zubereitung
+4. PROFI-TIPP: Ein Küchen-Hack oder Geheimtipp von Profiköchen
+
+WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zusätzlichen Text:
+
+{
+  "recipeName": "${recipe.name}",
+  "suggestions": [
+    {
+      "category": "Geschmack",
+      "icon": "taste",
+      "title": "Kurzer Titel",
+      "description": "Detaillierte Beschreibung des Vorschlags (2-3 Sätze)",
+      "impact": "high|medium|low"
+    },
+    {
+      "category": "Gesundheit",
+      "icon": "health",
+      "title": "Kurzer Titel",
+      "description": "Detaillierte Beschreibung",
+      "impact": "high|medium|low"
+    },
+    {
+      "category": "Zeitersparnis",
+      "icon": "time",
+      "title": "Kurzer Titel",
+      "description": "Detaillierte Beschreibung",
+      "impact": "high|medium|low"
+    },
+    {
+      "category": "Profi-Tipp",
+      "icon": "chef",
+      "title": "Kurzer Titel",
+      "description": "Detaillierte Beschreibung",
+      "impact": "high|medium|low"
+    }
+  ],
+  "overallRating": {
+    "taste": 1-5,
+    "health": 1-5,
+    "difficulty": 1-5,
+    "comment": "Kurze Gesamtbewertung des Rezepts"
+  }
+}`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        // Extract JSON from response
+        let jsonText = text.trim();
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
+        }
+
+        const analysis = JSON.parse(jsonText);
+
+        logger.info('Recipe analysis completed', { recipeName: recipe.name, requestId: req.requestId, component: 'ai' });
+        res.json(analysis);
+    } catch (error) {
+        logger.error('AI recipe analysis error', { error: error.message, requestId: req.requestId, component: 'ai' });
+        res.status(500).json({
+            error: 'Failed to analyze recipe',
+            details: error.message
+        });
+    }
+});
+
+// AI-based recipe variant generation
+app.post('/ai/generate-variant', aiLimiter, async (req, res) => {
+    if (!genAI) {
+        return res.status(503).json({
+            error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
+        });
+    }
+
+    try {
+        const { recipe, variantType } = req.body;
+
+        if (!recipe || !recipe.name) {
+            return res.status(400).json({ error: 'Recipe with name is required' });
+        }
+
+        const validVariantTypes = ['vegetarisch', 'vegan', 'low-carb', 'glutenfrei', 'laktosefrei', 'schnell', 'kalorienarm'];
+        if (!variantType || !validVariantTypes.includes(variantType)) {
+            return res.status(400).json({
+                error: `Invalid variant type. Valid types: ${validVariantTypes.join(', ')}`
+            });
+        }
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const ingredientsList = recipe.ingredients && recipe.ingredients.length > 0
+            ? recipe.ingredients.map(i => `- ${i.amount || ''} ${i.unit || ''} ${i.name} (${i.category || 'Sonstiges'})`.trim()).join('\n')
+            : 'Keine Zutaten angegeben';
+
+        const variantDescriptions = {
+            'vegetarisch': 'eine vegetarische Version (ohne Fleisch und Fisch, aber mit Milchprodukten und Eiern)',
+            'vegan': 'eine vegane Version (komplett ohne tierische Produkte)',
+            'low-carb': 'eine Low-Carb Version (wenig Kohlenhydrate, max 20g pro Portion)',
+            'glutenfrei': 'eine glutenfreie Version (ohne Weizen, Roggen, Gerste, Dinkel)',
+            'laktosefrei': 'eine laktosefreie Version (ohne Milchprodukte oder mit laktosefreien Alternativen)',
+            'schnell': 'eine schnelle Version (Zubereitungszeit unter 30 Minuten)',
+            'kalorienarm': 'eine kalorienarme Version (reduzierte Kalorien durch leichtere Zutaten)'
+        };
+
+        const prompt = `Du bist ein erfahrener Koch und Ernährungsexperte. Erstelle ${variantDescriptions[variantType]} des folgenden Rezepts.
+
+ORIGINAL-REZEPT:
+Name: ${recipe.name}
+Kategorie: ${recipe.category || 'Nicht angegeben'}
+Portionen: ${recipe.servings || 4}
+
+Zutaten:
+${ingredientsList}
+
+Zubereitung:
+${recipe.instructions || 'Keine Zubereitungsanleitung angegeben'}
+
+Erstelle eine vollständige ${variantType} Variante dieses Rezepts. Die Variante soll:
+- Den Charakter und Geschmack des Originals möglichst beibehalten
+- Alle notwendigen Substitutionen enthalten
+- Angepasste Zubereitungsanweisungen haben
+- Realistisch und lecker sein
+
+WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zusätzlichen Text:
+
+{
+  "originalName": "${recipe.name}",
+  "variantType": "${variantType}",
+  "variantName": "Neuer Name für die Variante",
+  "category": "${recipe.category || 'Hauptgericht'}",
+  "servings": ${recipe.servings || 4},
+  "changes": [
+    "Beschreibung der wichtigsten Änderung 1",
+    "Beschreibung der wichtigsten Änderung 2"
+  ],
+  "ingredients": [
+    {
+      "name": "Zutatname",
+      "amount": "Menge als String",
+      "unit": "Einheit",
+      "category": "Obst & Gemüse|Milchprodukte|Fleisch & Fisch|Trockenwaren|Tiefkühl|Sonstiges",
+      "isNew": true,
+      "replaces": "Name der ersetzten Zutat oder null"
+    }
+  ],
+  "instructions": "Vollständige Zubereitungsanleitung im Markdown-Format mit Schritt 1:, Schritt 2:, etc.",
+  "nutritionNote": "Kurzer Hinweis zu den ernährungsphysiologischen Vorteilen dieser Variante",
+  "difficulty": "einfach|mittel|anspruchsvoll",
+  "prepTime": "Geschätzte Zubereitungszeit"
+}`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        // Extract JSON from response
+        let jsonText = text.trim();
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
+        }
+
+        const variant = JSON.parse(jsonText);
+
+        logger.info('Recipe variant generated', { recipeName: recipe.name, variantType, requestId: req.requestId, component: 'ai' });
+        res.json(variant);
+    } catch (error) {
+        logger.error('AI variant generation error', { error: error.message, requestId: req.requestId, component: 'ai' });
+        res.status(500).json({
+            error: 'Failed to generate recipe variant',
+            details: error.message
+        });
+    }
+});
+
+// Get available variant types
+app.get('/ai/variant-types', (req, res) => {
+    res.json({
+        variantTypes: [
+            { id: 'vegetarisch', name: 'Vegetarisch', icon: '🥬', description: 'Ohne Fleisch und Fisch' },
+            { id: 'vegan', name: 'Vegan', icon: '🌱', description: 'Ohne tierische Produkte' },
+            { id: 'low-carb', name: 'Low-Carb', icon: '🥩', description: 'Wenig Kohlenhydrate' },
+            { id: 'glutenfrei', name: 'Glutenfrei', icon: '🌾', description: 'Ohne Gluten' },
+            { id: 'laktosefrei', name: 'Laktosefrei', icon: '🥛', description: 'Ohne Laktose' },
+            { id: 'schnell', name: 'Schnelle Version', icon: '⚡', description: 'Unter 30 Minuten' },
+            { id: 'kalorienarm', name: 'Kalorienarm', icon: '🪶', description: 'Reduzierte Kalorien' }
+        ]
+    });
+});
+
 // Allowlist of trusted recipe domains to prevent SSRF attacks
 const ALLOWED_RECIPE_DOMAINS = [
     'chefkoch.de',
