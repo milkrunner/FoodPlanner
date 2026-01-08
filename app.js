@@ -1921,6 +1921,16 @@ const WeekPlannerView = {
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                     <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Wochenplan</h2>
                     <div class="flex gap-2 flex-wrap">
+                        <button id="ai-generate-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-purple-500 dark:bg-purple-600 text-white rounded hover:bg-purple-600 dark:hover:bg-purple-700 transition-colors text-sm sm:text-base flex items-center justify-center gap-2" ${this.aiGenerating ? 'disabled' : ''}>
+                            <svg class="w-4 h-4 ${this.aiGenerating ? 'animate-spin' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                ${this.aiGenerating
+                                    ? '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>'
+                                    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>'
+                                }
+                            </svg>
+                            <span class="hidden sm:inline">${this.aiGenerating ? 'Generiere...' : 'KI-Vorschläge'}</span>
+                            <span class="sm:hidden">${this.aiGenerating ? '...' : 'KI'}</span>
+                        </button>
                         <button id="save-template-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors text-sm sm:text-base">
                             <span class="hidden sm:inline">Als Vorlage speichern</span>
                             <span class="sm:hidden">Speichern</span>
@@ -2011,6 +2021,7 @@ const WeekPlannerView = {
                 ${this.renderRecipeSelector()}
                 ${this.renderSaveTemplateModal()}
                 ${this.renderLoadTemplateModal()}
+                ${this.renderAIGenerateModal()}
             </div>
         `;
     },
@@ -2050,6 +2061,8 @@ const WeekPlannerView = {
                                 </div>
                                 ${meal ? `
                                     <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
+                                        <p class="text-sm text-gray-800 dark:text-gray-200 font-medium ${meal.recipeId ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline open-recipe-btn' : ''}"
+                                           ${meal.recipeId ? `data-recipe-id="${meal.recipeId}"` : ''}>${meal.recipeName}</p>
                                         <p class="text-sm text-gray-800 dark:text-gray-200 font-medium ${meal.recipeId ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline open-recipe-btn' : ''}"
                                            ${meal.recipeId ? `data-recipe-id="${meal.recipeId}"` : ''}>${meal.recipeName}</p>
                                         <button class="mark-cooked-btn mt-3 w-full py-2.5 text-sm bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center justify-center gap-2 active:scale-98"
@@ -2166,6 +2179,90 @@ const WeekPlannerView = {
                                 `).join('')}
                             </div>
                         `}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderAIGenerateModal() {
+        return `
+            <div id="ai-generate-modal" class="modal">
+                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                            <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            KI-Wochenplan generieren
+                        </h3>
+                        <button id="close-ai-generate" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                            ✕
+                        </button>
+                    </div>
+
+                    ${this.aiError ? `
+                        <div class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                            <p class="text-red-700 dark:text-red-300 text-sm">${this.aiError}</p>
+                        </div>
+                    ` : ''}
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Für welche Mahlzeiten soll die KI Vorschläge erstellen?
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 p-3 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <input type="checkbox" id="ai-meal-breakfast" value="Frühstück" class="w-5 h-5 text-purple-500 rounded focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="text-gray-800 dark:text-gray-200">Frühstück</span>
+                                    <span class="text-gray-500 dark:text-gray-400 text-sm ml-auto">Schnelle, einfache Gerichte</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <input type="checkbox" id="ai-meal-lunch" value="Mittagessen" class="w-5 h-5 text-purple-500 rounded focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="text-gray-800 dark:text-gray-200">Mittagessen</span>
+                                    <span class="text-gray-500 dark:text-gray-400 text-sm ml-auto">Meal-Prep geeignet</span>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <input type="checkbox" id="ai-meal-dinner" value="Abendessen" checked class="w-5 h-5 text-purple-500 rounded focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600">
+                                    <span class="text-gray-800 dark:text-gray-200">Abendessen</span>
+                                    <span class="text-gray-500 dark:text-gray-400 text-sm ml-auto">Hauptmahlzeit des Tages</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Ernährungspräferenzen (optional)
+                            </label>
+                            <select id="ai-dietary-preference" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                                <option value="">Keine Einschränkungen</option>
+                                <option value="vegetarisch">Vegetarisch</option>
+                                <option value="vegan">Vegan</option>
+                                <option value="low-carb">Low Carb</option>
+                                <option value="glutenfrei">Glutenfrei</option>
+                                <option value="laktosefrei">Laktosefrei</option>
+                            </select>
+                        </div>
+
+                        <div class="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+                            <p class="text-sm text-purple-700 dark:text-purple-300">
+                                <strong>Hinweis:</strong> Die KI erstellt Vorschläge für die gesamte angezeigte Woche.
+                                Bestehende Mahlzeiten werden überschrieben.
+                            </p>
+                        </div>
+
+                        <div class="flex gap-2 justify-end pt-2">
+                            <button id="cancel-ai-generate" class="px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                Abbrechen
+                            </button>
+                            <button id="confirm-ai-generate" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                Generieren
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2369,6 +2466,28 @@ const WeekPlannerView = {
         const closeLoadTemplate = document.getElementById('close-load-template');
         if (closeLoadTemplate) {
             closeLoadTemplate.addEventListener('click', () => this.hideLoadTemplateModal());
+        }
+
+        // AI Generate button
+        const aiGenerateBtn = document.getElementById('ai-generate-btn');
+        if (aiGenerateBtn) {
+            aiGenerateBtn.addEventListener('click', () => this.showAIGenerateModal());
+        }
+
+        // AI Generate modal events
+        const closeAIGenerate = document.getElementById('close-ai-generate');
+        if (closeAIGenerate) {
+            closeAIGenerate.addEventListener('click', () => this.hideAIGenerateModal());
+        }
+
+        const cancelAIGenerate = document.getElementById('cancel-ai-generate');
+        if (cancelAIGenerate) {
+            cancelAIGenerate.addEventListener('click', () => this.hideAIGenerateModal());
+        }
+
+        const confirmAIGenerate = document.getElementById('confirm-ai-generate');
+        if (confirmAIGenerate) {
+            confirmAIGenerate.addEventListener('click', () => this.generateAIWeekPlan());
         }
     },
 
@@ -2596,6 +2715,142 @@ const WeekPlannerView = {
             Toast.error('Fehler beim Löschen der Vorlage');
             console.error(error);
         }
+    },
+
+    // AI Generation Methods
+    showAIGenerateModal() {
+        this.aiError = null;
+        const modal = document.getElementById('ai-generate-modal');
+        if (modal) modal.classList.add('active');
+    },
+
+    hideAIGenerateModal() {
+        const modal = document.getElementById('ai-generate-modal');
+        if (modal) modal.classList.remove('active');
+    },
+
+    async generateAIWeekPlan() {
+        // Get selected meal types
+        const mealTypes = [];
+        if (document.getElementById('ai-meal-breakfast')?.checked) mealTypes.push('Frühstück');
+        if (document.getElementById('ai-meal-lunch')?.checked) mealTypes.push('Mittagessen');
+        if (document.getElementById('ai-meal-dinner')?.checked) mealTypes.push('Abendessen');
+
+        if (mealTypes.length === 0) {
+            Toast.error('Bitte wähle mindestens eine Mahlzeit aus');
+            return;
+        }
+
+        // Get dietary preference
+        const dietary = document.getElementById('ai-dietary-preference')?.value || '';
+
+        // Confirm overwrite
+        const hasMeals = AppState.weekPlan.days.some(day =>
+            mealTypes.some(mealType => day.meals[mealType])
+        );
+
+        if (hasMeals) {
+            if (!confirm('Bestehende Mahlzeiten für die ausgewählten Typen werden überschrieben. Fortfahren?')) {
+                return;
+            }
+        }
+
+        // Save current plan for undo
+        const oldWeekPlan = JSON.parse(JSON.stringify(AppState.weekPlan));
+
+        // Hide modal and show loading state
+        this.hideAIGenerateModal();
+        this.aiGenerating = true;
+        this.aiError = null;
+        App.render();
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/generate-weekplan`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mealTypes,
+                    days: 7,
+                    preferences: dietary ? { dietary } : {}
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (!data.success || !data.weekPlan) {
+                throw new Error('Ungültige Antwort vom Server');
+            }
+
+            // Map AI response to week plan structure
+            const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+
+            AppState.weekPlan.days.forEach((day, index) => {
+                const aiDay = data.weekPlan[dayNames[index]];
+                if (!aiDay) return;
+
+                mealTypes.forEach(mealType => {
+                    const aiMeal = aiDay[mealType];
+                    if (aiMeal && aiMeal.name) {
+                        day.meals[mealType] = {
+                            id: aiMeal.recipeId || `ai-${Date.now()}-${index}-${mealType}`,
+                            recipeId: aiMeal.recipeId || null, // Use real recipe ID from backend
+                            recipeName: aiMeal.name,
+                            mealType: mealType,
+                            aiGenerated: true,
+                            description: aiMeal.description || '',
+                            category: aiMeal.category || ''
+                        };
+                    }
+                });
+            });
+
+            // Reload recipes to include newly created AI recipes
+            AppState.recipes = await StorageService.getRecipes({ all: true });
+
+            // Save the updated week plan
+            await StorageService.saveWeekPlan(AppState.weekPlan);
+            const weekId = DateUtils.getWeekId(AppState.currentWeekStart);
+            AppState.weekPlansCache[weekId] = AppState.weekPlan;
+
+            this.aiGenerating = false;
+            App.render();
+
+            // Show success with tips
+            let successMessage = 'KI-Wochenplan erstellt!';
+            if (data.shoppingTips && data.shoppingTips.length > 0) {
+                successMessage += ` Tipp: ${data.shoppingTips[0]}`;
+            }
+
+            Toast.show(successMessage, {
+                showUndo: true,
+                duration: 6000,
+                onUndo: async () => {
+                    await StorageService.saveWeekPlan(oldWeekPlan);
+                    AppState.weekPlansCache[weekId] = oldWeekPlan;
+                    AppState.weekPlan = oldWeekPlan;
+                    App.render();
+                    Toast.show('KI-Vorschläge rückgängig gemacht');
+                }
+            });
+
+        } catch (error) {
+            console.error('AI generation error:', error);
+            this.aiGenerating = false;
+            this.aiError = error.message || 'Ein Fehler ist aufgetreten';
+
+            // Restore old plan
+            AppState.weekPlan = oldWeekPlan;
+            App.render();
+
+            // Show error modal with retry option
+            this.showAIGenerateModal();
+            Toast.error('Fehler bei der KI-Generierung');
+        }
     }
 };
 
@@ -2617,6 +2872,51 @@ const RecipeDatabaseView = {
     scaledIngredients: null,
     newServings: null,
     isScaling: false,
+
+    getFavoriteRecipes() {
+        return AppState.recipes.filter(recipe => recipe.is_favorite);
+    },
+
+    renderFavoritesQuickAccess(favorites) {
+        if (!favorites || favorites.length === 0) {
+            return '';
+        }
+
+        const limitedFavorites = favorites.slice(0, 8);
+        const overflow = favorites.length - limitedFavorites.length;
+
+        return `
+            <section class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-500 dark:text-red-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                        </svg>
+                        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Favoriten Schnellzugriff</h3>
+                    </div>
+                </div>
+                <div class="flex gap-3 overflow-x-auto favorite-quick-scroll pb-1">
+                    ${limitedFavorites.map(recipe => `
+                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-red-100 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-left transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="font-medium text-red-700 dark:text-red-200 truncate">${recipe.name}</span>
+                                <svg class="w-4 h-4 text-red-400 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-300 truncate">${recipe.category || 'Ohne Kategorie'}</p>
+                        </button>
+                    `).join('')}
+                    ${overflow > 0 ? `
+                        <div class="flex-shrink-0 min-w-[140px] px-4 py-3 rounded-lg border border-dashed border-red-200 dark:border-red-700 text-red-500 dark:text-red-300 flex items-center justify-center text-sm">
+                            +${overflow} weitere
+                        </div>
+                    ` : ''}
+                </div>
+            </section>
+        `;
+    },
+
     categoryCache: new Map(), // Local cache for ingredient categories
     cookingStats: null, // Cache for cooking statistics
     // AI Analysis & Variants
@@ -2836,6 +3136,7 @@ const RecipeDatabaseView = {
                             const cookingStat = this.getCookingStatsForRecipe(recipe.id);
                             const lastCookedText = cookingStat ? this.formatLastCooked(cookingStat.last_cooked_at) : null;
                             return `
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99] cursor-pointer recipe-card" data-recipe-card-id="${recipe.id}">
                             <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99] cursor-pointer recipe-card" data-recipe-card-id="${recipe.id}">
                                 <div class="flex items-start justify-between gap-3 mb-2">
                                     <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white line-clamp-2 flex-1">${recipe.name}</h3>

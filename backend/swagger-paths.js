@@ -1015,6 +1015,169 @@
 
 /**
  * @swagger
+ * /ai/generate-weekplan:
+ *   post:
+ *     summary: KI-gestützten Wochenplan generieren
+ *     tags: [AI]
+ *     description: |
+ *       Generiert einen kompletten Wochenplan mit Mahlzeitenvorschlägen.
+ *       Die KI berücksichtigt vorhandene Rezepte des Nutzers und erstellt
+ *       einen abwechslungsreichen, ausgewogenen Plan.
+ *
+ *       **Rate Limit:** 20 Anfragen / 15 Minuten
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [mealTypes]
+ *             properties:
+ *               mealTypes:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [Frühstück, Mittagessen, Abendessen]
+ *                 minItems: 1
+ *                 description: Mahlzeiten für die Vorschläge generiert werden sollen
+ *                 example: ["Abendessen"]
+ *               days:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 7
+ *                 default: 7
+ *                 description: Anzahl der Tage (1-7)
+ *               preferences:
+ *                 type: object
+ *                 properties:
+ *                   dietary:
+ *                     type: string
+ *                     description: Ernährungspräferenzen (z.B. vegetarisch, vegan, glutenfrei)
+ *                     example: "vegetarisch"
+ *                   cuisines:
+ *                     type: string
+ *                     description: Bevorzugte Küchen
+ *                     example: "italienisch, asiatisch"
+ *                   avoidIngredients:
+ *                     type: string
+ *                     description: Zutaten die vermieden werden sollen
+ *                   budget:
+ *                     type: string
+ *                     description: Budget-Präferenz
+ *                     example: "günstig"
+ *                   cookingSkill:
+ *                     type: string
+ *                     enum: [Anfänger, Fortgeschritten, Profi]
+ *           examples:
+ *             nurAbendessen:
+ *               summary: Nur Abendessen
+ *               value:
+ *                 mealTypes: ["Abendessen"]
+ *                 days: 7
+ *             vollstaendigerPlan:
+ *               summary: Kompletter Plan mit Präferenzen
+ *               value:
+ *                 mealTypes: ["Frühstück", "Mittagessen", "Abendessen"]
+ *                 days: 7
+ *                 preferences:
+ *                   dietary: "vegetarisch"
+ *                   cookingSkill: "Fortgeschritten"
+ *     responses:
+ *       200:
+ *         description: Generierter Wochenplan
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 weekPlan:
+ *                   type: object
+ *                   description: Wochenplan mit Tagen als Schlüssel
+ *                   additionalProperties:
+ *                     type: object
+ *                     properties:
+ *                       Frühstück:
+ *                         $ref: '#/components/schemas/AIGeneratedMeal'
+ *                       Mittagessen:
+ *                         $ref: '#/components/schemas/AIGeneratedMeal'
+ *                       Abendessen:
+ *                         $ref: '#/components/schemas/AIGeneratedMeal'
+ *                   example:
+ *                     Montag:
+ *                       Abendessen:
+ *                         name: "Gemüse-Curry mit Basmatireis"
+ *                         description: "Cremiges Thai-Curry mit saisonalem Gemüse"
+ *                         category: "Hauptgericht"
+ *                     Dienstag:
+ *                       Abendessen:
+ *                         name: "Pasta Primavera"
+ *                         description: "Leichte Pasta mit frischem Gemüse"
+ *                         category: "Hauptgericht"
+ *                 shoppingTips:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: Einkaufstipps für den Wochenplan
+ *                   example: ["Kaufe saisonales Gemüse auf dem Wochenmarkt", "Basilikum lässt sich auch einfrieren"]
+ *                 mealPrepSuggestions:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: Meal-Prep Vorschläge
+ *                   example: ["Reis kann für mehrere Tage vorgekocht werden"]
+ *                 metadata:
+ *                   type: object
+ *                   properties:
+ *                     generatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     mealTypes:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     days:
+ *                       type: integer
+ *       400:
+ *         description: Ungültige Anfrage
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             examples:
+ *               keineMahlzeiten:
+ *                 summary: Keine Mahlzeiten ausgewählt
+ *                 value:
+ *                   error: "Bitte wähle mindestens eine Mahlzeit aus (Frühstück, Mittagessen, Abendessen)"
+ *               ungueltigeMahlzeit:
+ *                 summary: Ungültige Mahlzeit
+ *                 value:
+ *                   error: "Ungültige Mahlzeiten: Brunch. Erlaubt sind: Frühstück, Mittagessen, Abendessen"
+ *       429:
+ *         description: Rate Limit überschritten
+ *       500:
+ *         description: Fehler bei der Generierung
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: "Die KI-Antwort konnte nicht verarbeitet werden. Bitte versuche es erneut."
+ *               details: "JSON parsing failed"
+ *       503:
+ *         description: KI-Service nicht konfiguriert
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: "AI service not configured. Please set GEMINI_API_KEY environment variable."
+ */
+
+/**
+ * @swagger
  * /ai/scale-portions:
  *   post:
  *     summary: Portionen intelligent skalieren
