@@ -1486,6 +1486,334 @@ function categorizeIngredientRuleBased(ingredient) {
     return 'Sonstiges';
 }
 
+// ========== SEASONAL CALENDAR ==========
+
+// Seasonal ingredient data - German seasons
+const SEASONAL_CALENDAR = {
+    // Frühling (März-Mai): 3, 4, 5
+    spring: {
+        name: 'Frühling',
+        months: [3, 4, 5],
+        ingredients: [
+            'spargel', 'rhabarber', 'bärlauch', 'radieschen', 'spinat', 'rucola',
+            'frühlingszwiebel', 'kohlrabi', 'mangold', 'kresse', 'schnittlauch',
+            'petersilie', 'erdbeere', 'waldmeister', 'kopfsalat', 'feldsalat',
+            'löwenzahn', 'brennnessel', 'sauerampfer', 'minze'
+        ]
+    },
+    // Sommer (Juni-August): 6, 7, 8
+    summer: {
+        name: 'Sommer',
+        months: [6, 7, 8],
+        ingredients: [
+            'tomate', 'tomaten', 'zucchini', 'gurke', 'paprika', 'aubergine',
+            'bohne', 'bohnen', 'erbse', 'erbsen', 'mais', 'fenchel',
+            'erdbeere', 'erdbeeren', 'himbeere', 'himbeeren', 'johannisbeere',
+            'brombeere', 'heidelbeere', 'blaubeere', 'kirsche', 'kirschen',
+            'pfirsich', 'aprikose', 'nektarine', 'melone', 'wassermelone',
+            'basilikum', 'oregano', 'thymian', 'rosmarin', 'salbei',
+            'mangold', 'salat', 'kopfsalat', 'eisbergsalat', 'lollo'
+        ]
+    },
+    // Herbst (September-November): 9, 10, 11
+    autumn: {
+        name: 'Herbst',
+        months: [9, 10, 11],
+        ingredients: [
+            'kürbis', 'hokkaido', 'butternut', 'pilz', 'pilze', 'champignon',
+            'pfifferling', 'steinpilz', 'apfel', 'birne', 'zwetschge', 'pflaume',
+            'traube', 'weintraube', 'quitte', 'kohl', 'weißkohl', 'rotkohl',
+            'wirsing', 'grünkohl', 'rosenkohl', 'blumenkohl', 'brokkoli',
+            'karotte', 'möhre', 'rote bete', 'sellerie', 'knollensellerie',
+            'pastinake', 'kartoffel', 'süßkartoffel', 'maroni', 'kastanie',
+            'walnuss', 'haselnuss', 'lauch', 'porree', 'fenchel', 'chinakohl'
+        ]
+    },
+    // Winter (Dezember-Februar): 12, 1, 2
+    winter: {
+        name: 'Winter',
+        months: [12, 1, 2],
+        ingredients: [
+            'grünkohl', 'rosenkohl', 'wirsing', 'weißkohl', 'rotkohl', 'chinakohl',
+            'feldsalat', 'chicorée', 'radicchio', 'endivie', 'schwarzwurzel',
+            'topinambur', 'pastinake', 'steckrübe', 'rote bete', 'sellerie',
+            'kartoffel', 'karotte', 'möhre', 'lauch', 'porree', 'zwiebel',
+            'knoblauch', 'meerrettich', 'apfel', 'birne', 'orange', 'mandarine',
+            'clementine', 'grapefruit', 'zitrone', 'granatapfel', 'kaki'
+        ]
+    }
+};
+
+// Get current season based on month
+function getCurrentSeason() {
+    const month = new Date().getMonth() + 1; // JavaScript months are 0-indexed
+
+    for (const [season, data] of Object.entries(SEASONAL_CALENDAR)) {
+        if (data.months.includes(month)) {
+            return { key: season, ...data };
+        }
+    }
+    return { key: 'spring', ...SEASONAL_CALENDAR.spring }; // Fallback
+}
+
+// Check if an ingredient is in season
+function isIngredientInSeason(ingredientName, seasonKey = null) {
+    const lowerName = ingredientName.toLowerCase();
+    const season = seasonKey ? SEASONAL_CALENDAR[seasonKey] : getCurrentSeason();
+
+    return season.ingredients.some(seasonal =>
+        lowerName.includes(seasonal) || seasonal.includes(lowerName)
+    );
+}
+
+// Calculate seasonal score for a recipe (percentage of seasonal ingredients)
+function calculateSeasonalScore(ingredients, seasonKey = null) {
+    if (!ingredients || ingredients.length === 0) return 0;
+
+    const seasonalCount = ingredients.filter(ing =>
+        isIngredientInSeason(ing.name, seasonKey)
+    ).length;
+
+    return Math.round((seasonalCount / ingredients.length) * 100);
+}
+
+// Get seasonal information for ingredients
+function getSeasonalInfo(ingredients) {
+    const currentSeason = getCurrentSeason();
+
+    return ingredients.map(ing => ({
+        ...ing,
+        isInSeason: isIngredientInSeason(ing.name),
+        seasonalNote: isIngredientInSeason(ing.name)
+            ? `In Saison (${currentSeason.name})`
+            : null
+    }));
+}
+
+// ========== SEASONAL API ENDPOINTS ==========
+
+// Get current season info and calendar
+app.get('/seasons', (req, res) => {
+    const currentSeason = getCurrentSeason();
+
+    res.json({
+        current: {
+            key: currentSeason.key,
+            name: currentSeason.name,
+            months: currentSeason.months,
+            topIngredients: currentSeason.ingredients.slice(0, 15)
+        },
+        calendar: Object.entries(SEASONAL_CALENDAR).map(([key, data]) => ({
+            key,
+            name: data.name,
+            months: data.months,
+            ingredientCount: data.ingredients.length,
+            sampleIngredients: data.ingredients.slice(0, 10)
+        }))
+    });
+});
+
+// Get seasonal ingredients for a specific season or current season
+app.get('/seasons/:season/ingredients', (req, res) => {
+    const { season } = req.params;
+
+    if (season === 'current') {
+        const currentSeason = getCurrentSeason();
+        return res.json({
+            season: currentSeason.name,
+            seasonKey: currentSeason.key,
+            ingredients: currentSeason.ingredients
+        });
+    }
+
+    if (!SEASONAL_CALENDAR[season]) {
+        return res.status(404).json({ error: 'Season not found. Valid seasons: spring, summer, autumn, winter' });
+    }
+
+    const seasonData = SEASONAL_CALENDAR[season];
+    res.json({
+        season: seasonData.name,
+        seasonKey: season,
+        ingredients: seasonData.ingredients
+    });
+});
+
+// Check if specific ingredients are in season
+app.post('/seasons/check', (req, res) => {
+    const { ingredients, season } = req.body;
+
+    if (!ingredients || !Array.isArray(ingredients)) {
+        return res.status(400).json({ error: 'ingredients array is required' });
+    }
+
+    const currentSeason = getCurrentSeason();
+    const seasonKey = season || currentSeason.key;
+
+    const result = ingredients.map(ing => {
+        const name = typeof ing === 'string' ? ing : ing.name;
+        return {
+            name,
+            isInSeason: isIngredientInSeason(name, seasonKey),
+            season: SEASONAL_CALENDAR[seasonKey].name
+        };
+    });
+
+    res.json({
+        season: SEASONAL_CALENDAR[seasonKey].name,
+        seasonKey,
+        ingredients: result,
+        seasonalCount: result.filter(i => i.isInSeason).length,
+        totalCount: result.length
+    });
+});
+
+// Get recipes filtered by season (recipes with seasonal ingredients)
+app.get('/recipes/seasonal', async (req, res) => {
+    try {
+        const { season, minScore } = req.query;
+        const minimumScore = parseInt(minScore) || 30; // Default: at least 30% seasonal ingredients
+        const currentSeason = getCurrentSeason();
+        const seasonKey = season || currentSeason.key;
+
+        // Fetch all recipes with ingredients
+        const { rows } = await db.query(`
+            SELECT
+                r.id,
+                r.name,
+                r.category,
+                r.servings,
+                r.instructions,
+                r.is_favorite,
+                r.created_at,
+                COALESCE(
+                    json_agg(DISTINCT jsonb_build_object(
+                        'name', i.name,
+                        'amount', i.amount,
+                        'unit', i.unit,
+                        'category', i.category
+                    )) FILTER (WHERE i.name IS NOT NULL),
+                    '[]'::json
+                ) as ingredients,
+                COALESCE(
+                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
+                    '[]'::json
+                ) as tags
+            FROM recipes r
+            LEFT JOIN ingredients i ON r.id = i.recipe_id
+            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
+            GROUP BY r.id
+            ORDER BY r.created_at DESC
+        `);
+
+        // Calculate seasonal score and filter
+        const seasonalRecipes = rows
+            .map(recipe => {
+                const score = calculateSeasonalScore(recipe.ingredients, seasonKey);
+                const seasonalIngredients = recipe.ingredients.filter(ing =>
+                    isIngredientInSeason(ing.name, seasonKey)
+                );
+
+                return {
+                    ...recipe,
+                    seasonalScore: score,
+                    seasonalIngredients: seasonalIngredients.map(i => i.name),
+                    seasonInfo: {
+                        season: SEASONAL_CALENDAR[seasonKey].name,
+                        seasonKey,
+                        score,
+                        seasonalCount: seasonalIngredients.length,
+                        totalIngredients: recipe.ingredients.length
+                    }
+                };
+            })
+            .filter(recipe => recipe.seasonalScore >= minimumScore)
+            .sort((a, b) => b.seasonalScore - a.seasonalScore);
+
+        res.json({
+            season: SEASONAL_CALENDAR[seasonKey].name,
+            seasonKey,
+            minimumScore,
+            totalRecipes: rows.length,
+            seasonalRecipes: seasonalRecipes.length,
+            recipes: seasonalRecipes
+        });
+    } catch (error) {
+        logger.error('Error fetching seasonal recipes', { error: error.message, requestId: req.requestId, component: 'seasons' });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get seasonal recommendations for the start page
+app.get('/recipes/seasonal/recommendations', async (req, res) => {
+    try {
+        const { limit } = req.query;
+        const maxResults = Math.min(parseInt(limit) || 6, 20);
+        const currentSeason = getCurrentSeason();
+
+        // Fetch all recipes with ingredients
+        const { rows } = await db.query(`
+            SELECT
+                r.id,
+                r.name,
+                r.category,
+                r.servings,
+                r.is_favorite,
+                COALESCE(
+                    json_agg(DISTINCT jsonb_build_object(
+                        'name', i.name,
+                        'amount', i.amount,
+                        'unit', i.unit,
+                        'category', i.category
+                    )) FILTER (WHERE i.name IS NOT NULL),
+                    '[]'::json
+                ) as ingredients,
+                COALESCE(
+                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
+                    '[]'::json
+                ) as tags
+            FROM recipes r
+            LEFT JOIN ingredients i ON r.id = i.recipe_id
+            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
+            GROUP BY r.id
+            ORDER BY r.created_at DESC
+        `);
+
+        // Calculate seasonal score and get top recommendations
+        const recommendations = rows
+            .map(recipe => {
+                const score = calculateSeasonalScore(recipe.ingredients);
+                const seasonalIngredients = recipe.ingredients.filter(ing =>
+                    isIngredientInSeason(ing.name)
+                );
+
+                return {
+                    id: recipe.id,
+                    name: recipe.name,
+                    category: recipe.category,
+                    servings: recipe.servings,
+                    is_favorite: recipe.is_favorite,
+                    tags: recipe.tags,
+                    seasonalScore: score,
+                    seasonalIngredients: seasonalIngredients.map(i => i.name),
+                    totalIngredients: recipe.ingredients.length
+                };
+            })
+            .filter(recipe => recipe.seasonalScore >= 30) // At least 30% seasonal
+            .sort((a, b) => b.seasonalScore - a.seasonalScore)
+            .slice(0, maxResults);
+
+        res.json({
+            season: currentSeason.name,
+            seasonKey: currentSeason.key,
+            topSeasonalIngredients: currentSeason.ingredients.slice(0, 8),
+            recommendations
+        });
+    } catch (error) {
+        logger.error('Error fetching seasonal recommendations', { error: error.message, requestId: req.requestId, component: 'seasons' });
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // AI-based portion scaling
 app.post('/ai/scale-portions', aiLimiter, async (req, res) => {
     if (!genAI) {
@@ -1548,6 +1876,236 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
             details: error.message
         });
     }
+});
+
+// ========== AI RECIPE IMPROVEMENT & VARIANTS ==========
+
+// AI-based recipe analysis and improvement suggestions
+app.post('/ai/analyze-recipe', aiLimiter, async (req, res) => {
+    if (!genAI) {
+        return res.status(503).json({
+            error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
+        });
+    }
+
+    try {
+        const { recipe } = req.body;
+
+        if (!recipe || !recipe.name) {
+            return res.status(400).json({ error: 'Recipe with name is required' });
+        }
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const ingredientsList = recipe.ingredients && recipe.ingredients.length > 0
+            ? recipe.ingredients.map(i => `- ${i.amount || ''} ${i.unit || ''} ${i.name}`.trim()).join('\n')
+            : 'Keine Zutaten angegeben';
+
+        const prompt = `Du bist ein erfahrener Koch und Ernährungsexperte. Analysiere das folgende Rezept und gib konkrete Verbesserungsvorschläge.
+
+REZEPT:
+Name: ${recipe.name}
+Kategorie: ${recipe.category || 'Nicht angegeben'}
+Portionen: ${recipe.servings || 'Nicht angegeben'}
+
+Zutaten:
+${ingredientsList}
+
+Zubereitung:
+${recipe.instructions || 'Keine Zubereitungsanleitung angegeben'}
+
+Gib mir genau 4 Verbesserungsvorschläge in den folgenden Kategorien:
+1. GESCHMACK: Wie kann der Geschmack verbessert oder intensiviert werden?
+2. GESUNDHEIT: Welche gesünderen Alternativen oder Ergänzungen gibt es?
+3. ZEITERSPARNIS: Tipps zur schnelleren oder effizienteren Zubereitung
+4. PROFI-TIPP: Ein Küchen-Hack oder Geheimtipp von Profiköchen
+
+WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zusätzlichen Text:
+
+{
+  "recipeName": "${recipe.name}",
+  "suggestions": [
+    {
+      "category": "Geschmack",
+      "icon": "taste",
+      "title": "Kurzer Titel",
+      "description": "Detaillierte Beschreibung des Vorschlags (2-3 Sätze)",
+      "impact": "high|medium|low"
+    },
+    {
+      "category": "Gesundheit",
+      "icon": "health",
+      "title": "Kurzer Titel",
+      "description": "Detaillierte Beschreibung",
+      "impact": "high|medium|low"
+    },
+    {
+      "category": "Zeitersparnis",
+      "icon": "time",
+      "title": "Kurzer Titel",
+      "description": "Detaillierte Beschreibung",
+      "impact": "high|medium|low"
+    },
+    {
+      "category": "Profi-Tipp",
+      "icon": "chef",
+      "title": "Kurzer Titel",
+      "description": "Detaillierte Beschreibung",
+      "impact": "high|medium|low"
+    }
+  ],
+  "overallRating": {
+    "taste": 1-5,
+    "health": 1-5,
+    "difficulty": 1-5,
+    "comment": "Kurze Gesamtbewertung des Rezepts"
+  }
+}`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        // Extract JSON from response
+        let jsonText = text.trim();
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
+        }
+
+        const analysis = JSON.parse(jsonText);
+
+        logger.info('Recipe analysis completed', { recipeName: recipe.name, requestId: req.requestId, component: 'ai' });
+        res.json(analysis);
+    } catch (error) {
+        logger.error('AI recipe analysis error', { error: error.message, requestId: req.requestId, component: 'ai' });
+        res.status(500).json({
+            error: 'Failed to analyze recipe',
+            details: error.message
+        });
+    }
+});
+
+// AI-based recipe variant generation
+app.post('/ai/generate-variant', aiLimiter, async (req, res) => {
+    if (!genAI) {
+        return res.status(503).json({
+            error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
+        });
+    }
+
+    try {
+        const { recipe, variantType } = req.body;
+
+        if (!recipe || !recipe.name) {
+            return res.status(400).json({ error: 'Recipe with name is required' });
+        }
+
+        const validVariantTypes = ['vegetarisch', 'vegan', 'low-carb', 'glutenfrei', 'laktosefrei', 'schnell', 'kalorienarm'];
+        if (!variantType || !validVariantTypes.includes(variantType)) {
+            return res.status(400).json({
+                error: `Invalid variant type. Valid types: ${validVariantTypes.join(', ')}`
+            });
+        }
+
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const ingredientsList = recipe.ingredients && recipe.ingredients.length > 0
+            ? recipe.ingredients.map(i => `- ${i.amount || ''} ${i.unit || ''} ${i.name} (${i.category || 'Sonstiges'})`.trim()).join('\n')
+            : 'Keine Zutaten angegeben';
+
+        const variantDescriptions = {
+            'vegetarisch': 'eine vegetarische Version (ohne Fleisch und Fisch, aber mit Milchprodukten und Eiern)',
+            'vegan': 'eine vegane Version (komplett ohne tierische Produkte)',
+            'low-carb': 'eine Low-Carb Version (wenig Kohlenhydrate, max 20g pro Portion)',
+            'glutenfrei': 'eine glutenfreie Version (ohne Weizen, Roggen, Gerste, Dinkel)',
+            'laktosefrei': 'eine laktosefreie Version (ohne Milchprodukte oder mit laktosefreien Alternativen)',
+            'schnell': 'eine schnelle Version (Zubereitungszeit unter 30 Minuten)',
+            'kalorienarm': 'eine kalorienarme Version (reduzierte Kalorien durch leichtere Zutaten)'
+        };
+
+        const prompt = `Du bist ein erfahrener Koch und Ernährungsexperte. Erstelle ${variantDescriptions[variantType]} des folgenden Rezepts.
+
+ORIGINAL-REZEPT:
+Name: ${recipe.name}
+Kategorie: ${recipe.category || 'Nicht angegeben'}
+Portionen: ${recipe.servings || 4}
+
+Zutaten:
+${ingredientsList}
+
+Zubereitung:
+${recipe.instructions || 'Keine Zubereitungsanleitung angegeben'}
+
+Erstelle eine vollständige ${variantType} Variante dieses Rezepts. Die Variante soll:
+- Den Charakter und Geschmack des Originals möglichst beibehalten
+- Alle notwendigen Substitutionen enthalten
+- Angepasste Zubereitungsanweisungen haben
+- Realistisch und lecker sein
+
+WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zusätzlichen Text:
+
+{
+  "originalName": "${recipe.name}",
+  "variantType": "${variantType}",
+  "variantName": "Neuer Name für die Variante",
+  "category": "${recipe.category || 'Hauptgericht'}",
+  "servings": ${recipe.servings || 4},
+  "changes": [
+    "Beschreibung der wichtigsten Änderung 1",
+    "Beschreibung der wichtigsten Änderung 2"
+  ],
+  "ingredients": [
+    {
+      "name": "Zutatname",
+      "amount": "Menge als String",
+      "unit": "Einheit",
+      "category": "Obst & Gemüse|Milchprodukte|Fleisch & Fisch|Trockenwaren|Tiefkühl|Sonstiges",
+      "isNew": true,
+      "replaces": "Name der ersetzten Zutat oder null"
+    }
+  ],
+  "instructions": "Vollständige Zubereitungsanleitung im Markdown-Format mit Schritt 1:, Schritt 2:, etc.",
+  "nutritionNote": "Kurzer Hinweis zu den ernährungsphysiologischen Vorteilen dieser Variante",
+  "difficulty": "einfach|mittel|anspruchsvoll",
+  "prepTime": "Geschätzte Zubereitungszeit"
+}`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        const text = response.text();
+
+        // Extract JSON from response
+        let jsonText = text.trim();
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
+        }
+
+        const variant = JSON.parse(jsonText);
+
+        logger.info('Recipe variant generated', { recipeName: recipe.name, variantType, requestId: req.requestId, component: 'ai' });
+        res.json(variant);
+    } catch (error) {
+        logger.error('AI variant generation error', { error: error.message, requestId: req.requestId, component: 'ai' });
+        res.status(500).json({
+            error: 'Failed to generate recipe variant',
+            details: error.message
+        });
+    }
+});
+
+// Get available variant types
+app.get('/ai/variant-types', (req, res) => {
+    res.json({
+        variantTypes: [
+            { id: 'vegetarisch', name: 'Vegetarisch', icon: '🥬', description: 'Ohne Fleisch und Fisch' },
+            { id: 'vegan', name: 'Vegan', icon: '🌱', description: 'Ohne tierische Produkte' },
+            { id: 'low-carb', name: 'Low-Carb', icon: '🥩', description: 'Wenig Kohlenhydrate' },
+            { id: 'glutenfrei', name: 'Glutenfrei', icon: '🌾', description: 'Ohne Gluten' },
+            { id: 'laktosefrei', name: 'Laktosefrei', icon: '🥛', description: 'Ohne Laktose' },
+            { id: 'schnell', name: 'Schnelle Version', icon: '⚡', description: 'Unter 30 Minuten' },
+            { id: 'kalorienarm', name: 'Kalorienarm', icon: '🪶', description: 'Reduzierte Kalorien' }
+        ]
+    });
 });
 
 // Allowlist of trusted recipe domains to prevent SSRF attacks
