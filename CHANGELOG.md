@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/milkrunner/FoodPlanner/compare/v1.4.0...v1.5.0) (2026-01-09)
+
+
+### Features
+
+* Implement AI-powered natural language search for recipes ([#112](https://github.com/milkrunner/FoodPlanner/issues/112)) ([326af30](https://github.com/milkrunner/FoodPlanner/commit/326af30c52d7b816217487b2b5d1756cab063a0b))
+
 ## [1.4.0](https://github.com/milkrunner/FoodPlanner/compare/v1.3.3...v1.4.0) (2026-01-05)
 
 
