@@ -2063,8 +2063,6 @@ const WeekPlannerView = {
                                     <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
                                         <p class="text-sm text-gray-800 dark:text-gray-200 font-medium ${meal.recipeId ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline open-recipe-btn' : ''}"
                                            ${meal.recipeId ? `data-recipe-id="${meal.recipeId}"` : ''}>${meal.recipeName}</p>
-                                        <p class="text-sm text-gray-800 dark:text-gray-200 font-medium ${meal.recipeId ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline open-recipe-btn' : ''}"
-                                           ${meal.recipeId ? `data-recipe-id="${meal.recipeId}"` : ''}>${meal.recipeName}</p>
                                         <button class="mark-cooked-btn mt-3 w-full py-2.5 text-sm bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center justify-center gap-2 active:scale-98"
                                                 data-recipe-id="${meal.recipeId}"
                                                 data-recipe-name="${meal.recipeName}">
@@ -2243,6 +2241,55 @@ const WeekPlannerView = {
                                 <option value="glutenfrei">Glutenfrei</option>
                                 <option value="laktosefrei">Laktosefrei</option>
                             </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Kochzeit pro Mahlzeit
+                                </label>
+                                <select id="ai-cooking-time" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                                    <option value="">Egal</option>
+                                    <option value="schnell">Schnell (&lt; 30 Min)</option>
+                                    <option value="mittel">Mittel (30-60 Min)</option>
+                                    <option value="aufwendig">Aufwendig (&gt; 60 Min)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Budget
+                                </label>
+                                <select id="ai-budget" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                                    <option value="">Egal</option>
+                                    <option value="günstig">Günstig</option>
+                                    <option value="mittel">Mittel</option>
+                                    <option value="gehoben">Gehoben</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Bevorzugte Küche (optional)
+                            </label>
+                            <select id="ai-cuisine" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                                <option value="">Gemischt / Keine Präferenz</option>
+                                <option value="deutsch">Deutsche Küche</option>
+                                <option value="italienisch">Italienisch</option>
+                                <option value="asiatisch">Asiatisch</option>
+                                <option value="mediterran">Mediterran</option>
+                                <option value="mexikanisch">Mexikanisch</option>
+                                <option value="indisch">Indisch</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Zutaten vermeiden (optional)
+                            </label>
+                            <input type="text" id="ai-avoid-ingredients"
+                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                                   placeholder="z.B. Nüsse, Sellerie, Meeresfrüchte">
                         </div>
 
                         <div class="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
@@ -2741,8 +2788,20 @@ const WeekPlannerView = {
             return;
         }
 
-        // Get dietary preference
+        // Get all preferences
         const dietary = document.getElementById('ai-dietary-preference')?.value || '';
+        const cookingTime = document.getElementById('ai-cooking-time')?.value || '';
+        const budget = document.getElementById('ai-budget')?.value || '';
+        const cuisines = document.getElementById('ai-cuisine')?.value || '';
+        const avoidIngredients = document.getElementById('ai-avoid-ingredients')?.value || '';
+
+        // Build preferences object
+        const preferences = {};
+        if (dietary) preferences.dietary = dietary;
+        if (cookingTime) preferences.cookingTime = cookingTime;
+        if (budget) preferences.budget = budget;
+        if (cuisines) preferences.cuisines = cuisines;
+        if (avoidIngredients) preferences.avoidIngredients = avoidIngredients;
 
         // Confirm overwrite
         const hasMeals = AppState.weekPlan.days.some(day =>
@@ -2771,7 +2830,7 @@ const WeekPlannerView = {
                 body: JSON.stringify({
                     mealTypes,
                     days: 7,
-                    preferences: dietary ? { dietary } : {}
+                    preferences
                 })
             });
 
@@ -3137,7 +3196,6 @@ const RecipeDatabaseView = {
                             const lastCookedText = cookingStat ? this.formatLastCooked(cookingStat.last_cooked_at) : null;
                             return `
                             <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99] cursor-pointer recipe-card" data-recipe-card-id="${recipe.id}">
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99] cursor-pointer recipe-card" data-recipe-card-id="${recipe.id}">
                                 <div class="flex items-start justify-between gap-3 mb-2">
                                     <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white line-clamp-2 flex-1">${recipe.name}</h3>
                                     <button type="button" class="favorite-toggle-btn ${recipe.is_favorite ? 'is-favorite' : ''} p-2 rounded-full transition transform favorite-heart" data-recipe-id="${recipe.id}" title="${recipe.is_favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" aria-label="${recipe.is_favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">
@@ -3287,8 +3345,8 @@ const RecipeDatabaseView = {
         });
 
         return `
-            <div id="recipe-detail-modal" class="modal active">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
+            <div id="recipe-detail-modal" class="modal active" data-backdrop="true">
+                <div id="recipe-detail-content" class="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
                     <!-- Header -->
                     <div class="p-4 sm:p-6 border-b dark:border-gray-700 bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0">
                         <div class="flex justify-between items-start">
@@ -3588,6 +3646,10 @@ const RecipeDatabaseView = {
             card.addEventListener('click', async (e) => {
                 // Don't trigger if clicking on a button inside the card
                 if (e.target.closest('button')) return;
+                // Don't trigger if a modal is already open
+                if (e.target.closest('.modal')) return;
+                // Don't trigger if recipe detail is already open
+                if (this.viewingRecipe) return;
                 const recipeId = card.dataset.recipeCardId;
                 await this.viewRecipe(recipeId);
             });
@@ -3603,6 +3665,16 @@ const RecipeDatabaseView = {
         });
 
         // Recipe detail modal event listeners
+        const recipeDetailModal = document.getElementById('recipe-detail-modal');
+        if (recipeDetailModal) {
+            recipeDetailModal.addEventListener('click', (e) => {
+                // Close when clicking on the backdrop (not on the content)
+                if (e.target === recipeDetailModal) {
+                    this.hideRecipeDetail();
+                }
+            });
+        }
+
         const closeDetailBtn = document.getElementById('close-recipe-detail');
         if (closeDetailBtn) {
             closeDetailBtn.addEventListener('click', () => this.hideRecipeDetail());
