@@ -41,7 +41,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: sh -c "npm install && node server.js"
+    command: sh -c "node server.js"
     restart: unless-stopped
 
   nginx:

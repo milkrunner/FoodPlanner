@@ -2730,6 +2730,7 @@ ${preferences?.dietary ? `Ernährungspräferenzen: ${preferences.dietary}` : ''}
 ${preferences?.cuisines ? `Bevorzugte Küchen: ${preferences.cuisines}` : ''}
 ${preferences?.avoidIngredients ? `Diese Zutaten vermeiden: ${preferences.avoidIngredients}` : ''}
 ${preferences?.budget ? `Budget: ${preferences.budget}` : ''}
+${preferences?.cookingTime ? `Maximale Kochzeit: ${preferences.cookingTime === 'schnell' ? 'unter 30 Minuten' : preferences.cookingTime === 'mittel' ? '30-60 Minuten' : 'über 60 Minuten erlaubt'}` : ''}
 ${preferences?.cookingSkill ? `Kochkenntnisse: ${preferences.cookingSkill}` : ''}
 
 ${existingRecipes.length > 0 ? `
