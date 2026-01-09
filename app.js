@@ -1024,6 +1024,24 @@ const StorageService = {
             console.error('Error getting variant types:', error);
             return { variantTypes: [] };
         }
+    },
+
+    async aiSearch(query, recipes) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/search`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query, recipes })
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'AI search failed');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error in AI search:', error);
+            throw error;
+        }
     }
 };
 
@@ -2931,6 +2949,11 @@ const RecipeDatabaseView = {
     scaledIngredients: null,
     newServings: null,
     isScaling: false,
+    // AI Search state
+    aiSearchActive: false,
+    aiSearchResults: null,
+    aiSearchInfo: null,
+    isAiSearching: false,
 
     getFavoriteRecipes() {
         return AppState.recipes.filter(recipe => recipe.is_favorite);
@@ -3127,25 +3150,80 @@ const RecipeDatabaseView = {
 
                 ${AppState.recipes.length > 0 ? `
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
-                        <div class="relative">
-                            <input
-                                type="text"
-                                id="recipe-search-input"
-                                value="${this.searchQuery}"
-                                placeholder="Rezepte durchsuchen..."
-                                class="w-full px-4 py-3 sm:py-2 pl-10 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-base"
-                            />
-                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                            ${this.searchQuery ? `
-                                <button id="clear-search-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
+                        <div class="flex gap-2">
+                            <div class="relative flex-1">
+                                <input
+                                    type="text"
+                                    id="recipe-search-input"
+                                    value="${this.searchQuery}"
+                                    placeholder="${this.aiSearchActive ? 'z.B. \"Etwas Leichtes für heute Abend\" oder \"Was kann ich mit Tomaten machen?\"' : 'Rezepte durchsuchen...'}"
+                                    class="w-full px-4 py-3 sm:py-2 pl-10 ${this.searchQuery && !this.aiSearchActive ? 'pr-10' : ''} border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-base"
+                                />
+                                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                ${this.searchQuery && !this.aiSearchActive ? `
+                                    <button id="clear-search-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                ` : ''}
+                            </div>
+                            <button
+                                id="ai-search-toggle-btn"
+                                class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.aiSearchActive ? 'bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300' : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-200 dark:hover:border-purple-800'}"
+                                title="${this.aiSearchActive ? 'KI-Suche deaktivieren' : 'KI-Suche aktivieren - Suche mit natürlicher Sprache'}"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                                <span class="hidden sm:inline">KI</span>
+                            </button>
+                            ${this.aiSearchActive ? `
+                                <button
+                                    id="ai-search-btn"
+                                    class="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    ${!this.searchQuery.trim() || this.isAiSearching ? 'disabled' : ''}
+                                >
+                                    ${this.isAiSearching ? `
+                                        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                    ` : `
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                        </svg>
+                                    `}
+                                    <span class="hidden sm:inline">${this.isAiSearching ? 'Suche...' : 'Suchen'}</span>
                                 </button>
                             ` : ''}
                         </div>
+                        ${this.aiSearchActive && this.aiSearchInfo ? `
+                            <div class="mt-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                                <div class="flex items-start gap-2">
+                                    <svg class="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                    </svg>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm text-purple-800 dark:text-purple-200">
+                                            ${this.aiSearchInfo.interpretation || 'KI-Suche aktiv'}
+                                        </p>
+                                        <p class="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                                            ${this.aiSearchInfo.matchCount} Ergebnis${this.aiSearchInfo.matchCount !== 1 ? 'se' : ''} gefunden
+                                            ${this.aiSearchInfo.aiPowered ? '' : ' (Klassische Suche)'}
+                                            ${this.aiSearchInfo.duration ? ` in ${(this.aiSearchInfo.duration / 1000).toFixed(1)}s` : ''}
+                                        </p>
+                                    </div>
+                                    <button id="clear-ai-search-btn" class="p-1 text-purple-400 hover:text-purple-600 dark:text-purple-500 dark:hover:text-purple-300">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        ` : ''}
                         <div class="flex flex-wrap items-center gap-2 mt-3 text-sm">
                             ${favoriteCount > 0 ? `
                                 <button id="favorites-filter-btn" class="favorites-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showFavoritesOnly ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-600 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}" aria-pressed="${this.showFavoritesOnly}">
@@ -3229,6 +3307,15 @@ const RecipeDatabaseView = {
                                             </span>
                                         `).join('')}
                                         ${recipe.tags.length > 3 ? `<span class="text-xs text-gray-400">+${recipe.tags.length - 3}</span>` : ''}
+                                    </div>
+                                ` : ''}
+                                ${recipe._searchReason ? `
+                                    <div class="flex items-center gap-2 mb-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                                        <svg class="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                        </svg>
+                                        <span class="text-xs text-purple-700 dark:text-purple-300">${recipe._searchReason}</span>
+                                        ${recipe._searchScore ? `<span class="ml-auto text-xs font-medium text-purple-600 dark:text-purple-400">${recipe._searchScore}%</span>` : ''}
                                     </div>
                                 ` : ''}
                                 <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -3603,7 +3690,11 @@ const RecipeDatabaseView = {
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 this.searchQuery = e.target.value;
-                App.render();
+                // Only re-render for classic search (instant filtering)
+                // For AI search, wait until user clicks search button
+                if (!this.aiSearchActive) {
+                    App.render();
+                }
             });
         }
 
@@ -3613,6 +3704,46 @@ const RecipeDatabaseView = {
             clearSearchBtn.addEventListener('click', () => {
                 this.searchQuery = '';
                 App.render();
+            });
+        }
+
+        // AI Search toggle button
+        const aiSearchToggleBtn = document.getElementById('ai-search-toggle-btn');
+        if (aiSearchToggleBtn) {
+            aiSearchToggleBtn.addEventListener('click', () => {
+                this.aiSearchActive = !this.aiSearchActive;
+                if (!this.aiSearchActive) {
+                    this.aiSearchResults = null;
+                    this.aiSearchInfo = null;
+                }
+                App.render();
+            });
+        }
+
+        // AI Search button
+        const aiSearchBtn = document.getElementById('ai-search-btn');
+        if (aiSearchBtn) {
+            aiSearchBtn.addEventListener('click', () => this.performAiSearch());
+        }
+
+        // Clear AI search results button
+        const clearAiSearchBtn = document.getElementById('clear-ai-search-btn');
+        if (clearAiSearchBtn) {
+            clearAiSearchBtn.addEventListener('click', () => {
+                this.aiSearchResults = null;
+                this.aiSearchInfo = null;
+                this.searchQuery = '';
+                App.render();
+            });
+        }
+
+        // Enter key triggers AI search when AI mode is active
+        if (searchInput && this.aiSearchActive) {
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && this.searchQuery.trim()) {
+                    e.preventDefault();
+                    this.performAiSearch();
+                }
             });
         }
 
@@ -3877,6 +4008,22 @@ const RecipeDatabaseView = {
     },
 
     filterRecipes() {
+        // If we have AI search results, use those
+        if (this.aiSearchActive && this.aiSearchResults && this.aiSearchResults.length > 0) {
+            let recipes = this.aiSearchResults;
+
+            if (this.showFavoritesOnly) {
+                recipes = recipes.filter(recipe => recipe.is_favorite);
+            }
+
+            if (this.showSeasonalOnly) {
+                const seasonalIds = this.getSeasonalRecipeIds();
+                recipes = recipes.filter(recipe => seasonalIds.has(recipe.id));
+            }
+
+            return recipes;
+        }
+
         let recipes = AppState.recipes;
 
         if (this.showFavoritesOnly) {
@@ -3889,7 +4036,8 @@ const RecipeDatabaseView = {
             recipes = recipes.filter(recipe => seasonalIds.has(recipe.id));
         }
 
-        if (!this.searchQuery.trim()) {
+        // Don't filter by keyword when AI search is active (waiting for user to click search)
+        if (this.aiSearchActive || !this.searchQuery.trim()) {
             return recipes;
         }
 
@@ -3915,6 +4063,33 @@ const RecipeDatabaseView = {
 
             return false;
         });
+    },
+
+    async performAiSearch() {
+        if (!this.searchQuery.trim() || this.isAiSearching) return;
+
+        this.isAiSearching = true;
+        this.aiSearchResults = null;
+        this.aiSearchInfo = null;
+        App.render();
+
+        try {
+            const result = await StorageService.aiSearch(this.searchQuery, AppState.recipes);
+            this.aiSearchResults = result.results || [];
+            this.aiSearchInfo = result.searchInfo || { query: this.searchQuery, matchCount: 0, aiPowered: false };
+        } catch (error) {
+            console.error('AI search failed:', error);
+            showToast('KI-Suche fehlgeschlagen', 'error');
+            this.aiSearchInfo = {
+                query: this.searchQuery,
+                matchCount: 0,
+                aiPowered: false,
+                fallbackReason: error.message
+            };
+        } finally {
+            this.isAiSearching = false;
+            App.render();
+        }
     },
 
     renderIngredients() {
@@ -4012,6 +4187,9 @@ const RecipeDatabaseView = {
 
     focusRecipeCard(recipeId) {
         this.searchQuery = '';
+        this.aiSearchActive = false;
+        this.aiSearchResults = null;
+        this.aiSearchInfo = null;
         App.render();
 
         requestAnimationFrame(() => {

@@ -2108,6 +2108,192 @@ app.get('/ai/variant-types', (req, res) => {
     });
 });
 
+// ========== AI NATURAL LANGUAGE SEARCH ==========
+
+// AI-powered natural language recipe search
+app.post('/ai/search', aiLimiter, async (req, res) => {
+    const startTime = Date.now();
+    const { query, recipes } = req.body;
+
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+        return res.status(400).json({ error: 'Search query is required' });
+    }
+
+    if (!recipes || !Array.isArray(recipes) || recipes.length === 0) {
+        return res.json({ results: [], searchInfo: { query, matchCount: 0, aiPowered: false } });
+    }
+
+    // If AI is not available, fall back to classic search
+    if (!genAI) {
+        logger.info('AI search fallback to classic search - Gemini not configured', {
+            requestId: req.requestId,
+            query: query.substring(0, 100)
+        });
+        const classicResults = classicSearch(query, recipes);
+        return res.json({
+            results: classicResults,
+            searchInfo: {
+                query,
+                matchCount: classicResults.length,
+                aiPowered: false,
+                fallbackReason: 'AI service not configured'
+            }
+        });
+    }
+
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        // Get current context for better understanding
+        const now = new Date();
+        const hour = now.getHours();
+        const month = now.getMonth();
+
+        let timeOfDay = 'tagsüber';
+        if (hour >= 5 && hour < 11) timeOfDay = 'morgens (Frühstück)';
+        else if (hour >= 11 && hour < 14) timeOfDay = 'mittags (Mittagessen)';
+        else if (hour >= 14 && hour < 18) timeOfDay = 'nachmittags';
+        else if (hour >= 18 && hour < 22) timeOfDay = 'abends (Abendessen)';
+        else timeOfDay = 'nachts';
+
+        const seasons = ['Winter', 'Winter', 'Frühling', 'Frühling', 'Frühling', 'Sommer', 'Sommer', 'Sommer', 'Herbst', 'Herbst', 'Herbst', 'Winter'];
+        const season = seasons[month];
+
+        // Build recipe summary for AI
+        const recipeSummary = recipes.map((r, idx) => {
+            const ingredients = r.ingredients?.map(i => i.name).join(', ') || '';
+            const tags = r.tags?.join(', ') || '';
+            return `[${idx}] "${r.name}" | Kategorie: ${r.category || 'keine'} | Zutaten: ${ingredients} | Tags: ${tags}`;
+        }).join('\n');
+
+        const prompt = `Du bist ein intelligenter Rezept-Such-Assistent. Analysiere die Suchanfrage und finde die passendsten Rezepte.
+
+SUCHANFRAGE: "${query}"
+
+KONTEXT:
+- Aktuelle Tageszeit: ${timeOfDay}
+- Aktuelle Jahreszeit: ${season}
+
+VERFÜGBARE REZEPTE:
+${recipeSummary}
+
+AUFGABE:
+Analysiere die Suchanfrage semantisch und finde die relevantesten Rezepte. Berücksichtige:
+1. Explizite Anforderungen (Zutaten, Kategorie, Ernährungsweise)
+2. Implizite Hinweise (z.B. "schnell" = wenig Zutaten/einfach, "leicht" = Salate/Gemüse, "deftig" = Fleisch/Eintöpfe)
+3. Tageszeit-Kontext (falls relevant für die Anfrage)
+4. Jahreszeit-Kontext (falls relevant für die Anfrage)
+5. Ähnlichkeiten auch ohne exakte Keyword-Treffer
+
+Antworte NUR mit einem JSON-Objekt in diesem Format:
+{
+  "matches": [
+    {"index": 0, "score": 95, "reason": "Kurze Begründung"},
+    {"index": 3, "score": 80, "reason": "Kurze Begründung"}
+  ],
+  "interpretation": "Kurze Zusammenfassung wie du die Anfrage verstanden hast"
+}
+
+REGELN:
+- Gib maximal 10 Matches zurück
+- Score von 0-100 (100 = perfekte Übereinstimmung)
+- Nur Rezepte mit Score >= 50 zurückgeben
+- Sortiere nach Score absteigend
+- Begründungen auf Deutsch, max 50 Zeichen
+- Falls keine passenden Rezepte: leeres matches-Array`;
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+
+        // Parse JSON from response
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error('Invalid AI response format');
+        }
+
+        const aiResult = JSON.parse(jsonMatch[0]);
+
+        // Map AI results back to actual recipes
+        const results = (aiResult.matches || [])
+            .filter(m => m.index >= 0 && m.index < recipes.length && m.score >= 50)
+            .map(m => ({
+                ...recipes[m.index],
+                _searchScore: m.score,
+                _searchReason: m.reason
+            }));
+
+        const duration = Date.now() - startTime;
+        logger.info('AI search completed', {
+            requestId: req.requestId,
+            query: query.substring(0, 100),
+            recipeCount: recipes.length,
+            matchCount: results.length,
+            duration,
+            interpretation: aiResult.interpretation
+        });
+
+        res.json({
+            results,
+            searchInfo: {
+                query,
+                matchCount: results.length,
+                aiPowered: true,
+                interpretation: aiResult.interpretation,
+                duration
+            }
+        });
+
+    } catch (error) {
+        logger.error('AI search error, falling back to classic search', {
+            requestId: req.requestId,
+            error: error.message,
+            query: query.substring(0, 100)
+        });
+
+        // Fallback to classic search on error
+        const classicResults = classicSearch(query, recipes);
+        res.json({
+            results: classicResults,
+            searchInfo: {
+                query,
+                matchCount: classicResults.length,
+                aiPowered: false,
+                fallbackReason: error.message
+            }
+        });
+    }
+});
+
+// Classic keyword-based search (fallback)
+function classicSearch(query, recipes) {
+    const searchTerms = query.toLowerCase().trim().split(/\s+/);
+
+    return recipes
+        .map(recipe => {
+            let score = 0;
+            const name = (recipe.name || '').toLowerCase();
+            const category = (recipe.category || '').toLowerCase();
+            const ingredients = (recipe.ingredients || []).map(i => i.name.toLowerCase());
+            const tags = (recipe.tags || []).map(t => t.toLowerCase());
+
+            for (const term of searchTerms) {
+                // Name match (highest weight)
+                if (name.includes(term)) score += 30;
+                // Category match
+                if (category.includes(term)) score += 20;
+                // Ingredient match
+                if (ingredients.some(i => i.includes(term))) score += 15;
+                // Tag match
+                if (tags.some(t => t.includes(term))) score += 10;
+            }
+
+            return { ...recipe, _searchScore: score };
+        })
+        .filter(r => r._searchScore > 0)
+        .sort((a, b) => b._searchScore - a._searchScore)
+        .slice(0, 10);
+}
+
 // Allowlist of trusted recipe domains to prevent SSRF attacks
 const ALLOWED_RECIPE_DOMAINS = [
     'chefkoch.de',
