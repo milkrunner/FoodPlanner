@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/milkrunner/FoodPlanner/compare/v1.5.0...v1.5.1) (2026-01-09)
+
+
+### Bug Fixes
+
+* update Dockerfile to remove dependency reuse and streamline npm installation ([#120](https://github.com/milkrunner/FoodPlanner/issues/120)) ([cdd26de](https://github.com/milkrunner/FoodPlanner/commit/cdd26de6a064bf8b1cce3eae2a6aee8736cc66ae))
+
 ## [1.5.0](https://github.com/milkrunner/FoodPlanner/compare/v1.4.0...v1.5.0) (2026-01-09)
 
 
