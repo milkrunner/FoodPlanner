@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/milkrunner/FoodPlanner/compare/v1.5.1...v1.6.0) (2026-01-09)
+
+
+### Features
+
+* add onboarding tour and accessibility improvements ([#122](https://github.com/milkrunner/FoodPlanner/issues/122)) ([3e30ec9](https://github.com/milkrunner/FoodPlanner/commit/3e30ec93008c436e4a69971eed7f30dfa2508a8a))
+
 ## [1.5.1](https://github.com/milkrunner/FoodPlanner/compare/v1.5.0...v1.5.1) (2026-01-09)
 
 
