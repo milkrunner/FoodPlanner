@@ -349,10 +349,13 @@ const Toast = {
         if (type === 'success') bgColor = 'bg-green-600 dark:bg-green-700';
         if (type === 'error') bgColor = 'bg-red-600 dark:bg-red-700';
 
-        // Create toast
+        // Create toast with ARIA live region for accessibility
         const toast = document.createElement('div');
         toast.id = 'toast-notification';
         toast.className = `fixed bottom-4 right-4 ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-4 z-50 animate-slide-up`;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'polite');
+        toast.setAttribute('aria-atomic', 'true');
 
         // Create message span with safe text content
         const messageSpan = document.createElement('span');
@@ -433,6 +436,253 @@ const ActionHistory = {
 
     clear() {
         this.history = [];
+    }
+};
+
+// Onboarding Tour Manager
+const OnboardingManager = {
+    STORAGE_KEY: 'foodplanner_onboarding',
+    currentStep: 0,
+    isActive: false,
+
+    steps: [
+        {
+            target: null, // Welcome modal, no target
+            title: 'Willkommen beim FoodPlanner!',
+            content: 'Entdecke, wie du deine Mahlzeiten einfach planen kannst. Diese kurze Tour zeigt dir die wichtigsten Funktionen.',
+            position: 'center'
+        },
+        {
+            target: '[data-nav="planner"]',
+            title: 'Wochenplaner',
+            content: 'Plane deine Mahlzeiten für die ganze Woche. Ziehe Rezepte einfach in die gewünschten Tage oder lass dir von der KI einen Plan erstellen.',
+            position: 'bottom'
+        },
+        {
+            target: '[data-nav="recipes"]',
+            title: 'Rezeptsammlung',
+            content: 'Hier findest du alle deine Rezepte. Du kannst neue hinzufügen, suchen und nach Zeit, Schwierigkeit oder Saison filtern.',
+            position: 'bottom'
+        },
+        {
+            target: '[data-nav="shopping"]',
+            title: 'Einkaufsliste',
+            content: 'Die Einkaufsliste wird automatisch aus deinem Wochenplan erstellt. Praktisch beim Einkaufen!',
+            position: 'bottom'
+        },
+        {
+            target: null,
+            title: 'Bereit zum Starten!',
+            content: 'Du kennst jetzt die Grundlagen. Erstelle dein erstes Rezept oder erkunde die App auf eigene Faust. Tipp: Mit Strg+Z kannst du Aktionen rückgängig machen!',
+            position: 'center'
+        }
+    ],
+
+    init() {
+        const status = this.getStatus();
+        if (!status.completed && !status.skipped) {
+            // First visit - show onboarding after a short delay
+            setTimeout(() => this.start(), 500);
+        }
+    },
+
+    getStatus() {
+        try {
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            return stored ? JSON.parse(stored) : { completed: false, skipped: false };
+        } catch {
+            return { completed: false, skipped: false };
+        }
+    },
+
+    saveStatus(status) {
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(status));
+        } catch (e) {
+            console.warn('Could not save onboarding status:', e);
+        }
+    },
+
+    start() {
+        this.currentStep = 0;
+        this.isActive = true;
+        this.showStep();
+    },
+
+    restart() {
+        this.saveStatus({ completed: false, skipped: false });
+        this.start();
+    },
+
+    showStep() {
+        // Remove existing overlay
+        this.removeOverlay();
+
+        const step = this.steps[this.currentStep];
+        if (!step) {
+            this.complete();
+            return;
+        }
+
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'onboarding-overlay';
+        overlay.className = 'fixed inset-0 z-[9999] transition-opacity';
+        overlay.innerHTML = `
+            <div class="absolute inset-0 bg-black/60"></div>
+            <div id="onboarding-spotlight" class="absolute rounded-lg transition-all duration-300" style="box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);"></div>
+            <div id="onboarding-tooltip" class="absolute bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm z-10 transform transition-all duration-300">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">${step.title}</h3>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">${this.currentStep + 1}/${this.steps.length}</span>
+                </div>
+                <p class="text-gray-600 dark:text-gray-300 mb-6">${step.content}</p>
+                <div class="flex items-center justify-between">
+                    <button id="onboarding-skip" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                        Tour überspringen
+                    </button>
+                    <div class="flex gap-2">
+                        ${this.currentStep > 0 ? `
+                            <button id="onboarding-prev" class="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                                Zurück
+                            </button>
+                        ` : ''}
+                        <button id="onboarding-next" class="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                            ${this.currentStep === this.steps.length - 1 ? 'Fertig' : 'Weiter'}
+                        </button>
+                    </div>
+                </div>
+                <div class="flex justify-center gap-1 mt-4">
+                    ${this.steps.map((_, i) => `
+                        <div class="w-2 h-2 rounded-full transition-colors ${i === this.currentStep ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}"></div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        // Position elements
+        this.positionTooltip(step);
+
+        // Attach event listeners
+        document.getElementById('onboarding-skip')?.addEventListener('click', () => this.skip());
+        document.getElementById('onboarding-prev')?.addEventListener('click', () => this.prev());
+        document.getElementById('onboarding-next')?.addEventListener('click', () => this.next());
+
+        // Close on escape
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                this.skip();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    },
+
+    positionTooltip(step) {
+        const tooltip = document.getElementById('onboarding-tooltip');
+        const spotlight = document.getElementById('onboarding-spotlight');
+        if (!tooltip || !spotlight) return;
+
+        if (!step.target || step.position === 'center') {
+            // Center the tooltip
+            tooltip.style.top = '50%';
+            tooltip.style.left = '50%';
+            tooltip.style.transform = 'translate(-50%, -50%)';
+            spotlight.style.display = 'none';
+            return;
+        }
+
+        const targetEl = document.querySelector(step.target);
+        if (!targetEl) {
+            // Target not found, center the tooltip
+            tooltip.style.top = '50%';
+            tooltip.style.left = '50%';
+            tooltip.style.transform = 'translate(-50%, -50%)';
+            spotlight.style.display = 'none';
+            return;
+        }
+
+        const rect = targetEl.getBoundingClientRect();
+        const padding = 8;
+
+        // Position spotlight around target
+        spotlight.style.display = 'block';
+        spotlight.style.top = `${rect.top - padding}px`;
+        spotlight.style.left = `${rect.left - padding}px`;
+        spotlight.style.width = `${rect.width + padding * 2}px`;
+        spotlight.style.height = `${rect.height + padding * 2}px`;
+        spotlight.style.boxShadow = '0 0 0 9999px rgba(0,0,0,0.6)';
+
+        // Position tooltip
+        const tooltipRect = tooltip.getBoundingClientRect();
+        let top, left;
+
+        switch (step.position) {
+            case 'bottom':
+                top = rect.bottom + 16;
+                left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+                break;
+            case 'top':
+                top = rect.top - tooltipRect.height - 16;
+                left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+                break;
+            case 'left':
+                top = rect.top + rect.height / 2 - tooltipRect.height / 2;
+                left = rect.left - tooltipRect.width - 16;
+                break;
+            case 'right':
+                top = rect.top + rect.height / 2 - tooltipRect.height / 2;
+                left = rect.right + 16;
+                break;
+            default:
+                top = rect.bottom + 16;
+                left = rect.left;
+        }
+
+        // Keep tooltip in viewport
+        left = Math.max(16, Math.min(left, window.innerWidth - tooltipRect.width - 16));
+        top = Math.max(16, Math.min(top, window.innerHeight - tooltipRect.height - 16));
+
+        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${left}px`;
+        tooltip.style.transform = 'none';
+    },
+
+    next() {
+        if (this.currentStep < this.steps.length - 1) {
+            this.currentStep++;
+            this.showStep();
+        } else {
+            this.complete();
+        }
+    },
+
+    prev() {
+        if (this.currentStep > 0) {
+            this.currentStep--;
+            this.showStep();
+        }
+    },
+
+    skip() {
+        this.saveStatus({ completed: false, skipped: true });
+        this.removeOverlay();
+        this.isActive = false;
+        Toast.show('Tour übersprungen. Du kannst sie jederzeit im Menü neu starten.');
+    },
+
+    complete() {
+        this.saveStatus({ completed: true, skipped: false });
+        this.removeOverlay();
+        this.isActive = false;
+        Toast.success('Tour abgeschlossen! Viel Spaß mit dem FoodPlanner.');
+    },
+
+    removeOverlay() {
+        const overlay = document.getElementById('onboarding-overlay');
+        if (overlay) overlay.remove();
     }
 };
 
@@ -1234,14 +1484,46 @@ const App = {
         this.render();
         this.setupKeyboardShortcuts();
         this.setupMobileFeatures();
+        // Initialize onboarding tour for new users
+        OnboardingManager.init();
     },
 
     setupKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
+            // Don't handle shortcuts when typing in inputs
+            if (e.target.matches('input, textarea, select')) return;
+
             // Ctrl+Z or Cmd+Z for undo
             if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
                 e.preventDefault();
                 ActionHistory.undo();
+                return;
+            }
+
+            // Number keys 1-6 for view navigation (without modifiers)
+            if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+                const views = ['planner', 'recipes', 'ai-recipes', 'parser', 'shopping', 'history'];
+                const keyNum = parseInt(e.key);
+                if (keyNum >= 1 && keyNum <= views.length) {
+                    e.preventDefault();
+                    AppState.setView(views[keyNum - 1]);
+                    return;
+                }
+            }
+
+            // Escape key to close modals
+            if (e.key === 'Escape') {
+                // Close recipe detail
+                if (RecipeDatabaseView.viewingRecipe) {
+                    RecipeDatabaseView.closeRecipeDetail();
+                    return;
+                }
+                // Close recipe form
+                const recipeFormModal = document.getElementById('recipe-form-modal');
+                if (recipeFormModal?.classList.contains('active')) {
+                    RecipeDatabaseView.hideRecipeForm();
+                    return;
+                }
             }
         });
     },
@@ -1297,7 +1579,7 @@ const App = {
             ${this.renderHeader()}
             ${this.renderMobileNavigation()}
             ${this.renderNavigation()}
-            <main class="container mx-auto px-4 py-4 sm:py-6 pb-safe">
+            <main id="main-content" class="container mx-auto px-4 py-4 sm:py-6 pb-safe" role="main" aria-label="Hauptinhalt">
                 ${this.renderCurrentView()}
             </main>
         `;
@@ -1364,7 +1646,7 @@ const App = {
         const moonIconClass = isDark ? '' : 'hidden';
 
         return `
-            <header class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-200 sticky top-0 z-30">
+            <header class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-200 sticky top-0 z-30" role="banner">
                 <div class="container mx-auto px-4 py-3 sm:py-4">
                     <div class="flex justify-between items-center">
                         <div class="flex items-center gap-3">
@@ -1379,12 +1661,19 @@ const App = {
                                 <p class="text-xs sm:text-base text-gray-600 dark:text-gray-300 hidden sm:block">Dein persönlicher Essenswochenplaner</p>
                             </div>
                         </div>
-                        <button id="dark-mode-toggle" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Dark Mode umschalten">
-                            <svg class="w-6 h-6 text-gray-800 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path class="${sunIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                                <path class="${moonIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-                            </svg>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button id="restart-tour-btn" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Tour neu starten" aria-label="Einführungstour neu starten">
+                                <svg class="w-6 h-6 text-gray-800 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </button>
+                            <button id="dark-mode-toggle" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Dark Mode umschalten">
+                                <svg class="w-6 h-6 text-gray-800 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path class="${sunIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                    <path class="${moonIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -1447,10 +1736,10 @@ const App = {
 
         // Desktop navigation (hidden on mobile)
         return `
-            <nav class="hidden sm:block bg-white dark:bg-gray-800 border-b dark:border-gray-700 transition-colors duration-200 overflow-x-auto">
+            <nav class="hidden sm:block bg-white dark:bg-gray-800 border-b dark:border-gray-700 transition-colors duration-200 overflow-x-auto" role="navigation" aria-label="Hauptnavigation">
                 <div class="container mx-auto px-4">
-                    <div class="flex space-x-1 min-w-max">
-                        ${tabs.map(tab => `
+                    <div class="flex space-x-1 min-w-max" role="tablist" aria-label="Ansichten">
+                        ${tabs.map((tab, index) => `
                             <button
                                 class="nav-btn px-3 md:px-6 py-3 font-medium transition-colors whitespace-nowrap text-sm md:text-base ${
                                     AppState.currentView === tab.id
@@ -1458,6 +1747,12 @@ const App = {
                                         : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
                                 }"
                                 data-view="${tab.id}"
+                                data-nav="${tab.id}"
+                                role="tab"
+                                aria-selected="${AppState.currentView === tab.id}"
+                                aria-controls="main-content"
+                                tabindex="${AppState.currentView === tab.id ? '0' : '-1'}"
+                                title="Taste ${index + 1} für Schnellzugriff"
                             >
                                 <span class="hidden md:inline">${tab.label}</span>
                                 <span class="md:hidden">${tab.shortLabel}</span>
@@ -1495,6 +1790,14 @@ const App = {
             darkModeToggle.addEventListener('click', () => {
                 DarkMode.toggle();
                 App.render();
+            });
+        }
+
+        // Restart onboarding tour
+        const restartTourBtn = document.getElementById('restart-tour-btn');
+        if (restartTourBtn) {
+            restartTourBtn.addEventListener('click', () => {
+                OnboardingManager.restart();
             });
         }
 
@@ -2589,12 +2892,38 @@ const WeekPlannerView = {
     },
 
     async removeMeal(dayIndex, mealType) {
+        // Save meal data for undo
+        const removedMeal = AppState.weekPlan.days[dayIndex].meals[mealType];
+        const dayName = AppState.weekPlan.days[dayIndex].dayName;
+        const mealName = removedMeal?.recipeName || removedMeal?.recipe_name || 'Mahlzeit';
+        const weekId = DateUtils.getWeekId(AppState.currentWeekStart);
+
         delete AppState.weekPlan.days[dayIndex].meals[mealType];
         await StorageService.saveWeekPlan(AppState.weekPlan);
         // Update cache
-        const weekId = DateUtils.getWeekId(AppState.currentWeekStart);
         AppState.weekPlansCache[weekId] = AppState.weekPlan;
         App.render();
+
+        // Define undo function
+        const undoRemove = async () => {
+            AppState.weekPlan.days[dayIndex].meals[mealType] = removedMeal;
+            await StorageService.saveWeekPlan(AppState.weekPlan);
+            AppState.weekPlansCache[weekId] = AppState.weekPlan;
+            App.render();
+            Toast.success(`"${mealName}" wiederhergestellt`);
+        };
+
+        // Add to action history for Ctrl+Z
+        ActionHistory.addAction({
+            undo: undoRemove,
+            undoMessage: `"${mealName}" wiederhergestellt`
+        });
+
+        // Show toast with undo option
+        Toast.show(`"${mealName}" aus ${dayName} entfernt`, {
+            showUndo: true,
+            onUndo: undoRemove
+        });
     },
 
     async markRecipeAsCooked(recipeId, recipeName) {
@@ -2940,6 +3269,8 @@ const RecipeDatabaseView = {
     searchQuery: '',
     showFavoritesOnly: false,
     showSeasonalOnly: false, // Filter for seasonal recipes
+    maxTimeFilter: null, // Filter for max total time (prep + cook)
+    difficultyFilter: null, // Filter for difficulty level
     seasonalData: null, // Cache for seasonal recipe data
     currentSeasonInfo: null, // Current season info
     selectedTags: [],
@@ -3158,6 +3489,7 @@ const RecipeDatabaseView = {
                                     value="${this.searchQuery}"
                                     placeholder="${this.aiSearchActive ? 'z.B. \"Etwas Leichtes für heute Abend\" oder \"Was kann ich mit Tomaten machen?\"' : 'Rezepte durchsuchen...'}"
                                     class="w-full px-4 py-3 sm:py-2 pl-10 ${this.searchQuery && !this.aiSearchActive ? 'pr-10' : ''} border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-base"
+                                    aria-label="Rezepte durchsuchen"
                                 />
                                 <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -3241,6 +3573,22 @@ const RecipeDatabaseView = {
                                     <span class="sm:hidden">${seasonalCount}</span>
                                 </button>
                             ` : ''}
+                            <div class="relative">
+                                <select id="time-filter" class="px-3 py-2 rounded-lg border bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nach Zeit filtern">
+                                    <option value="">Zeit</option>
+                                    <option value="15" ${this.maxTimeFilter === 15 ? 'selected' : ''}>Unter 15 Min.</option>
+                                    <option value="30" ${this.maxTimeFilter === 30 ? 'selected' : ''}>Unter 30 Min.</option>
+                                    <option value="60" ${this.maxTimeFilter === 60 ? 'selected' : ''}>Unter 1 Stunde</option>
+                                </select>
+                            </div>
+                            <div class="relative">
+                                <select id="difficulty-filter" class="px-3 py-2 rounded-lg border bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nach Schwierigkeit filtern">
+                                    <option value="">Schwierigkeit</option>
+                                    <option value="Einfach" ${this.difficultyFilter === 'Einfach' ? 'selected' : ''}>Einfach</option>
+                                    <option value="Mittel" ${this.difficultyFilter === 'Mittel' ? 'selected' : ''}>Mittel</option>
+                                    <option value="Fortgeschritten" ${this.difficultyFilter === 'Fortgeschritten' ? 'selected' : ''}>Fortgeschritten</option>
+                                </select>
+                            </div>
                             <span class="ml-auto text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
                                 ${filteredRecipes.length} von ${AppState.recipes.length} Rezepte
                             </span>
@@ -3318,7 +3666,25 @@ const RecipeDatabaseView = {
                                         ${recipe._searchScore ? `<span class="ml-auto text-xs font-medium text-purple-600 dark:text-purple-400">${recipe._searchScore}%</span>` : ''}
                                     </div>
                                 ` : ''}
-                                <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                <div class="flex items-center flex-wrap gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                    ${recipe.prep_time || recipe.cook_time ? `
+                                        <span class="inline-flex items-center gap-1">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            ${(recipe.prep_time || 0) + (recipe.cook_time || 0)} Min.
+                                        </span>
+                                        <span>•</span>
+                                    ` : ''}
+                                    ${recipe.difficulty ? `
+                                        <span class="inline-flex items-center gap-1">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                            </svg>
+                                            ${recipe.difficulty}
+                                        </span>
+                                        <span>•</span>
+                                    ` : ''}
                                     ${recipe.servings ? `<span>${recipe.servings} Portionen</span><span>•</span>` : ''}
                                     <span>${recipe.ingredients.length} Zutat${recipe.ingredients.length !== 1 ? 'en' : ''}</span>
                                 </div>
@@ -3432,13 +3798,13 @@ const RecipeDatabaseView = {
         });
 
         return `
-            <div id="recipe-detail-modal" class="modal active" data-backdrop="true">
+            <div id="recipe-detail-modal" class="modal active" data-backdrop="true" role="dialog" aria-modal="true" aria-labelledby="recipe-detail-title">
                 <div id="recipe-detail-content" class="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
                     <!-- Header -->
                     <div class="p-4 sm:p-6 border-b dark:border-gray-700 bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
-                                <h2 class="text-xl sm:text-2xl font-bold text-white mb-2">${recipe.name}</h2>
+                                <h2 id="recipe-detail-title" class="text-xl sm:text-2xl font-bold text-white mb-2">${recipe.name}</h2>
                                 <div class="flex flex-wrap gap-2">
                                     ${recipe.category ? `
                                         <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full">
@@ -3448,6 +3814,22 @@ const RecipeDatabaseView = {
                                     ${recipe.servings ? `
                                         <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full">
                                             ${recipe.servings} Portionen
+                                        </span>
+                                    ` : ''}
+                                    ${recipe.prep_time || recipe.cook_time ? `
+                                        <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full inline-flex items-center gap-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            ${recipe.prep_time ? `${recipe.prep_time} Min. Vorbereitung` : ''}${recipe.prep_time && recipe.cook_time ? ' + ' : ''}${recipe.cook_time ? `${recipe.cook_time} Min. Kochen` : ''}
+                                        </span>
+                                    ` : ''}
+                                    ${recipe.difficulty ? `
+                                        <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full inline-flex items-center gap-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                            </svg>
+                                            ${recipe.difficulty}
                                         </span>
                                     ` : ''}
                                     ${lastCookedText ? `
@@ -3586,10 +3968,10 @@ const RecipeDatabaseView = {
 
     renderRecipeForm() {
         return `
-            <div id="recipe-form-modal" class="modal">
+            <div id="recipe-form-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="recipe-form-title">
                 <div class="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden">
                     <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">
+                        <h3 id="recipe-form-title" class="text-xl font-semibold text-gray-800 dark:text-white">
                             ${this.editingRecipe ? 'Rezept bearbeiten' : 'Neues Rezept'}
                         </h3>
                         <button id="close-recipe-form" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
@@ -3614,6 +3996,29 @@ const RecipeDatabaseView = {
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Portionen</label>
                                     <input type="number" id="recipe-servings" min="1"
                                            class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                </div>
+                            </div>
+
+                            <div class="grid md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vorbereitungszeit (Min.)</label>
+                                    <input type="number" id="recipe-prep-time" min="0" placeholder="z.B. 15"
+                                           class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kochzeit (Min.)</label>
+                                    <input type="number" id="recipe-cook-time" min="0" placeholder="z.B. 30"
+                                           class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Schwierigkeit</label>
+                                    <select id="recipe-difficulty"
+                                            class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                        <option value="">-- Auswählen --</option>
+                                        <option value="Einfach">Einfach</option>
+                                        <option value="Mittel">Mittel</option>
+                                        <option value="Fortgeschritten">Fortgeschritten</option>
+                                    </select>
                                 </div>
                             </div>
 
@@ -3762,6 +4167,25 @@ const RecipeDatabaseView = {
             seasonalFilterBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.showSeasonalOnly = !this.showSeasonalOnly;
+                App.render();
+            });
+        }
+
+        // Time filter
+        const timeFilter = document.getElementById('time-filter');
+        if (timeFilter) {
+            timeFilter.addEventListener('change', (e) => {
+                const value = e.target.value;
+                this.maxTimeFilter = value ? parseInt(value) : null;
+                App.render();
+            });
+        }
+
+        // Difficulty filter
+        const difficultyFilter = document.getElementById('difficulty-filter');
+        if (difficultyFilter) {
+            difficultyFilter.addEventListener('change', (e) => {
+                this.difficultyFilter = e.target.value || null;
                 App.render();
             });
         }
@@ -4008,6 +4432,24 @@ const RecipeDatabaseView = {
     },
 
     filterRecipes() {
+        // Helper function to apply time and difficulty filters
+        const applyTimeAndDifficultyFilters = (recipes) => {
+            // Filter by max total time
+            if (this.maxTimeFilter) {
+                recipes = recipes.filter(recipe => {
+                    const totalTime = (recipe.prep_time || 0) + (recipe.cook_time || 0);
+                    return totalTime > 0 && totalTime <= this.maxTimeFilter;
+                });
+            }
+
+            // Filter by difficulty
+            if (this.difficultyFilter) {
+                recipes = recipes.filter(recipe => recipe.difficulty === this.difficultyFilter);
+            }
+
+            return recipes;
+        };
+
         // If we have AI search results, use those
         if (this.aiSearchActive && this.aiSearchResults && this.aiSearchResults.length > 0) {
             let recipes = this.aiSearchResults;
@@ -4021,7 +4463,7 @@ const RecipeDatabaseView = {
                 recipes = recipes.filter(recipe => seasonalIds.has(recipe.id));
             }
 
-            return recipes;
+            return applyTimeAndDifficultyFilters(recipes);
         }
 
         let recipes = AppState.recipes;
@@ -4035,6 +4477,9 @@ const RecipeDatabaseView = {
             const seasonalIds = this.getSeasonalRecipeIds();
             recipes = recipes.filter(recipe => seasonalIds.has(recipe.id));
         }
+
+        // Apply time and difficulty filters
+        recipes = applyTimeAndDifficultyFilters(recipes);
 
         // Don't filter by keyword when AI search is active (waiting for user to click search)
         if (this.aiSearchActive || !this.searchQuery.trim()) {
@@ -4315,6 +4760,9 @@ const RecipeDatabaseView = {
             document.getElementById('recipe-category').value = recipe.category || '';
             document.getElementById('recipe-servings').value = recipe.servings || '';
             document.getElementById('recipe-instructions').value = recipe.instructions || '';
+            document.getElementById('recipe-prep-time').value = recipe.prep_time || '';
+            document.getElementById('recipe-cook-time').value = recipe.cook_time || '';
+            document.getElementById('recipe-difficulty').value = recipe.difficulty || '';
         }
 
         // Attach all form event listeners after render
@@ -4450,15 +4898,24 @@ const RecipeDatabaseView = {
             await AppState.reloadData();
             App.render();
 
+            // Define undo function
+            const undoDelete = async () => {
+                await StorageService.addRecipe(recipe);
+                await AppState.reloadData();
+                App.render();
+                Toast.success(`Rezept "${recipe.name}" wiederhergestellt`);
+            };
+
+            // Add to action history for Ctrl+Z
+            ActionHistory.addAction({
+                undo: undoDelete,
+                undoMessage: `Rezept "${recipe.name}" wiederhergestellt`
+            });
+
             // Show toast with undo option
             Toast.show(`Rezept "${recipe.name}" gelöscht`, {
                 showUndo: true,
-                onUndo: async () => {
-                    await StorageService.addRecipe(recipe);
-                    await AppState.reloadData();
-                    App.render();
-                    Toast.show(`Rezept "${recipe.name}" wiederhergestellt`);
-                }
+                onUndo: undoDelete
             });
         }
     },
@@ -4832,6 +5289,9 @@ const RecipeDatabaseView = {
         const category = document.getElementById('recipe-category').value.trim();
         const servings = document.getElementById('recipe-servings').value;
         const instructions = document.getElementById('recipe-instructions').value.trim();
+        const prepTime = document.getElementById('recipe-prep-time')?.value;
+        const cookTime = document.getElementById('recipe-cook-time')?.value;
+        const difficulty = document.getElementById('recipe-difficulty')?.value;
 
         if (!name) {
             Toast.error('Bitte gib einen Rezeptnamen ein.');
@@ -4848,7 +5308,10 @@ const RecipeDatabaseView = {
             instructions: instructions || undefined,
             ingredients: validIngredients,
             tags: this.tags,
-            is_favorite: this.editingRecipe?.is_favorite ?? false
+            is_favorite: this.editingRecipe?.is_favorite ?? false,
+            prep_time: prepTime ? parseInt(prepTime) : undefined,
+            cook_time: cookTime ? parseInt(cookTime) : undefined,
+            difficulty: difficulty || undefined
         };
 
         if (this.editingRecipe) {
