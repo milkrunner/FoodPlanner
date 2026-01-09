@@ -198,6 +198,9 @@ app.get('/recipes', async (req, res) => {
                 r.servings,
                 r.instructions,
                 r.is_favorite,
+                r.prep_time,
+                r.cook_time,
+                r.difficulty,
                 r.created_at,
                 r.updated_at,
                 COALESCE(
@@ -217,7 +220,7 @@ app.get('/recipes', async (req, res) => {
             LEFT JOIN ingredients i ON r.id = i.recipe_id
             LEFT JOIN recipe_tags t ON r.id = t.recipe_id
             ${favoritesOnly ? 'WHERE r.is_favorite = TRUE' : ''}
-            GROUP BY r.id, r.name, r.category, r.servings, r.instructions, r.is_favorite, r.created_at, r.updated_at
+            GROUP BY r.id, r.name, r.category, r.servings, r.instructions, r.is_favorite, r.prep_time, r.cook_time, r.difficulty, r.created_at, r.updated_at
             ORDER BY r.created_at DESC
             ${returnAll ? '' : 'LIMIT $1 OFFSET $2'}
         `;
@@ -274,6 +277,9 @@ app.get('/recipes/:id', async (req, res) => {
                 r.servings,
                 r.instructions,
                 r.is_favorite,
+                r.prep_time,
+                r.cook_time,
+                r.difficulty,
                 r.created_at,
                 r.updated_at,
                 COALESCE(
@@ -293,7 +299,7 @@ app.get('/recipes/:id', async (req, res) => {
             LEFT JOIN ingredients i ON r.id = i.recipe_id
             LEFT JOIN recipe_tags t ON r.id = t.recipe_id
             WHERE r.id = $1
-            GROUP BY r.id, r.name, r.category, r.servings, r.instructions, r.is_favorite, r.created_at, r.updated_at
+            GROUP BY r.id, r.name, r.category, r.servings, r.instructions, r.is_favorite, r.prep_time, r.cook_time, r.difficulty, r.created_at, r.updated_at
         `, [req.params.id]);
 
         const queryTime = Date.now() - startTime;
@@ -323,15 +329,15 @@ app.get('/recipes/:id', async (req, res) => {
 
 // Create recipe
 app.post('/recipes', async (req, res) => {
-    const { id, name, category, servings, instructions, ingredients, tags } = req.body;
+    const { id, name, category, servings, instructions, ingredients, tags, prep_time, cook_time, difficulty } = req.body;
     const favoriteValue = resolveFavoriteFlagFromBody(req.body, false);
 
     try {
         await db.transaction(async (client) => {
             // Insert recipe
             await client.query(
-                'INSERT INTO recipes (id, name, category, servings, instructions, is_favorite) VALUES ($1, $2, $3, $4, $5, $6)',
-                [id, name, category, servings, instructions, favoriteValue]
+                'INSERT INTO recipes (id, name, category, servings, instructions, is_favorite, prep_time, cook_time, difficulty) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+                [id, name, category, servings, instructions, favoriteValue, prep_time || null, cook_time || null, difficulty || null]
             );
 
             // Insert ingredients
@@ -364,7 +370,7 @@ app.post('/recipes', async (req, res) => {
 
 // Update recipe
 app.put('/recipes/:id', async (req, res) => {
-    const { name, category, servings, instructions, ingredients, tags } = req.body;
+    const { name, category, servings, instructions, ingredients, tags, prep_time, cook_time, difficulty } = req.body;
     const favoriteValue = resolveFavoriteFlagFromBody(req.body, null);
     let updatedFavorite = favoriteValue;
 
@@ -372,8 +378,8 @@ app.put('/recipes/:id', async (req, res) => {
         await db.transaction(async (client) => {
             // Update recipe
             const { rows: recipeRows } = await client.query(
-                'UPDATE recipes SET name = $1, category = $2, servings = $3, instructions = $4, is_favorite = COALESCE($5, is_favorite) WHERE id = $6 RETURNING is_favorite',
-                [name, category, servings, instructions, favoriteValue, req.params.id]
+                'UPDATE recipes SET name = $1, category = $2, servings = $3, instructions = $4, is_favorite = COALESCE($5, is_favorite), prep_time = $6, cook_time = $7, difficulty = $8 WHERE id = $9 RETURNING is_favorite',
+                [name, category, servings, instructions, favoriteValue, prep_time || null, cook_time || null, difficulty || null, req.params.id]
             );
             if (recipeRows[0]) {
                 updatedFavorite = recipeRows[0].is_favorite;
