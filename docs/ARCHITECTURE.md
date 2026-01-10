@@ -212,10 +212,19 @@ Strukturiertes Rezept
 
 ```yaml
 services:
-  frontend:     # nginx mit statischen Dateien
+  frontend:     # nginx mit statischen Dateien (alles im Image enthalten)
   backend:      # Node.js Express Server
   postgres:     # PostgreSQL Datenbank
 ```
+
+### Docker Images
+
+Die Images werden bei jedem Release in der GitHub Container Registry veröffentlicht:
+
+| Image | Inhalt |
+|-------|--------|
+| `ghcr.io/milkrunner/foodplanner/frontend` | nginx + statische Dateien (index.html, app.js, sw.js, manifest.json, icons/, nginx.conf) |
+| `ghcr.io/milkrunner/foodplanner/backend` | Node.js + Express API + yt-dlp |
 
 ### Volumes
 
@@ -228,6 +237,14 @@ services:
 Alle Services teilen ein Docker Bridge Network:
 - Frontend → Backend: `http://backend:3000`
 - Backend → PostgreSQL: `postgresql://postgres:5432`
+
+### Deployment
+
+Für Production brauchst du nur:
+1. `docker-compose.yml` - Container-Orchestrierung
+2. `.env` - Konfiguration (GEMINI_API_KEY, etc.)
+
+Alle anderen Dateien (Frontend, nginx.conf, etc.) sind bereits in den Docker Images enthalten.
 
 ## Sicherheit
 
@@ -328,19 +345,33 @@ docker-compose logs -f backend
 ### Entwicklung
 
 ```bash
-docker-compose up -d
+# Mit lokalen Dateien und Hot-Reload
+docker compose -f docker-compose.dev.yml up -d --build
 ```
 
 ### Produktion
 
-1. `.env` mit echten Werten konfigurieren
-2. HTTPS via Reverse Proxy (nginx, Traefik)
-3. Backup-Strategie für PostgreSQL
-4. Log-Aggregation einrichten
+Nur 2 Dateien nötig:
+
+```bash
+# 1. docker-compose.yml herunterladen
+curl -O https://raw.githubusercontent.com/milkrunner/FoodPlanner/main/docker-compose.yml
+
+# 2. .env erstellen
+echo "GEMINI_API_KEY=dein_key" > .env
+
+# 3. Starten
+docker compose up -d
+```
+
+Weitere Empfehlungen:
+- HTTPS via Reverse Proxy (nginx, Traefik, Caddy)
+- Backup-Strategie für PostgreSQL (`postgres-data` Volume)
+- Log-Aggregation einrichten
 
 ### CI/CD
 
 GitHub Actions Workflow für:
 - Automatische Releases (release-please)
-- Docker Image Build und Push
-- Release-Assets erstellen
+- Docker Image Build und Push zu ghcr.io
+- Release-Assets erstellen (docker-compose.yml + .env.example)
