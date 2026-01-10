@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
@@ -13,6 +15,7 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
@@ -26,12 +29,28 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   build-and-publish:
-    needs: release-please
-    if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
+    needs: release-please
+    if: |
+      always() &&
+      (needs.release-please.outputs.release_created == 'true' || startsWith(github.ref, 'refs/tags/v'))
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Extract version from tag or release-please
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION="${{ needs.release-please.outputs.version }}"
+            TAG_NAME="${{ needs.release-please.outputs.tag_name }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -49,8 +68,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}/backend
           tags: |
-            type=semver,pattern={{version}},value=${{ needs.release-please.outputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-please.outputs.version }}
+            type=semver,pattern={{version}},value=${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.version }}
             type=raw,value=latest
 
       - name: Extract metadata for frontend
@@ -59,8 +78,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}/frontend
           tags: |
-            type=semver,pattern={{version}},value=${{ needs.release-please.outputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-please.outputs.version }}
+            type=semver,pattern={{version}},value=${{ steps.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.version.outputs.version }}
             type=raw,value=latest
 
       - name: Build and push backend image
@@ -93,13 +112,13 @@ jobs:
 
           # Create archives
           cd release-assets
-          tar -czvf ../foodplanner-${{ needs.release-please.outputs.version }}.tar.gz .
-          zip -r ../foodplanner-${{ needs.release-please.outputs.version }}.zip .
+          tar -czvf ../foodplanner-${{ steps.version.outputs.version }}.tar.gz .
+          zip -r ../foodplanner-${{ steps.version.outputs.version }}.zip .
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.release-please.outputs.tag_name }}
+          tag_name: ${{ steps.version.outputs.tag_name }}
           files: |
-            foodplanner-${{ needs.release-please.outputs.version }}.tar.gz
-            foodplanner-${{ needs.release-please.outputs.version }}.zip
+            foodplanner-${{ steps.version.outputs.version }}.tar.gz
+            foodplanner-${{ steps.version.outputs.version }}.zip
