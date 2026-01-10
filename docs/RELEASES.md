@@ -1,135 +1,101 @@
 # Releases & Installation
 
-Diese Dokumentation erklärt, wie du FoodPlanner-Releases herunterlädst und installierst.
+Diese Dokumentation erklärt, wie du FoodPlanner installierst und aktualisierst.
 
-## Releases herunterladen
+## Schnellstart
 
-### GitHub Releases
+Du brauchst nur **2 Dateien** - `docker-compose.yml` und `.env`:
+
+```bash
+# 1. docker-compose.yml herunterladen
+curl -O https://raw.githubusercontent.com/milkrunner/FoodPlanner/main/docker-compose.yml
+
+# 2. .env erstellen
+echo "GEMINI_API_KEY=dein_api_key_hier" > .env
+
+# 3. Starten
+docker compose up -d
+```
+
+Fertig! Die App läuft unter http://localhost:5173.
+
+## Docker Images
+
+Docker Images werden automatisch bei jedem Release in der GitHub Container Registry veröffentlicht:
+
+```bash
+# Neueste Version
+docker pull ghcr.io/milkrunner/foodplanner/backend:latest
+docker pull ghcr.io/milkrunner/foodplanner/frontend:latest
+
+# Spezifische Version
+docker pull ghcr.io/milkrunner/foodplanner/backend:1.6.0
+docker pull ghcr.io/milkrunner/foodplanner/frontend:1.6.0
+```
+
+## Konfiguration
+
+Alle Konfiguration erfolgt über Umgebungsvariablen in der `.env` Datei:
+
+| Variable | Erforderlich | Standard | Beschreibung |
+|----------|--------------|----------|--------------|
+| `GEMINI_API_KEY` | Ja | - | [Google AI Studio API Key](https://aistudio.google.com/apikey) |
+| `DB_PASSWORD` | Nein | `foodplanner_secret` | PostgreSQL Passwort |
+| `VERSION` | Nein | `latest` | Docker Image Version |
+| `PORT` | Nein | `5173` | Port für die Web-Oberfläche |
+
+Beispiel `.env`:
+```dotenv
+GEMINI_API_KEY=your_api_key_here
+DB_PASSWORD=ein_sicheres_passwort
+VERSION=1.6.0
+PORT=8080
+```
+
+## Updates
+
+```bash
+# Neueste Images herunterladen und Container neu starten
+docker compose pull
+docker compose up -d
+```
+
+Für eine spezifische Version:
+```bash
+# In .env setzen
+VERSION=1.6.0
+
+# Dann
+docker compose up -d
+```
+
+## GitHub Releases
 
 Alle Releases findest du auf der [Releases-Seite](https://github.com/milkrunner/FoodPlanner/releases).
 
 Jedes Release enthält:
 - **Source Code** (zip/tar.gz) - Automatisch von GitHub generiert
-- **foodplanner-x.x.x.tar.gz** - Deployment-Paket (tar.gz)
-- **foodplanner-x.x.x.zip** - Deployment-Paket (zip)
+- **foodplanner-x.x.x.tar.gz** - Deployment-Paket mit `docker-compose.yml` und `.env.example`
+- **foodplanner-x.x.x.zip** - Gleiches Paket als ZIP
 
-### Docker Images
+## Alternative: Manuelle Installation
 
-Docker Images werden automatisch in der GitHub Container Registry veröffentlicht:
-
-```bash
-# Neueste Version
-docker pull ghcr.io/milkrunner/foodplanner/backend:latest
-
-# Spezifische Version
-docker pull ghcr.io/milkrunner/foodplanner/backend:1.0.0
-```
-
-## Installation
-
-### Option 1: Docker Compose (Empfohlen)
-
-1. **Release herunterladen und entpacken:**
-   ```bash
-   # Mit wget
-   wget https://github.com/milkrunner/FoodPlanner/releases/latest/download/foodplanner-x.x.x.tar.gz
-   tar -xzf foodplanner-x.x.x.tar.gz
-   cd foodplanner-x.x.x
-
-   # Oder mit curl
-   curl -LO https://github.com/milkrunner/FoodPlanner/releases/latest/download/foodplanner-x.x.x.zip
-   unzip foodplanner-x.x.x.zip
-   ```
-
-2. **Umgebungsvariablen konfigurieren:**
-   ```bash
-   cp .env.example .env
-   # Bearbeite .env und füge deinen GEMINI_API_KEY hinzu (optional für AI-Features)
-   ```
-
-3. **App starten:**
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **App aufrufen:**
-   Öffne http://localhost:5173 im Browser
-
-### Option 2: Direkt mit Docker Image
-
-```bash
-# Backend starten
-docker run -d \
-  --name foodplanner-backend \
-  -p 3000:3000 \
-  -v foodplanner-data:/app/data \
-  -e GEMINI_API_KEY=dein-key \
-  ghcr.io/milkrunner/foodplanner/backend:latest
-
-# Frontend mit nginx (oder anderem Webserver)
-# Lade die statischen Dateien (index.html, app.js, nginx.conf) vom Release
-```
-
-### Option 3: Manuelle Installation
+Falls du kein Docker verwenden möchtest:
 
 1. **Voraussetzungen:**
    - Node.js 18+
-   - npm
+   - PostgreSQL 16+
 
 2. **Backend installieren:**
    ```bash
    cd backend
    npm install
-   npm start
+   DATABASE_URL=postgresql://user:pass@localhost:5432/foodplanner npm start
    ```
 
 3. **Frontend bereitstellen:**
-   - Statische Dateien (`index.html`, `app.js`) mit einem Webserver deiner Wahl ausliefern
-   - Oder direkt `index.html` im Browser öffnen (localStorage-Modus)
-
-## Release Assets
-
-| Asset | Beschreibung |
-|-------|-------------|
-| `foodplanner-x.x.x.tar.gz` | Komplettes Deployment-Paket (Linux/Mac) |
-| `foodplanner-x.x.x.zip` | Komplettes Deployment-Paket (Windows) |
-| `Source code (zip)` | Vollständiger Quellcode |
-| `Source code (tar.gz)` | Vollständiger Quellcode |
-
-### Inhalt der Deployment-Pakete
-
-```
-foodplanner-x.x.x/
-├── docker-compose.yml   # Container-Orchestrierung
-├── .env.example         # Umgebungsvariablen-Template
-├── nginx.conf           # Nginx-Konfiguration
-├── index.html           # Frontend HTML
-├── app.js               # Frontend JavaScript
-└── backend/
-    ├── server.js        # Express API Server
-    ├── package.json     # Backend Dependencies
-    └── Dockerfile       # Backend Container
-```
-
-## Updates
-
-### Mit Docker Compose
-
-```bash
-# Neues Release herunterladen
-# Dann:
-docker-compose pull
-docker-compose up -d
-```
-
-### Mit Docker Image
-
-```bash
-docker pull ghcr.io/milkrunner/foodplanner/backend:latest
-docker stop foodplanner-backend
-docker rm foodplanner-backend
-# Container neu starten (siehe Option 2)
-```
+   - Statische Dateien (`index.html`, `app.js`, `sw.js`, `manifest.json`, `icons/`) mit einem Webserver ausliefern
+   - `nginx.conf` als Referenz für die Konfiguration nutzen
 
 ## Versionsschema
 
