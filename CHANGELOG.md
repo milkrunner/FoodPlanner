@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.6.1](https://github.com/milkrunner/FoodPlanner/compare/v1.6.0...v1.6.1) (2026-01-10)
+
+
+### Bug Fixes
+
+* simplify Docker deployment to require only docker-compose.yml and .env ([#124](https://github.com/milkrunner/FoodPlanner/issues/124)) ([0abe90d](https://github.com/milkrunner/FoodPlanner/commit/0abe90de4f3e143bdce659ae606e4c8f87f419fc))
+  * Frontend Docker image now includes all static files (nginx.conf, icons, etc.)
+  * No more volume mounts required for production deployment
+  * Updated documentation for simplified setup
+
 ## [1.6.0](https://github.com/milkrunner/FoodPlanner/compare/v1.5.1...v1.6.0) (2026-01-09)
 
 
