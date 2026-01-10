@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/milkrunner/FoodPlanner/compare/v2.0.1...v2.0.2) (2026-01-10)
+
+
+### Bug Fixes
+
+* use --omit=dev instead of deprecated --only=production in Dockerfile ([#131](https://github.com/milkrunner/FoodPlanner/issues/131)) ([33fdb00](https://github.com/milkrunner/FoodPlanner/commit/33fdb002725fe60788be1f065d0c691370ad5939))
+
 ## [2.0.1](https://github.com/milkrunner/FoodPlanner/compare/v2.0.0...v2.0.1) (2026-01-10)
 
 
