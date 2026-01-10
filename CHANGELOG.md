@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/milkrunner/FoodPlanner/compare/v2.0.0...v2.0.1) (2026-01-10)
+
+
+### Bug Fixes
+
+* remove CORS restrictions and CSP headers ([#129](https://github.com/milkrunner/FoodPlanner/issues/129)) ([729a8b4](https://github.com/milkrunner/FoodPlanner/commit/729a8b4c80bb02d2ebecc1a020f5707b2973e25d))
+
 ## [2.0.0](https://github.com/milkrunner/FoodPlanner/compare/v1.6.1...v2.0.0) (2026-01-10)
 
 
