@@ -86,10 +86,8 @@ jobs:
 
       - name: Create deployment archive
         run: |
-          # Create a minimal deployment package (only config files needed)
+          # Create a minimal deployment package (only docker-compose.yml and .env.example needed)
           mkdir -p release-assets
-
-          # Copy only the files needed for deployment
           cp docker-compose.yml release-assets/
           cp .env.example release-assets/
 

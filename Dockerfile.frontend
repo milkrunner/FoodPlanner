@@ -4,9 +4,14 @@ FROM nginx:alpine
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Copy static frontend files
+# Copy all static frontend files
 COPY index.html /usr/share/nginx/html/
 COPY app.js /usr/share/nginx/html/
+COPY sw.js /usr/share/nginx/html/
+COPY manifest.json /usr/share/nginx/html/
+
+# Copy PWA icons
+COPY icons/ /usr/share/nginx/html/icons/
 
 # Expose port
 EXPOSE 80
