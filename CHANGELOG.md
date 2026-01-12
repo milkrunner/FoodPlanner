@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/milkrunner/FoodPlanner/compare/v2.0.2...v2.0.3) (2026-01-10)
+
+
+### Bug Fixes
+
+* sync package-lock.json with package.json ([#133](https://github.com/milkrunner/FoodPlanner/issues/133)) ([bf734f2](https://github.com/milkrunner/FoodPlanner/commit/bf734f255f5b5fa9ee3390b7e96c6a2e5b3f9432))
+
 ## [2.0.2](https://github.com/milkrunner/FoodPlanner/compare/v2.0.1...v2.0.2) (2026-01-10)
 
 
