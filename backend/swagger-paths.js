@@ -94,6 +94,14 @@
  *             category: "Hauptgericht"
  *             servings: 4
  *             is_favorite: true
+ *             prep_time: 10
+ *             cook_time: 20
+ *             difficulty: "Einfach"
+ *             is_meal_prep_suitable: true
+ *             meal_prep_fridge_days: 3
+ *             meal_prep_freezer_days: 30
+ *             meal_prep_reheat_tips: "Im Topf bei mittlerer Hitze mit etwas Wasser erwärmen."
+ *             meal_prep_batch_notes: "Sauce getrennt aufbewahren, Pasta vor Portionierung al dente kochen."
  *             ingredients:
  *               - name: "Spaghetti"
  *                 amount: "400"
@@ -1166,6 +1174,297 @@
  *             example:
  *               error: "Die KI-Antwort konnte nicht verarbeitet werden. Bitte versuche es erneut."
  *               details: "JSON parsing failed"
+ *       503:
+ *         description: KI-Service nicht konfiguriert
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+
+/**
+ * @swagger
+ * /ai/meal-prep-suggestions:
+ *   post:
+ *     summary: KI-gestützte Meal-Prep Sessions und Einkaufsvorschläge
+ *     tags: [AI]
+ *     description: |
+ *       Erstellt strukturierte Meal-Prep Sessions inklusive Zeitplan, Parallelisierungs-Tipps
+ *       und gruppierten Einkaufsblöcken für vorhandene Meal-Prep geeignete Rezepte.
+ *
+ *       **Rate Limit:** 20 Anfragen / 15 Minuten
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [recipes]
+ *             properties:
+ *               prepDay:
+ *                 type: string
+ *                 description: Beschreibung oder Datum des geplanten Meal-Prep Tags
+ *                 example: "Sonntag Vormittag"
+ *               recipes:
+ *                 type: array
+ *                 description: Liste der Meal-Prep geeigneten Rezepte mit Metadaten
+ *                 minItems: 1
+ *                 items:
+ *                   type: object
+ *                   required: [id, name]
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       description: Rezept-ID
+ *                       example: "recipe-123"
+ *                     name:
+ *                       type: string
+ *                       example: "Gemüse Curry"
+ *                     category:
+ *                       type: string
+ *                       example: "Hauptgericht"
+ *                     servings:
+ *                       type: integer
+ *                       example: 4
+ *                     prep_time:
+ *                       type: integer
+ *                       description: Vorbereitung in Minuten
+ *                       example: 15
+ *                     cook_time:
+ *                       type: integer
+ *                       description: Kochzeit in Minuten
+ *                       example: 25
+ *                     difficulty:
+ *                       type: string
+ *                       example: "Einfach"
+ *                     is_meal_prep_suitable:
+ *                       type: boolean
+ *                       example: true
+ *                     meal_prep_fridge_days:
+ *                       type: integer
+ *                       example: 3
+ *                     meal_prep_freezer_days:
+ *                       type: integer
+ *                       example: 30
+ *                     meal_prep_reheat_tips:
+ *                       type: string
+ *                       example: "Im Topf mit etwas Kokosmilch erwärmen."
+ *                     meal_prep_batch_notes:
+ *                       type: string
+ *                       example: "Gemüse separat blanchieren, dann zusammenführen."
+ *                     targetPortions:
+ *                       type: integer
+ *                       description: Gewünschte Portionen für die Meal-Prep Session
+ *                       example: 6
+ *                     targetDates:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                         format: date
+ *                       example: ["2024-01-15", "2024-01-17"]
+ *                     mealTypes:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["Mittagessen"]
+ *           examples:
+ *             mealPrepPlanung:
+ *               summary: Meal-Prep für zwei Rezepte
+ *               value:
+ *                 prepDay: "Sonntag"
+ *                 recipes:
+ *                   - id: "recipe-123"
+ *                     name: "Gemüse Curry"
+ *                     servings: 4
+ *                     prep_time: 15
+ *                     cook_time: 25
+ *                     difficulty: "Einfach"
+ *                     is_meal_prep_suitable: true
+ *                     meal_prep_fridge_days: 3
+ *                     meal_prep_reheat_tips: "Im Topf mit etwas Kokosmilch erwärmen."
+ *                     targetPortions: 6
+ *                     targetDates: ["2024-01-15", "2024-01-17"]
+ *                     mealTypes: ["Mittagessen"]
+ *                   - id: "recipe-456"
+ *                     name: "Ofen Lachs"
+ *                     servings: 2
+ *                     prep_time: 10
+ *                     cook_time: 20
+ *                     is_meal_prep_suitable: true
+ *                     meal_prep_fridge_days: 2
+ *                     meal_prep_freezer_days: 14
+ *                     meal_prep_reheat_tips: "Im Ofen bei 160°C aufwärmen."
+ *                     targetPortions: 4
+ *                     targetDates: ["2024-01-16"]
+ *                     mealTypes: ["Abendessen"]
+ *     responses:
+ *       200:
+ *         description: Meal-Prep Sessions und Einkaufstipps
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 sessions:
+ *                   type: array
+ *                   description: Geplante Meal-Prep Sessions
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       label:
+ *                         type: string
+ *                         example: "Meal-Prep Sonntag"
+ *                       recommendedStartTime:
+ *                         type: string
+ *                         example: "10:00"
+ *                       estimatedTotalMinutes:
+ *                         type: integer
+ *                         example: 160
+ *                       recipes:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             recipeId:
+ *                               type: string
+ *                             name:
+ *                               type: string
+ *                             batchPortions:
+ *                               type: integer
+ *                             prepOrder:
+ *                               type: integer
+ *                             parallelizationTips:
+ *                               type: string
+ *                             storage:
+ *                               type: object
+ *                               properties:
+ *                                 fridgeDays:
+ *                                   type: integer
+ *                                   nullable: true
+ *                                 freezerDays:
+ *                                   type: integer
+ *                                   nullable: true
+ *                                 notes:
+ *                                   type: string
+ *                             reheatTips:
+ *                               type: string
+ *                             targetDates:
+ *                               type: array
+ *                               items:
+ *                                 type: string
+ *                                 format: date
+ *                       timeline:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             start:
+ *                               type: string
+ *                               example: "10:00"
+ *                             end:
+ *                               type: string
+ *                               example: "10:30"
+ *                             task:
+ *                               type: string
+ *                               example: "Gemüse schnippeln"
+ *                             relatedRecipeIds:
+ *                               type: array
+ *                               items:
+ *                                 type: string
+ *                 shoppingGroups:
+ *                   type: array
+ *                   description: Zutaten-Gruppierungen für effizientes Einkaufen und Vorbereiten
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       label:
+ *                         type: string
+ *                         example: "Gemüse schälen & schneiden"
+ *                       ingredients:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             name:
+ *                               type: string
+ *                             unit:
+ *                               type: string
+ *                             totalAmount:
+ *                               oneOf:
+ *                                 - type: number
+ *                                 - type: string
+ *                             recipes:
+ *                               type: array
+ *                               items:
+ *                                 type: string
+ *                 generalAdvice:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["Bereite zuerst die Gerichte mit längerer Garzeit vor."]
+ *                 metadata:
+ *                   type: object
+ *                   properties:
+ *                     generatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     recipeCount:
+ *                       type: integer
+ *                     prepDay:
+ *                       type: string
+ *             examples:
+ *               antwortBeispiel:
+ *                 summary: Beispielantwort der KI
+ *                 value:
+ *                   sessions:
+ *                     - label: "Meal-Prep Sonntag"
+ *                       recommendedStartTime: "10:00"
+ *                       estimatedTotalMinutes: 160
+ *                       recipes:
+ *                         - recipeId: "recipe-123"
+ *                           name: "Gemüse Curry"
+ *                           batchPortions: 6
+ *                           prepOrder: 1
+ *                           parallelizationTips: "Koche den Reis, während das Curry simmert."
+ *                           storage:
+ *                             fridgeDays: 3
+ *                             freezerDays: 30
+ *                             notes: "Portionen luftdicht verpacken."
+ *                           reheatTips: "Im Topf mit etwas Kokosmilch erwärmen."
+ *                           targetDates: ["2024-01-15", "2024-01-17"]
+ *                       timeline:
+ *                         - start: "10:00"
+ *                           end: "10:20"
+ *                           task: "Gemüse schneiden"
+ *                           relatedRecipeIds: ["recipe-123"]
+ *                   shoppingGroups:
+ *                     - label: "Gemüse vorbereiten"
+ *                       ingredients:
+ *                         - name: "Paprika"
+ *                           unit: "Stück"
+ *                           totalAmount: 4
+ *                           recipes: ["recipe-123"]
+ *                   generalAdvice:
+ *                     - "Bereite zuerst die Gerichte mit längerer Garzeit vor."
+ *                   metadata:
+ *                     generatedAt: "2024-01-10T08:00:00.000Z"
+ *                     recipeCount: 2
+ *                     prepDay: "Sonntag"
+ *       400:
+ *         description: Ungültige Anfrage
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: "Bitte übermittle mindestens ein Meal-Prep geeignetes Rezept."
+ *       429:
+ *         description: Rate Limit überschritten
+ *       500:
+ *         description: Fehler bei der KI-Antwort
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       503:
  *         description: KI-Service nicht konfiguriert
  *         content:

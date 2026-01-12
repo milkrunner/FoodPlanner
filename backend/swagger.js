@@ -76,6 +76,50 @@ CORS_ORIGINS=https://foodplanner.example.com,https://app.example.com
                             description: 'Gibt an, ob das Rezept als Favorit markiert ist',
                             example: true
                         },
+                        prep_time: {
+                            type: 'integer',
+                            description: 'Vorbereitungszeit in Minuten',
+                            example: 15
+                        },
+                        cook_time: {
+                            type: 'integer',
+                            description: 'Kochzeit in Minuten',
+                            example: 30
+                        },
+                        difficulty: {
+                            type: 'string',
+                            description: 'Schwierigkeitsgrad',
+                            example: 'Einfach'
+                        },
+                        is_meal_prep_suitable: {
+                            type: 'boolean',
+                            description: 'Kennzeichnet, ob sich das Rezept gut für Meal-Prep eignet',
+                            example: true
+                        },
+                        meal_prep_fridge_days: {
+                            type: 'integer',
+                            nullable: true,
+                            description: 'Maximale Anzahl an Tagen, die das Gericht im Kühlschrank haltbar bleibt',
+                            example: 3
+                        },
+                        meal_prep_freezer_days: {
+                            type: 'integer',
+                            nullable: true,
+                            description: 'Maximale Anzahl an Tagen, die das Gericht eingefroren werden kann',
+                            example: 30
+                        },
+                        meal_prep_reheat_tips: {
+                            type: 'string',
+                            nullable: true,
+                            description: 'Hinweise zum Aufwärmen der vorbereiteten Portionen',
+                            example: 'Im Topf mit etwas Brühe schonend erwärmen.'
+                        },
+                        meal_prep_batch_notes: {
+                            type: 'string',
+                            nullable: true,
+                            description: 'Besondere Hinweise zum Batch-Cooking, z.B. Arbeitsschritte oder Portionierung',
+                            example: 'Gemüse getrennt garen, damit es beim Aufwärmen bissfest bleibt.'
+                        },
                         ingredients: {
                             type: 'array',
                             items: { $ref: '#/components/schemas/Ingredient' }
@@ -134,6 +178,9 @@ CORS_ORIGINS=https://foodplanner.example.com,https://app.example.com
                             type: 'string',
                             format: 'date',
                             example: '2024-01-15'
+                        },
+                        mealPrepPlan: {
+                            $ref: '#/components/schemas/MealPrepPlan'
                         },
                         days: {
                             type: 'array',
@@ -288,6 +335,75 @@ CORS_ORIGINS=https://foodplanner.example.com,https://app.example.com
                         seasonalTips: { type: 'array', items: { type: 'object' } },
                         quantityTips: { type: 'array', items: { type: 'object' } },
                         generalTips: { type: 'array', items: { type: 'string' } }
+                    }
+                },
+                MealPrepPlan: {
+                    type: 'object',
+                    description: 'Meal-Prep Einstellungen und Batch-Cooking Planung pro Woche',
+                    properties: {
+                        prepDate: {
+                            type: 'string',
+                            format: 'date',
+                            nullable: true,
+                            description: 'Geplanter Meal-Prep Tag für die Woche'
+                        },
+                        items: {
+                            type: 'object',
+                            description: 'Map von Rezept-ID auf Meal-Prep Konfiguration',
+                            additionalProperties: {
+                                $ref: '#/components/schemas/MealPrepItem'
+                            }
+                        }
+                    },
+                    example: {
+                        prepDate: '2024-01-14',
+                        items: {
+                            'recipe-123': {
+                                recipeId: 'recipe-123',
+                                recipeName: 'Gemüse-Lasagne',
+                                totalPortions: 6,
+                                targetDates: ['2024-01-15', '2024-01-17'],
+                                mealTypes: ['Mittagessen'],
+                                notes: '2 Portionen direkt einfrieren'
+                            }
+                        }
+                    }
+                },
+                MealPrepItem: {
+                    type: 'object',
+                    description: 'Meal-Prep Konfiguration für ein Rezept',
+                    properties: {
+                        recipeId: {
+                            type: 'string',
+                            description: 'Rezept-ID (optional, falls als Schlüssel bereits vorhanden)'
+                        },
+                        recipeName: {
+                            type: 'string',
+                            description: 'Name des Rezepts'
+                        },
+                        totalPortions: {
+                            type: 'integer',
+                            nullable: true,
+                            description: 'Anzahl der vorgekochten Portionen'
+                        },
+                        targetDates: {
+                            type: 'array',
+                            items: {
+                                type: 'string',
+                                format: 'date'
+                            },
+                            description: 'Geplante Verbrauchstage'
+                        },
+                        mealTypes: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Zuordnung zu Mahlzeiten (z.B. Mittagessen)'
+                        },
+                        notes: {
+                            type: 'string',
+                            nullable: true,
+                            description: 'Zusätzliche Hinweise zum Batch-Cooking'
+                        }
                     }
                 },
                 AIGeneratedMeal: {

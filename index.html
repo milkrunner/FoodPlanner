@@ -68,6 +68,10 @@
             justify-content: center;
             padding: 1rem;
         }
+        .modal.active > div {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
         /* Mobile: modals slide up from bottom */
         @media (max-width: 640px) {
             .modal.active {
