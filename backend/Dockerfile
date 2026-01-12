@@ -15,7 +15,7 @@ WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm config set strict-ssl false && npm ci --omit=dev && npm config set strict-ssl true
 
 # Copy all application files including custom overrides
 COPY . .

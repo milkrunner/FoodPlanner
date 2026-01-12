@@ -1292,6 +1292,24 @@ const StorageService = {
             console.error('Error in AI search:', error);
             throw error;
         }
+    },
+
+    async generateMealPrepSuggestions(payload) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ai/meal-prep-suggestions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.error || 'Meal-Prep Vorschläge fehlgeschlagen');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error generating meal-prep suggestions:', error);
+            throw error;
+        }
     }
 };
 
@@ -1302,12 +1320,35 @@ const AppState = {
     weekPlan: null,
     currentWeekStart: null, // Track the current week being viewed
     weekPlansCache: {}, // Cache for multiple week plans
+    _saveTimeout: null,
+
+    ensureMealPrepPlanStructure(weekPlan) {
+        if (!weekPlan || typeof weekPlan !== 'object') return;
+        if (!weekPlan.mealPrepPlan || typeof weekPlan.mealPrepPlan !== 'object') {
+            weekPlan.mealPrepPlan = {
+                prepDate: null,
+                items: {},
+                aiSuggestions: null
+            };
+        } else {
+            if (!('prepDate' in weekPlan.mealPrepPlan)) {
+                weekPlan.mealPrepPlan.prepDate = null;
+            }
+            if (!weekPlan.mealPrepPlan.items || typeof weekPlan.mealPrepPlan.items !== 'object') {
+                weekPlan.mealPrepPlan.items = {};
+            }
+            if (!('aiSuggestions' in weekPlan.mealPrepPlan)) {
+                weekPlan.mealPrepPlan.aiSuggestions = null;
+            }
+        }
+    },
 
     async init() {
         this.recipes = await StorageService.getRecipes({ all: true });
         // Set current week to Monday of current week
         this.currentWeekStart = DateUtils.getMonday(new Date());
         await this.loadWeekPlan(this.currentWeekStart);
+        this.ensureMealPrepPlanStructure(this.weekPlan);
     },
 
     async loadWeekPlan(weekStart) {
@@ -1316,6 +1357,7 @@ const AppState = {
         // Check cache first
         if (this.weekPlansCache[weekId]) {
             this.weekPlan = this.weekPlansCache[weekId];
+            this.ensureMealPrepPlanStructure(this.weekPlan);
             return;
         }
 
@@ -1323,6 +1365,7 @@ const AppState = {
         const savedPlan = await StorageService.getWeekPlanByDate(weekStart);
         if (savedPlan) {
             this.weekPlan = savedPlan;
+            this.ensureMealPrepPlanStructure(this.weekPlan);
             this.weekPlansCache[weekId] = savedPlan;
         } else {
             // Initialize new week plan for this week
@@ -1338,6 +1381,11 @@ const AppState = {
         this.weekPlan = {
             id: weekId,
             startDate: monday.toISOString(),
+            mealPrepPlan: {
+                prepDate: null,
+                items: {},
+                aiSuggestions: null
+            },
             days: Array.from({ length: 7 }, (_, index) => {
                 const date = new Date(monday);
                 date.setDate(monday.getDate() + index);
@@ -1350,6 +1398,23 @@ const AppState = {
         };
 
         await StorageService.saveWeekPlan(this.weekPlan);
+    },
+
+    async persistWeekPlan() {
+        if (!this.weekPlan) return;
+        this.ensureMealPrepPlanStructure(this.weekPlan);
+        await StorageService.saveWeekPlan(this.weekPlan);
+        const weekId = DateUtils.getWeekId(this.currentWeekStart);
+        this.weekPlansCache[weekId] = this.weekPlan;
+    },
+
+    schedulePersistWeekPlan(delay = 600) {
+        clearTimeout(this._saveTimeout);
+        this._saveTimeout = setTimeout(() => {
+            this.persistWeekPlan().catch((error) => {
+                console.error('[AppState] Failed to persist week plan', error);
+            });
+        }, delay);
     },
 
     async navigateWeek(direction) {
@@ -1382,6 +1447,7 @@ const AppState = {
         const weekId = DateUtils.getWeekId(this.currentWeekStart);
         delete this.weekPlansCache[weekId]; // Clear cache for this week
         await this.loadWeekPlan(this.currentWeekStart);
+        this.ensureMealPrepPlanStructure(this.weekPlan);
     }
 };
 
@@ -1500,9 +1566,9 @@ const App = {
                 return;
             }
 
-            // Number keys 1-6 for view navigation (without modifiers)
+            // Number keys 1-7 for view navigation (without modifiers)
             if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-                const views = ['planner', 'recipes', 'ai-recipes', 'parser', 'shopping', 'history'];
+                const views = ['planner', 'meal-prep', 'recipes', 'ai-recipes', 'parser', 'shopping', 'history'];
                 const keyNum = parseInt(e.key);
                 if (keyNum >= 1 && keyNum <= views.length) {
                     e.preventDefault();
@@ -1683,6 +1749,7 @@ const App = {
     renderMobileNavigation() {
         const tabs = [
             { id: 'planner', label: 'Wochenplan', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+            { id: 'meal-prep', label: 'Meal-Prep', icon: 'M5 13l4 4L19 7m-7-4a9 9 0 110 18 9 9 0 010-18z' },
             { id: 'recipes', label: 'Rezepte', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
             { id: 'ai-recipes', label: 'KI Rezepte', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
             { id: 'parser', label: 'Rezept Parser', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
@@ -1727,6 +1794,7 @@ const App = {
     renderNavigation() {
         const tabs = [
             { id: 'planner', label: 'Wochenplan', shortLabel: 'Plan' },
+            { id: 'meal-prep', label: 'Meal-Prep', shortLabel: 'Prep' },
             { id: 'recipes', label: 'Rezepte', shortLabel: 'Rezepte' },
             { id: 'ai-recipes', label: 'KI Rezepte', shortLabel: 'KI' },
             { id: 'parser', label: 'Rezept Parser', shortLabel: 'Parser' },
@@ -1768,6 +1836,8 @@ const App = {
         switch (AppState.currentView) {
             case 'planner':
                 return WeekPlannerView.render();
+            case 'meal-prep':
+                return MealPrepView.render();
             case 'recipes':
                 return RecipeDatabaseView.render();
             case 'ai-recipes':
@@ -1851,6 +1921,8 @@ const App = {
         // View-specific event listeners
         if (AppState.currentView === 'planner') {
             WeekPlannerView.attachEventListeners();
+        } else if (AppState.currentView === 'meal-prep') {
+            MealPrepView.attachEventListeners();
         } else if (AppState.currentView === 'recipes') {
             RecipeDatabaseView.attachEventListeners();
         } else if (AppState.currentView === 'ai-recipes') {
@@ -2507,7 +2579,7 @@ const WeekPlannerView = {
     renderAIGenerateModal() {
         return `
             <div id="ai-generate-modal" class="modal">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full p-6">
+                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
                             <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2600,7 +2672,6 @@ const WeekPlannerView = {
                                 <option value="asiatisch">Asiatisch</option>
                                 <option value="mediterran">Mediterran</option>
                                 <option value="mexikanisch">Mexikanisch</option>
-                                <option value="indisch">Indisch</option>
                             </select>
                         </div>
 
@@ -3269,6 +3340,7 @@ const RecipeDatabaseView = {
     searchQuery: '',
     showFavoritesOnly: false,
     showSeasonalOnly: false, // Filter for seasonal recipes
+    showMealPrepOnly: false, // Filter for meal-prep suitable recipes
     maxTimeFilter: null, // Filter for max total time (prep + cook)
     difficultyFilter: null, // Filter for difficulty level
     seasonalData: null, // Cache for seasonal recipe data
@@ -3460,6 +3532,7 @@ const RecipeDatabaseView = {
         const filteredRecipes = this.filterRecipes();
         const seasonalRecipeIds = this.getSeasonalRecipeIds();
         const seasonalCount = seasonalRecipeIds.size;
+        const mealPrepCount = AppState.recipes.filter(r => r.is_meal_prep_suitable).length;
         const seasonName = this.getCurrentSeasonName();
         const seasonKey = this.currentSeasonInfo?.current?.key || 'winter';
         const seasonIcon = this.getSeasonIcon(seasonKey);
@@ -3573,6 +3646,15 @@ const RecipeDatabaseView = {
                                     <span class="sm:hidden">${seasonalCount}</span>
                                 </button>
                             ` : ''}
+                            ${mealPrepCount > 0 ? `
+                                <button id="meal-prep-filter-btn" class="meal-prep-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showMealPrepOnly ? 'bg-teal-50 dark:bg-teal-900/30 border-teal-200 dark:border-teal-800 text-teal-600 dark:text-teal-300' : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}" aria-pressed="${this.showMealPrepOnly}" title="Meal-Prep geeignete Rezepte">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span class="hidden sm:inline">${this.showMealPrepOnly ? 'Alle' : 'Meal-Prep'}</span>
+                                    <span class="sm:hidden">${mealPrepCount}</span>
+                                </button>
+                            ` : ''}
                             <div class="relative">
                                 <select id="time-filter" class="px-3 py-2 rounded-lg border bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nach Zeit filtern">
                                     <option value="">Zeit</option>
@@ -3634,6 +3716,11 @@ const RecipeDatabaseView = {
                                     ${recipe.category ? `
                                         <span class="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs rounded">
                                             ${recipe.category}
+                                        </span>
+                                    ` : ''}
+                                    ${recipe.is_meal_prep_suitable ? `
+                                        <span class="inline-block px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs rounded" title="Meal-Prep geeignet">
+                                            Meal-Prep
                                         </span>
                                     ` : ''}
                                     ${lastCookedText ? `
@@ -3863,6 +3950,46 @@ const RecipeDatabaseView = {
                             </div>
                         ` : ''}
 
+                        <!-- Meal-Prep Info -->
+                        ${recipe.is_meal_prep_suitable ? `
+                            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <h4 class="font-semibold text-green-800 dark:text-green-200">Meal-Prep geeignet</h4>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                    ${recipe.meal_prep_fridge_days ? `
+                                        <div class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                                            <span class="text-lg">🧊</span>
+                                            <span><strong>${recipe.meal_prep_fridge_days} Tage</strong> im Kühlschrank</span>
+                                        </div>
+                                    ` : ''}
+                                    ${recipe.meal_prep_freezer_days ? `
+                                        <div class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                                            <span class="text-lg">❄️</span>
+                                            <span><strong>${recipe.meal_prep_freezer_days} Tage</strong> im Gefrierschrank</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                ${recipe.meal_prep_reheat_tips ? `
+                                    <div class="mt-3 pt-3 border-t border-green-200 dark:border-green-700">
+                                        <p class="text-sm text-gray-700 dark:text-gray-300">
+                                            <strong class="text-green-800 dark:text-green-200">Aufwärm-Tipps:</strong> ${recipe.meal_prep_reheat_tips}
+                                        </p>
+                                    </div>
+                                ` : ''}
+                                ${recipe.meal_prep_batch_notes ? `
+                                    <div class="mt-3 ${recipe.meal_prep_reheat_tips ? '' : 'pt-3 border-t border-green-200 dark:border-green-700'}">
+                                        <p class="text-sm text-gray-700 dark:text-gray-300">
+                                            <strong class="text-green-800 dark:text-green-200">Batch-Cooking Tipps:</strong> ${recipe.meal_prep_batch_notes}
+                                        </p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <!-- Ingredients -->
                             <div>
@@ -4022,6 +4149,41 @@ const RecipeDatabaseView = {
                                 </div>
                             </div>
 
+                            <!-- Meal-Prep Section -->
+                            <div class="border dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700/50">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" id="recipe-meal-prep-suitable"
+                                               class="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-green-500 focus:ring-green-500 dark:focus:ring-green-400">
+                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Meal-Prep geeignet</span>
+                                    </label>
+                                </div>
+                                <div id="meal-prep-fields" class="hidden space-y-4">
+                                    <div class="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Haltbarkeit Kühlschrank (Tage)</label>
+                                            <input type="number" id="recipe-fridge-days" min="0" max="14" placeholder="z.B. 3"
+                                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Haltbarkeit Gefrierschrank (Tage)</label>
+                                            <input type="number" id="recipe-freezer-days" min="0" max="365" placeholder="z.B. 30"
+                                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aufwärm-Tipps</label>
+                                        <textarea id="recipe-reheat-tips" rows="2" placeholder="z.B. In der Mikrowelle 2-3 Min. bei 600W"
+                                                  class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Batch-Cooking Notizen</label>
+                                        <textarea id="recipe-batch-notes" rows="2" placeholder="z.B. Sauce separat aufbewahren"
+                                                  class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div>
                                 <div class="flex justify-between items-center mb-2">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Zutaten</label>
@@ -4167,6 +4329,16 @@ const RecipeDatabaseView = {
             seasonalFilterBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.showSeasonalOnly = !this.showSeasonalOnly;
+                App.render();
+            });
+        }
+
+        // Meal-prep filter button
+        const mealPrepFilterBtn = document.getElementById('meal-prep-filter-btn');
+        if (mealPrepFilterBtn) {
+            mealPrepFilterBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showMealPrepOnly = !this.showMealPrepOnly;
                 App.render();
             });
         }
@@ -4347,6 +4519,15 @@ const RecipeDatabaseView = {
         if (closeBtn) closeBtn.addEventListener('click', () => this.hideRecipeForm());
         if (cancelBtn) cancelBtn.addEventListener('click', () => this.hideRecipeForm());
 
+        // Meal-prep checkbox toggle
+        const mealPrepCheckbox = document.getElementById('recipe-meal-prep-suitable');
+        const mealPrepFields = document.getElementById('meal-prep-fields');
+        if (mealPrepCheckbox && mealPrepFields) {
+            mealPrepCheckbox.addEventListener('change', () => {
+                mealPrepFields.classList.toggle('hidden', !mealPrepCheckbox.checked);
+            });
+        }
+
         // Add ingredient button
         const addIngBtn = document.getElementById('add-ingredient-btn');
         if (addIngBtn) {
@@ -4463,6 +4644,10 @@ const RecipeDatabaseView = {
                 recipes = recipes.filter(recipe => seasonalIds.has(recipe.id));
             }
 
+            if (this.showMealPrepOnly) {
+                recipes = recipes.filter(recipe => recipe.is_meal_prep_suitable);
+            }
+
             return applyTimeAndDifficultyFilters(recipes);
         }
 
@@ -4476,6 +4661,11 @@ const RecipeDatabaseView = {
         if (this.showSeasonalOnly) {
             const seasonalIds = this.getSeasonalRecipeIds();
             recipes = recipes.filter(recipe => seasonalIds.has(recipe.id));
+        }
+
+        // Filter by meal-prep suitable
+        if (this.showMealPrepOnly) {
+            recipes = recipes.filter(recipe => recipe.is_meal_prep_suitable);
         }
 
         // Apply time and difficulty filters
@@ -4763,6 +4953,20 @@ const RecipeDatabaseView = {
             document.getElementById('recipe-prep-time').value = recipe.prep_time || '';
             document.getElementById('recipe-cook-time').value = recipe.cook_time || '';
             document.getElementById('recipe-difficulty').value = recipe.difficulty || '';
+
+            // Meal-prep fields
+            const mealPrepCheckbox = document.getElementById('recipe-meal-prep-suitable');
+            const mealPrepFields = document.getElementById('meal-prep-fields');
+            if (mealPrepCheckbox) {
+                mealPrepCheckbox.checked = recipe.is_meal_prep_suitable || false;
+                if (mealPrepFields) {
+                    mealPrepFields.classList.toggle('hidden', !mealPrepCheckbox.checked);
+                }
+            }
+            document.getElementById('recipe-fridge-days').value = recipe.meal_prep_fridge_days || '';
+            document.getElementById('recipe-freezer-days').value = recipe.meal_prep_freezer_days || '';
+            document.getElementById('recipe-reheat-tips').value = recipe.meal_prep_reheat_tips || '';
+            document.getElementById('recipe-batch-notes').value = recipe.meal_prep_batch_notes || '';
         }
 
         // Attach all form event listeners after render
@@ -4781,6 +4985,15 @@ const RecipeDatabaseView = {
             addIngBtn.addEventListener('click', () => {
                 this.ingredients.push({ name: '', amount: '', unit: '', category: 'Sonstiges' });
                 this.renderIngredients();
+            });
+        }
+
+        // Meal-prep checkbox toggle
+        const mealPrepCheckbox = document.getElementById('recipe-meal-prep-suitable');
+        const mealPrepFields = document.getElementById('meal-prep-fields');
+        if (mealPrepCheckbox && mealPrepFields) {
+            mealPrepCheckbox.addEventListener('change', () => {
+                mealPrepFields.classList.toggle('hidden', !mealPrepCheckbox.checked);
             });
         }
 
@@ -5293,6 +5506,13 @@ const RecipeDatabaseView = {
         const cookTime = document.getElementById('recipe-cook-time')?.value;
         const difficulty = document.getElementById('recipe-difficulty')?.value;
 
+        // Meal-prep fields
+        const isMealPrepSuitable = document.getElementById('recipe-meal-prep-suitable')?.checked || false;
+        const fridgeDays = document.getElementById('recipe-fridge-days')?.value;
+        const freezerDays = document.getElementById('recipe-freezer-days')?.value;
+        const reheatTips = document.getElementById('recipe-reheat-tips')?.value?.trim();
+        const batchNotes = document.getElementById('recipe-batch-notes')?.value?.trim();
+
         if (!name) {
             Toast.error('Bitte gib einen Rezeptnamen ein.');
             return;
@@ -5311,7 +5531,12 @@ const RecipeDatabaseView = {
             is_favorite: this.editingRecipe?.is_favorite ?? false,
             prep_time: prepTime ? parseInt(prepTime) : undefined,
             cook_time: cookTime ? parseInt(cookTime) : undefined,
-            difficulty: difficulty || undefined
+            difficulty: difficulty || undefined,
+            is_meal_prep_suitable: isMealPrepSuitable,
+            meal_prep_fridge_days: fridgeDays ? parseInt(fridgeDays) : undefined,
+            meal_prep_freezer_days: freezerDays ? parseInt(freezerDays) : undefined,
+            meal_prep_reheat_tips: reheatTips || undefined,
+            meal_prep_batch_notes: batchNotes || undefined
         };
 
         if (this.editingRecipe) {
@@ -5422,6 +5647,637 @@ const RecipeDatabaseView = {
             // Return default category on error
             return 'Sonstiges';
         }
+    }
+};
+
+const MealPrepView = {
+    isSaving: false,
+    selectedRecipeId: null,
+    aiLoading: false,
+    aiError: null,
+    lastAiPayload: null,
+    isRecipeModalOpen: false,
+
+    getMealPrepItems() {
+        return AppState.weekPlan?.mealPrepPlan?.items || {};
+    },
+
+    getMealPrepArray() {
+        const items = this.getMealPrepItems();
+        return Object.values(items).sort((a, b) => {
+            const nameA = (a.recipeName || '').toLowerCase();
+            const nameB = (b.recipeName || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+    },
+
+    renderPrepDatePicker() {
+        const prepDate = AppState.weekPlan?.mealPrepPlan?.prepDate || '';
+        const prepDateValue = prepDate ? prepDate.substring(0, 10) : '';
+        return `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Geplanter Meal-Prep Tag</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Wähle den Tag, an dem du batch-kochen möchtest.</p>
+                    </div>
+                    <input type="date" id="meal-prep-date" value="${escapeHtml(prepDateValue)}"
+                        class="px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+            </div>
+        `;
+    },
+
+    renderRecipeSelector() {
+        const mealPrepItems = this.getMealPrepItems();
+        const eligibleRecipes = AppState.recipes
+            .filter((recipe) => recipe.is_meal_prep_suitable)
+            .map((recipe) => ({
+                ...recipe,
+                alreadySelected: Boolean(mealPrepItems[recipe.id])
+            }));
+
+        if (eligibleRecipes.length === 0) {
+            return `
+                <div class="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                    <h3 class="font-medium text-yellow-800 dark:text-yellow-200">Keine Meal-Prep geeigneten Rezepte gefunden</h3>
+                    <p class="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                        Markiere Rezepte in der Rezeptdatenbank als "Meal-Prep geeignet", um sie hier zu sehen.
+                    </p>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+                <div class="flex items-center justify-between flex-wrap gap-3">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Meal-Prep Rezepte</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Füge Rezepte hinzu, die du in deiner Meal-Prep Session kochen möchtest.</p>
+                    </div>
+                    <button id="add-meal-prep-recipe-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Rezept hinzufügen
+                    </button>
+                </div>
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    ${this.getMealPrepArray().map((item) => this.renderMealPrepCard(item)).join('') || this.renderEmptyState()}
+                </div>
+            </div>
+
+            <div id="meal-prep-recipe-modal" class="modal ${this.isRecipeModalOpen ? 'active' : ''}">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[80vh] overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Meal-Prep Rezept hinzufügen</h3>
+                        <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl" id="close-meal-prep-modal">✕</button>
+                    </div>
+                    <div class="p-4 overflow-y-auto max-h-[70vh]">
+                        <div class="grid gap-3">
+                            ${eligibleRecipes.map((recipe) => this.renderRecipeSelectRow(recipe)).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderRecipeSelectRow(recipe) {
+        const isSelected = this.getMealPrepItems()[recipe.id];
+        const recipeIdSafe = escapeHtml(String(recipe.id));
+        const recipeNameSafe = escapeHtml(recipe.name || '');
+        const categorySafe = escapeHtml(recipe.category || '');
+        const mealTypesValue = escapeHtml((isSelected?.mealTypes || []).join(', '));
+        const targetDatesValue = escapeHtml((isSelected?.targetDates || []).join(', '));
+        const notesValue = escapeHtml(isSelected?.notes || '');
+
+        return `
+            <div class="p-3 rounded-lg border dark:border-gray-700 ${isSelected ? 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700' : 'bg-white dark:bg-gray-800'}">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex-1">
+                        <h4 class="font-medium text-gray-800 dark:text-white">${recipeNameSafe}</h4>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 flex flex-wrap gap-2 mt-1">
+                            ${recipe.category ? `<span class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">${categorySafe}</span>` : ''}
+                            ${recipe.servings ? `<span>${recipe.servings} Portionen</span>` : ''}
+                            ${recipe.prep_time || recipe.cook_time ? `<span>${(recipe.prep_time || 0) + (recipe.cook_time || 0)} Min.</span>` : ''}
+                            ${recipe.meal_prep_fridge_days ? `<span>🧊 ${recipe.meal_prep_fridge_days} Tage Kühlung</span>` : ''}
+                            ${recipe.meal_prep_freezer_days ? `<span>❄️ ${recipe.meal_prep_freezer_days} Tage Froster</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="px-3 py-2 text-sm rounded-lg border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition" data-action="preview" data-recipe-id="${recipeIdSafe}">
+                            Details
+                        </button>
+                        <button class="px-3 py-2 text-sm rounded-lg ${isSelected ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50' : 'bg-green-500 text-white hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700'} transition" data-action="toggle" data-recipe-id="${recipeIdSafe}">
+                            ${isSelected ? 'Entfernen' : 'Hinzufügen'}
+                        </button>
+                    </div>
+                </div>
+                ${isSelected ? `
+                    <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                        <label class="flex flex-col text-sm text-gray-600 dark:text-gray-300">
+                            Geplante Portionen
+                            <input type="number" min="1" data-field="targetPortions" data-recipe-id="${recipeIdSafe}" value="${isSelected.targetPortions || recipe.servings || ''}"
+                                class="mt-1 px-2 py-1 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                        </label>
+                        <label class="flex flex-col text-sm text-gray-600 dark:text-gray-300">
+                            Mahlzeiten-Typen
+                            <input type="text" placeholder="z.B. Mittagessen"
+                                data-field="mealTypes" data-recipe-id="${recipeIdSafe}" value="${mealTypesValue}"
+                                class="mt-1 px-2 py-1 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                        </label>
+                        <label class="flex flex-col text-sm text-gray-600 dark:text-gray-300 sm:col-span-2">
+                            Verbrauchstage (kommagetrennt YYYY-MM-DD)
+                            <input type="text" data-field="targetDates" data-recipe-id="${recipeIdSafe}" value="${targetDatesValue}"
+                                class="mt-1 px-2 py-1 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                        </label>
+                        <label class="flex flex-col text-sm text-gray-600 dark:text-gray-300 sm:col-span-2">
+                            Zusätzliche Notizen
+                            <textarea data-field="notes" data-recipe-id="${recipeIdSafe}" rows="2"
+                                class="mt-1 px-2 py-1 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">${notesValue}</textarea>
+                        </label>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    renderMealPrepCard(item) {
+        const recipeNameSafe = escapeHtml(item.recipeName || 'Rezept');
+        const mealTypes = (item.mealTypes || []).map((m) => `<span class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">${escapeHtml(m)}</span>`).join('');
+        const targetDates = (item.targetDates || []).map((date) => escapeHtml(date));
+        const extraDates = targetDates.slice(2);
+        const reheatSafe = escapeHtml(item.reheatTips || '');
+        const notesSafe = escapeHtml(item.notes || '');
+
+        return `
+            <div class="border dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/30">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white">${recipeNameSafe}</h4>
+                        <div class="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            ${item.totalPortions ? `<span class="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">🍽️ ${item.totalPortions} Portionen</span>` : ''}
+                            ${mealTypes}
+                            ${targetDates.slice(0, 2).map((date) => `<span class="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">📆 ${date}</span>`).join('')}
+                        </div>
+                    </div>
+                    <button class="remove-meal-prep-item text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300" data-recipe-id="${escapeHtml(String(item.recipeId))}">✕</button>
+                </div>
+
+                <dl class="mt-3 grid gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    ${item.fridgeDays ? `<div><dt class="font-medium inline">Kühlung:</dt> <dd class="inline">${item.fridgeDays} Tage</dd></div>` : ''}
+                    ${item.freezerDays ? `<div><dt class="font-medium inline">Gefrieren:</dt> <dd class="inline">${item.freezerDays} Tage</dd></div>` : ''}
+                    ${item.reheatTips ? `<div><dt class="font-medium inline">Aufwärmen:</dt> <dd class="inline">${reheatSafe}</dd></div>` : ''}
+                    ${item.notes ? `<div><dt class="font-medium inline">Notizen:</dt> <dd class="inline">${notesSafe}</dd></div>` : ''}
+                </dl>
+
+                ${extraDates.length ? `
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Weitere Verbrauchstage: ${extraDates.join(', ')}</p>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    renderEmptyState() {
+        return `
+            <div class="col-span-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center text-gray-500 dark:text-gray-400">
+                <p class="font-medium">Noch keine Meal-Prep Rezepte ausgewählt.</p>
+                <p class="text-sm mt-1">Füge oben Rezepte hinzu, um deine Meal-Prep Session zu planen.</p>
+            </div>
+        `;
+    },
+
+    renderAiSuggestions() {
+        const aiData = AppState.weekPlan?.mealPrepPlan?.aiSuggestions;
+
+        return `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+                <div class="flex items-center justify-between flex-wrap gap-3">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                            <span>KI Meal-Prep Hilfe</span>
+                            ${this.aiLoading ? '<span class="text-xs text-purple-500">Lädt...</span>' : ''}
+                        </h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            Lass dir Sessions, Zeitplan und Einkaufshinweise für deine Meal-Prep Rezepte generieren.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="refresh-meal-prep-ai" class="px-4 py-2 bg-purple-500 dark:bg-purple-600 text-white rounded-lg hover:bg-purple-600 dark:hover:bg-purple-700 transition-colors flex items-center gap-2" ${this.aiLoading ? 'disabled' : ''}>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Vorschläge aktualisieren
+                        </button>
+                        <button id="clear-meal-prep-ai" class="px-3 py-2 border dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" ${!aiData ? 'disabled' : ''}>
+                            Zurücksetzen
+                        </button>
+                    </div>
+                </div>
+
+                ${this.aiError ? `
+                    <div class="mt-3 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                        <p class="text-sm text-red-700 dark:text-red-300">${escapeHtml(this.aiError)}</p>
+                    </div>
+                ` : ''}
+
+                ${aiData ? this.renderAiContent(aiData) : `
+                    <div class="mt-4 p-4 border-2 border-dashed border-purple-200 dark:border-purple-800 rounded-lg text-center text-purple-600 dark:text-purple-300">
+                        <p class="font-medium">Noch keine Vorschläge</p>
+                        <p class="text-sm mt-1">Sobald du Rezepte ausgewählt hast, klicke auf "Vorschläge aktualisieren".</p>
+                    </div>
+                `}
+            </div>
+        `;
+    },
+
+    renderAiContent(aiData) {
+        const sessions = aiData.sessions || [];
+        const shoppingGroups = aiData.shoppingGroups || [];
+        const advice = aiData.generalAdvice || [];
+
+        return `
+            <div class="mt-6 space-y-6">
+                ${sessions.length ? `
+                    <section>
+                        <h4 class="text-md font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                            <span>Meal-Prep Sessions</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">${sessions.length} Vorschläge</span>
+                        </h4>
+                        <div class="mt-3 grid gap-4">
+                            ${sessions.map((session) => this.renderSession(session)).join('')}
+                        </div>
+                    </section>
+                ` : ''}
+
+                ${shoppingGroups.length ? `
+                    <section>
+                        <h4 class="text-md font-semibold text-gray-800 dark:text-white">Einkauf & Mise en Place</h4>
+                        <div class="mt-3 grid gap-3">
+                            ${shoppingGroups.map((group) => this.renderShoppingGroup(group)).join('')}
+                        </div>
+                    </section>
+                ` : ''}
+
+                ${advice.length ? `
+                    <section>
+                        <h4 class="text-md font-semibold text-gray-800 dark:text-white">Allgemeine Tipps</h4>
+                        <ul class="mt-2 space-y-1 list-disc list-inside text-gray-600 dark:text-gray-300">
+                            ${advice.map((tip) => `<li>${escapeHtml(tip)}</li>`).join('')}
+                        </ul>
+                    </section>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    renderSession(session) {
+        const timeline = session.timeline || [];
+        const recipes = session.recipes || [];
+        const labelSafe = escapeHtml(session.label || 'Meal-Prep Session');
+        const startSafe = escapeHtml(session.recommendedStartTime || '');
+
+        return `
+            <div class="border dark:border-gray-700 rounded-lg p-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">${labelSafe}</h5>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 flex gap-3 mt-1">
+                            ${session.recommendedStartTime ? `<span>⏰ Start: ${startSafe}</span>` : ''}
+                            ${session.estimatedTotalMinutes ? `<span>🕒 Dauer: ${session.estimatedTotalMinutes} Min.</span>` : ''}
+                        </p>
+                    </div>
+                </div>
+
+                ${recipes.length ? `
+                    <div class="mt-4">
+                        <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">Rezepte in dieser Session</h6>
+                        <div class="mt-2 grid gap-2">
+                            ${recipes.map((recipe) => this.renderSessionRecipe(recipe)).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${timeline.length ? `
+                    <div class="mt-4">
+                        <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">Zeitplan</h6>
+                        <ul class="mt-2 space-y-2">
+                            ${timeline.map((step) => `
+                                <li class="flex gap-3 text-sm text-gray-600 dark:text-gray-300">
+                                    <span class="font-medium text-gray-800 dark:text-white">${escapeHtml(step.start || '')} - ${escapeHtml(step.end || '')}</span>
+                                    <span>${escapeHtml(step.task || '')}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    renderSessionRecipe(recipe) {
+        const storage = recipe.storage || {};
+        const nameSafe = escapeHtml(recipe.name || 'Rezept');
+        const parallelSafe = escapeHtml(recipe.parallelizationTips || '');
+        const notesSafe = escapeHtml(storage.notes || '');
+        const reheatSafe = escapeHtml(recipe.reheatTips || '');
+        const targetDates = (recipe.targetDates || []).map((date) => escapeHtml(date)).join(', ');
+
+        return `
+            <div class="border border-dashed dark:border-gray-600 rounded-lg p-3 text-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                        <p class="font-medium text-gray-800 dark:text-white">${nameSafe}</p>
+                        <div class="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            ${recipe.batchPortions ? `<span>🍽️ ${recipe.batchPortions} Portionen</span>` : ''}
+                            ${recipe.prepOrder ? `<span>#${recipe.prepOrder} in der Reihenfolge</span>` : ''}
+                            ${recipe.parallelizationTips ? `<span>⚙️ ${parallelSafe}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2 grid gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    ${storage.fridgeDays ? `<p>🧊 Kühlschrank: ${storage.fridgeDays} Tage${storage.notes ? ` (${notesSafe})` : ''}</p>` : ''}
+                    ${storage.freezerDays ? `<p>❄️ Gefrierschrank: ${storage.freezerDays} Tage</p>` : ''}
+                    ${recipe.reheatTips ? `<p>🔥 Aufwärmen: ${reheatSafe}</p>` : ''}
+                    ${(recipe.targetDates || []).length ? `<p>📆 Verbrauch: ${targetDates}</p>` : ''}
+                </div>
+            </div>
+        `;
+    },
+
+    renderShoppingGroup(group) {
+        const ingredients = group.ingredients || [];
+        const labelSafe = escapeHtml(group.label || 'Vorbereitungsschritt');
+
+        return `
+            <div class="border dark:border-gray-700 rounded-lg p-3">
+                <h6 class="font-medium text-gray-800 dark:text-white">${labelSafe}</h6>
+                <ul class="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-300">
+                    ${ingredients.map((ingredient) => `
+                        <li>
+                            ${ingredient.totalAmount ? `<strong>${escapeHtml(String(ingredient.totalAmount))}</strong>` : ''}
+                            ${escapeHtml(ingredient.unit || '')} ${escapeHtml(ingredient.name || '')}
+                            ${ingredient.recipes && ingredient.recipes.length ? `<span class="text-xs text-gray-400 dark:text-gray-500">(${escapeHtml(ingredient.recipes.join(', '))})</span>` : ''}
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+        `;
+    },
+
+    render() {
+        if (!AppState.weekPlan) {
+            return '<div class="text-gray-800 dark:text-gray-200">Lade Meal-Prep Daten...</div>';
+        }
+
+        return `
+            <div class="space-y-4 sm:space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Meal-Prep Planung</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Plane deine Batch-Cooking Sessions, halte Haltbarkeit im Blick und lass dir von der KI helfen.</p>
+                    </div>
+                    <button id="save-meal-prep-plan" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center gap-2" ${this.isSaving ? 'disabled' : ''}>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        ${this.isSaving ? 'Speichert...' : 'Plan speichern'}
+                    </button>
+                </div>
+
+                <div class="grid gap-4">
+                    ${this.renderPrepDatePicker()}
+                    ${this.renderRecipeSelector()}
+                    ${this.renderAiSuggestions()}
+                </div>
+            </div>
+        `;
+    },
+
+    attachEventListeners() {
+        document.getElementById('save-meal-prep-plan')?.addEventListener('click', () => this.handleSave());
+
+        const dateInput = document.getElementById('meal-prep-date');
+        if (dateInput) {
+            dateInput.addEventListener('change', (event) => {
+                this.updatePrepDate(event.target.value);
+            });
+        }
+
+        document.getElementById('add-meal-prep-recipe-btn')?.addEventListener('click', () => {
+            this.isRecipeModalOpen = true;
+            App.render();
+        });
+
+        document.getElementById('close-meal-prep-modal')?.addEventListener('click', () => {
+            this.isRecipeModalOpen = false;
+            App.render();
+        });
+
+        const modalOverlay = document.querySelector('#meal-prep-recipe-modal.modal');
+        if (modalOverlay) {
+            modalOverlay.addEventListener('click', (event) => {
+                if (event.target.id === 'meal-prep-recipe-modal') {
+                    this.isRecipeModalOpen = false;
+                    App.render();
+                }
+            });
+        }
+
+        document.querySelectorAll('#meal-prep-recipe-modal [data-action="toggle"]').forEach((button) => {
+            button.addEventListener('click', (event) => this.toggleRecipeSelection(event));
+        });
+
+        document.querySelectorAll('#meal-prep-recipe-modal [data-action="preview"]').forEach((button) => {
+            button.addEventListener('click', async (event) => {
+                event.preventDefault();
+                const recipeId = event.currentTarget.dataset.recipeId;
+                this.isRecipeModalOpen = false;
+                AppState.setView('recipes');
+                setTimeout(async () => {
+                    await RecipeDatabaseView.viewRecipe(recipeId);
+                }, 100);
+            });
+        });
+
+        document.querySelectorAll('#meal-prep-recipe-modal [data-field]').forEach((input) => {
+            input.addEventListener('change', (event) => this.handleFieldChange(event));
+            input.addEventListener('keyup', (event) => this.handleFieldChange(event));
+        });
+
+        document.querySelectorAll('.remove-meal-prep-item').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                const recipeId = event.currentTarget.dataset.recipeId;
+                this.removeRecipe(recipeId);
+            });
+        });
+
+        document.getElementById('refresh-meal-prep-ai')?.addEventListener('click', () => this.generateAiSuggestions());
+        document.getElementById('clear-meal-prep-ai')?.addEventListener('click', () => this.clearAiSuggestions());
+    },
+
+    updatePrepDate(value) {
+        const dateValue = value ? new Date(value + 'T00:00:00').toISOString().split('T')[0] : null;
+        AppState.ensureMealPrepPlanStructure(AppState.weekPlan);
+        AppState.weekPlan.mealPrepPlan.prepDate = dateValue;
+        AppState.schedulePersistWeekPlan();
+    },
+
+    toggleRecipeSelection(event) {
+        const recipeId = event.currentTarget.dataset.recipeId;
+        const items = this.getMealPrepItems();
+
+        if (items[recipeId]) {
+            delete items[recipeId];
+        } else {
+            const recipe = AppState.recipes.find((r) => String(r.id) === String(recipeId));
+            if (!recipe) return;
+            items[recipeId] = this.createMealPrepItemFromRecipe(recipe);
+        }
+
+        AppState.ensureMealPrepPlanStructure(AppState.weekPlan);
+        AppState.weekPlan.mealPrepPlan.items = { ...items };
+        AppState.schedulePersistWeekPlan();
+        App.render();
+    },
+
+    createMealPrepItemFromRecipe(recipe) {
+        return {
+            recipeId: String(recipe.id),
+            recipeName: recipe.name,
+            totalPortions: recipe.servings || null,
+            fridgeDays: recipe.meal_prep_fridge_days || null,
+            freezerDays: recipe.meal_prep_freezer_days || null,
+            reheatTips: recipe.meal_prep_reheat_tips || '',
+            notes: recipe.meal_prep_batch_notes || '',
+            targetDates: [],
+            mealTypes: [],
+            targetPortions: recipe.servings || null
+        };
+    },
+
+    handleFieldChange(event) {
+        const field = event.target.dataset.field;
+        const recipeId = event.target.dataset.recipeId;
+        if (!field || !recipeId) return;
+
+        const items = this.getMealPrepItems();
+        const item = items[recipeId];
+        if (!item) return;
+
+        if (field === 'targetPortions') {
+            const parsed = parseInt(event.target.value, 10);
+            item.targetPortions = Number.isNaN(parsed) ? null : parsed;
+            item.totalPortions = item.targetPortions;
+        } else if (field === 'mealTypes') {
+            item.mealTypes = event.target.value.split(',').map((value) => value.trim()).filter(Boolean);
+        } else if (field === 'targetDates') {
+            item.targetDates = event.target.value.split(',').map((value) => value.trim()).filter(Boolean);
+        } else if (field === 'notes') {
+            item.notes = event.target.value.trim();
+        }
+
+        AppState.ensureMealPrepPlanStructure(AppState.weekPlan);
+        AppState.weekPlan.mealPrepPlan.items = { ...items };
+        AppState.schedulePersistWeekPlan();
+    },
+
+    removeRecipe(recipeId) {
+        const items = this.getMealPrepItems();
+        const removed = items[recipeId];
+        if (!removed) return;
+
+        delete items[recipeId];
+        AppState.weekPlan.mealPrepPlan.items = { ...items };
+        AppState.schedulePersistWeekPlan();
+        App.render();
+
+        Toast.show(`Rezept "${removed.recipeName}" aus Meal-Prep entfernt`, {
+            showUndo: true,
+            onUndo: () => {
+                AppState.weekPlan.mealPrepPlan.items[recipeId] = removed;
+                App.render();
+                AppState.schedulePersistWeekPlan();
+            }
+        });
+    },
+
+    async handleSave() {
+        this.isSaving = true;
+        App.render();
+        try {
+            await AppState.persistWeekPlan();
+            Toast.success('Meal-Prep Plan gespeichert ✓');
+        } catch (error) {
+            console.error('Failed to save meal prep plan:', error);
+            Toast.error('Meal-Prep Plan konnte nicht gespeichert werden');
+        } finally {
+            this.isSaving = false;
+            App.render();
+        }
+    },
+
+    buildAiPayload() {
+        const items = this.getMealPrepItems();
+        const recipes = Object.values(items).map((item) => {
+            const recipe = AppState.recipes.find((r) => String(r.id) === String(item.recipeId)) || {};
+            return {
+                id: item.recipeId,
+                name: item.recipeName,
+                category: recipe.category || null,
+                servings: recipe.servings || null,
+                prep_time: recipe.prep_time || null,
+                cook_time: recipe.cook_time || null,
+                difficulty: recipe.difficulty || null,
+                is_meal_prep_suitable: true,
+                meal_prep_fridge_days: recipe.meal_prep_fridge_days || null,
+                meal_prep_freezer_days: recipe.meal_prep_freezer_days || null,
+                meal_prep_reheat_tips: recipe.meal_prep_reheat_tips || '',
+                meal_prep_batch_notes: recipe.meal_prep_batch_notes || '',
+                targetPortions: item.targetPortions || recipe.servings || null,
+                targetDates: item.targetDates || [],
+                mealTypes: item.mealTypes || []
+            };
+        });
+
+        return {
+            prepDay: AppState.weekPlan?.mealPrepPlan?.prepDate || null,
+            recipes
+        };
+    },
+
+    async generateAiSuggestions() {
+        const payload = this.buildAiPayload();
+        if (!payload.recipes.length) {
+            Toast.error('Füge mindestens ein Meal-Prep Rezept hinzu');
+            return;
+        }
+
+        this.aiLoading = true;
+        this.aiError = null;
+        this.lastAiPayload = payload;
+        App.render();
+
+        try {
+            const result = await StorageService.generateMealPrepSuggestions(payload);
+            AppState.ensureMealPrepPlanStructure(AppState.weekPlan);
+            AppState.weekPlan.mealPrepPlan.aiSuggestions = result;
+            AppState.schedulePersistWeekPlan(0);
+            Toast.success('Meal-Prep Vorschläge aktualisiert');
+        } catch (error) {
+            this.aiError = error.message || 'Meal-Prep Vorschläge konnten nicht erzeugt werden';
+        } finally {
+            this.aiLoading = false;
+            App.render();
+        }
+    },
+
+    clearAiSuggestions() {
+        AppState.ensureMealPrepPlanStructure(AppState.weekPlan);
+        AppState.weekPlan.mealPrepPlan.aiSuggestions = null;
+        AppState.schedulePersistWeekPlan();
+        App.render();
     }
 };
 

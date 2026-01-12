@@ -120,6 +120,44 @@ app.use(generalLimiter);
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
+const parseNullableInt = (value) => {
+    if (value === undefined || value === null || value === '') {
+        return null;
+    }
+    const parsed = parseInt(value, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+};
+
+const parseNullableText = (value) => {
+    if (value === undefined || value === null) {
+        return null;
+    }
+    const trimmed = String(value).trim();
+    return trimmed.length === 0 ? null : trimmed;
+};
+
+const parseBooleanFlag = (value, fallback = false) => {
+    if (value === undefined || value === null) {
+        return fallback;
+    }
+    if (typeof value === 'boolean') {
+        return value;
+    }
+    if (typeof value === 'number') {
+        return value !== 0;
+    }
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (['true', '1', 'yes', 'y', 'on'].includes(normalized)) {
+            return true;
+        }
+        if (['false', '0', 'no', 'n', 'off'].includes(normalized)) {
+            return false;
+        }
+    }
+    return fallback;
+};
+
 // Get all recipes - Optimized with single JOIN query and pagination
 // Query params: page (default: 1), pageSize (default: 20, max: 100), all (if true, returns all recipes)
 app.get('/recipes', async (req, res) => {
@@ -152,6 +190,11 @@ app.get('/recipes', async (req, res) => {
                 r.prep_time,
                 r.cook_time,
                 r.difficulty,
+                r.is_meal_prep_suitable,
+                r.meal_prep_fridge_days,
+                r.meal_prep_freezer_days,
+                r.meal_prep_reheat_tips,
+                r.meal_prep_batch_notes,
                 r.created_at,
                 r.updated_at,
                 COALESCE(
@@ -214,6 +257,150 @@ app.get('/recipes', async (req, res) => {
     }
 });
 
+// Get recipes filtered by season (recipes with seasonal ingredients)
+// NOTE: This route must be defined BEFORE /recipes/:id to avoid "seasonal" being matched as an ID
+app.get('/recipes/seasonal', async (req, res) => {
+    try {
+        const { season, minScore } = req.query;
+        const minimumScore = parseInt(minScore) || 30;
+        const currentSeason = getCurrentSeason();
+        const seasonKey = season || currentSeason.key;
+
+        const { rows } = await db.query(`
+            SELECT
+                r.id,
+                r.name,
+                r.category,
+                r.servings,
+                r.instructions,
+                r.is_favorite,
+                r.created_at,
+                COALESCE(
+                    json_agg(DISTINCT jsonb_build_object(
+                        'name', i.name,
+                        'amount', i.amount,
+                        'unit', i.unit,
+                        'category', i.category
+                    )) FILTER (WHERE i.name IS NOT NULL),
+                    '[]'::json
+                ) as ingredients,
+                COALESCE(
+                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
+                    '[]'::json
+                ) as tags
+            FROM recipes r
+            LEFT JOIN ingredients i ON r.id = i.recipe_id
+            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
+            GROUP BY r.id
+            ORDER BY r.created_at DESC
+        `);
+
+        const seasonalRecipes = rows
+            .map(recipe => {
+                const score = calculateSeasonalScore(recipe.ingredients, seasonKey);
+                const seasonalIngredients = recipe.ingredients.filter(ing =>
+                    isIngredientInSeason(ing.name, seasonKey)
+                );
+
+                return {
+                    ...recipe,
+                    seasonalScore: score,
+                    seasonalIngredients: seasonalIngredients.map(i => i.name),
+                    seasonInfo: {
+                        season: SEASONAL_CALENDAR[seasonKey].name,
+                        seasonKey,
+                        score,
+                        seasonalCount: seasonalIngredients.length,
+                        totalIngredients: recipe.ingredients.length
+                    }
+                };
+            })
+            .filter(recipe => recipe.seasonalScore >= minimumScore)
+            .sort((a, b) => b.seasonalScore - a.seasonalScore);
+
+        res.json({
+            season: SEASONAL_CALENDAR[seasonKey].name,
+            seasonKey,
+            minimumScore,
+            totalRecipes: rows.length,
+            seasonalRecipes: seasonalRecipes.length,
+            recipes: seasonalRecipes
+        });
+    } catch (error) {
+        logger.error('Error fetching seasonal recipes', { error: error.message, requestId: req.requestId, component: 'seasons' });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get seasonal recommendations for the start page
+app.get('/recipes/seasonal/recommendations', async (req, res) => {
+    try {
+        const { limit } = req.query;
+        const maxResults = Math.min(parseInt(limit) || 6, 20);
+        const currentSeason = getCurrentSeason();
+
+        const { rows } = await db.query(`
+            SELECT
+                r.id,
+                r.name,
+                r.category,
+                r.servings,
+                r.is_favorite,
+                COALESCE(
+                    json_agg(DISTINCT jsonb_build_object(
+                        'name', i.name,
+                        'amount', i.amount,
+                        'unit', i.unit,
+                        'category', i.category
+                    )) FILTER (WHERE i.name IS NOT NULL),
+                    '[]'::json
+                ) as ingredients,
+                COALESCE(
+                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
+                    '[]'::json
+                ) as tags
+            FROM recipes r
+            LEFT JOIN ingredients i ON r.id = i.recipe_id
+            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
+            GROUP BY r.id
+            ORDER BY r.created_at DESC
+        `);
+
+        const recommendations = rows
+            .map(recipe => {
+                const score = calculateSeasonalScore(recipe.ingredients);
+                const seasonalIngredients = recipe.ingredients.filter(ing =>
+                    isIngredientInSeason(ing.name)
+                );
+
+                return {
+                    id: recipe.id,
+                    name: recipe.name,
+                    category: recipe.category,
+                    servings: recipe.servings,
+                    is_favorite: recipe.is_favorite,
+                    tags: recipe.tags,
+                    seasonalScore: score,
+                    seasonalIngredients: seasonalIngredients.map(i => i.name),
+                    totalIngredients: recipe.ingredients.length
+                };
+            })
+            .filter(recipe => recipe.seasonalScore >= 30)
+            .sort((a, b) => b.seasonalScore - a.seasonalScore)
+            .slice(0, maxResults);
+
+        res.json({
+            season: currentSeason.name,
+            seasonKey: currentSeason.key,
+            topSeasonalIngredients: currentSeason.ingredients.slice(0, 8),
+            recommendations
+        });
+    } catch (error) {
+        logger.error('Error fetching seasonal recommendations', { error: error.message, requestId: req.requestId, component: 'seasons' });
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Get recipe by ID - Optimized with single JOIN query
 app.get('/recipes/:id', async (req, res) => {
     try {
@@ -231,6 +418,11 @@ app.get('/recipes/:id', async (req, res) => {
                 r.prep_time,
                 r.cook_time,
                 r.difficulty,
+                r.is_meal_prep_suitable,
+                r.meal_prep_fridge_days,
+                r.meal_prep_freezer_days,
+                r.meal_prep_reheat_tips,
+                r.meal_prep_batch_notes,
                 r.created_at,
                 r.updated_at,
                 COALESCE(
@@ -280,15 +472,70 @@ app.get('/recipes/:id', async (req, res) => {
 
 // Create recipe
 app.post('/recipes', async (req, res) => {
-    const { id, name, category, servings, instructions, ingredients, tags, prep_time, cook_time, difficulty } = req.body;
+    const {
+        id,
+        name,
+        category,
+        servings,
+        instructions,
+        ingredients,
+        tags,
+        prep_time,
+        cook_time,
+        difficulty,
+        is_meal_prep_suitable,
+        meal_prep_fridge_days,
+        meal_prep_freezer_days,
+        meal_prep_reheat_tips,
+        meal_prep_batch_notes
+    } = req.body;
     const favoriteValue = resolveFavoriteFlagFromBody(req.body, false);
+    const mealPrepSuitable = parseBooleanFlag(is_meal_prep_suitable ?? req.body?.isMealPrepSuitable, false);
+    const mealPrepFridgeDays = parseNullableInt(meal_prep_fridge_days ?? req.body?.mealPrepFridgeDays);
+    const mealPrepFreezerDays = parseNullableInt(meal_prep_freezer_days ?? req.body?.mealPrepFreezerDays);
+    const mealPrepReheatTips = parseNullableText(meal_prep_reheat_tips ?? req.body?.mealPrepReheatTips);
+    const mealPrepBatchNotes = parseNullableText(meal_prep_batch_notes ?? req.body?.mealPrepBatchNotes);
 
     try {
         await db.transaction(async (client) => {
             // Insert recipe
             await client.query(
-                'INSERT INTO recipes (id, name, category, servings, instructions, is_favorite, prep_time, cook_time, difficulty) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
-                [id, name, category, servings, instructions, favoriteValue, prep_time || null, cook_time || null, difficulty || null]
+                `INSERT INTO recipes (
+                    id,
+                    name,
+                    category,
+                    servings,
+                    instructions,
+                    is_favorite,
+                    prep_time,
+                    cook_time,
+                    difficulty,
+                    is_meal_prep_suitable,
+                    meal_prep_fridge_days,
+                    meal_prep_freezer_days,
+                    meal_prep_reheat_tips,
+                    meal_prep_batch_notes
+                ) VALUES (
+                    $1, $2, $3, $4, $5,
+                    $6, $7, $8, $9,
+                    $10, $11, $12, $13, $14
+                )`,
+                [
+                    id,
+                    name,
+                    category,
+                    servings,
+                    instructions,
+                    favoriteValue,
+                    prep_time || null,
+                    cook_time || null,
+                    difficulty || null,
+                    mealPrepSuitable,
+                    mealPrepFridgeDays,
+                    mealPrepFreezerDays,
+                    mealPrepReheatTips,
+                    mealPrepBatchNotes
+                ]
             );
 
             // Insert ingredients
@@ -321,16 +568,66 @@ app.post('/recipes', async (req, res) => {
 
 // Update recipe
 app.put('/recipes/:id', async (req, res) => {
-    const { name, category, servings, instructions, ingredients, tags, prep_time, cook_time, difficulty } = req.body;
+    const {
+        name,
+        category,
+        servings,
+        instructions,
+        ingredients,
+        tags,
+        prep_time,
+        cook_time,
+        difficulty,
+        is_meal_prep_suitable,
+        meal_prep_fridge_days,
+        meal_prep_freezer_days,
+        meal_prep_reheat_tips,
+        meal_prep_batch_notes
+    } = req.body;
     const favoriteValue = resolveFavoriteFlagFromBody(req.body, null);
     let updatedFavorite = favoriteValue;
+    const mealPrepSuitable = parseBooleanFlag(is_meal_prep_suitable ?? req.body?.isMealPrepSuitable, null);
+    const mealPrepFridgeDays = parseNullableInt(meal_prep_fridge_days ?? req.body?.mealPrepFridgeDays);
+    const mealPrepFreezerDays = parseNullableInt(meal_prep_freezer_days ?? req.body?.mealPrepFreezerDays);
+    const mealPrepReheatTips = parseNullableText(meal_prep_reheat_tips ?? req.body?.mealPrepReheatTips);
+    const mealPrepBatchNotes = parseNullableText(meal_prep_batch_notes ?? req.body?.mealPrepBatchNotes);
 
     try {
         await db.transaction(async (client) => {
             // Update recipe
             const { rows: recipeRows } = await client.query(
-                'UPDATE recipes SET name = $1, category = $2, servings = $3, instructions = $4, is_favorite = COALESCE($5, is_favorite), prep_time = $6, cook_time = $7, difficulty = $8 WHERE id = $9 RETURNING is_favorite',
-                [name, category, servings, instructions, favoriteValue, prep_time || null, cook_time || null, difficulty || null, req.params.id]
+                `UPDATE recipes SET
+                    name = $1,
+                    category = $2,
+                    servings = $3,
+                    instructions = $4,
+                    is_favorite = COALESCE($5, is_favorite),
+                    prep_time = $6,
+                    cook_time = $7,
+                    difficulty = $8,
+                    is_meal_prep_suitable = COALESCE($9, is_meal_prep_suitable),
+                    meal_prep_fridge_days = $10,
+                    meal_prep_freezer_days = $11,
+                    meal_prep_reheat_tips = $12,
+                    meal_prep_batch_notes = $13
+                 WHERE id = $14
+                 RETURNING is_favorite, is_meal_prep_suitable`,
+                [
+                    name,
+                    category,
+                    servings,
+                    instructions,
+                    favoriteValue,
+                    prep_time || null,
+                    cook_time || null,
+                    difficulty || null,
+                    mealPrepSuitable,
+                    mealPrepFridgeDays,
+                    mealPrepFreezerDays,
+                    mealPrepReheatTips,
+                    mealPrepBatchNotes,
+                    req.params.id
+                ]
             );
             if (recipeRows[0]) {
                 updatedFavorite = recipeRows[0].is_favorite;
@@ -465,6 +762,7 @@ app.get('/weekplan', async (req, res) => {
         res.json({
             id: weekPlan.id,
             startDate: weekPlan.start_date,
+            mealPrepPlan: weekPlan.meal_prep_plan || {},
             days: daysWithMeals.map(d => ({
                 date: d.date,
                 dayName: d.day_name,
@@ -479,7 +777,8 @@ app.get('/weekplan', async (req, res) => {
 
 // Save week plan (supports multiple weeks)
 app.post('/weekplan', async (req, res) => {
-    const { id, startDate, days } = req.body;
+    const { id, startDate, days, mealPrepPlan } = req.body;
+    const sanitizedMealPrepPlan = mealPrepPlan && typeof mealPrepPlan === 'object' ? mealPrepPlan : {};
 
     try {
         await db.transaction(async (client) => {
@@ -488,8 +787,8 @@ app.post('/weekplan', async (req, res) => {
 
             // Insert new week plan
             await client.query(
-                'INSERT INTO week_plans (id, start_date) VALUES ($1, $2)',
-                [id, startDate]
+                'INSERT INTO week_plans (id, start_date, meal_prep_plan) VALUES ($1, $2, $3)',
+                [id, startDate, sanitizedMealPrepPlan]
             );
 
             // Insert days and meals
@@ -579,6 +878,7 @@ app.get('/weekplan/by-date/:date', async (req, res) => {
         res.json({
             id: weekPlan.id,
             startDate: weekPlan.start_date,
+            mealPrepPlan: weekPlan.meal_prep_plan || {},
             days: daysWithMeals.map(d => ({
                 date: d.date,
                 dayName: d.day_name,
@@ -1622,153 +1922,6 @@ app.post('/seasons/check', (req, res) => {
         seasonalCount: result.filter(i => i.isInSeason).length,
         totalCount: result.length
     });
-});
-
-// Get recipes filtered by season (recipes with seasonal ingredients)
-app.get('/recipes/seasonal', async (req, res) => {
-    try {
-        const { season, minScore } = req.query;
-        const minimumScore = parseInt(minScore) || 30; // Default: at least 30% seasonal ingredients
-        const currentSeason = getCurrentSeason();
-        const seasonKey = season || currentSeason.key;
-
-        // Fetch all recipes with ingredients
-        const { rows } = await db.query(`
-            SELECT
-                r.id,
-                r.name,
-                r.category,
-                r.servings,
-                r.instructions,
-                r.is_favorite,
-                r.created_at,
-                COALESCE(
-                    json_agg(DISTINCT jsonb_build_object(
-                        'name', i.name,
-                        'amount', i.amount,
-                        'unit', i.unit,
-                        'category', i.category
-                    )) FILTER (WHERE i.name IS NOT NULL),
-                    '[]'::json
-                ) as ingredients,
-                COALESCE(
-                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
-                    '[]'::json
-                ) as tags
-            FROM recipes r
-            LEFT JOIN ingredients i ON r.id = i.recipe_id
-            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
-            GROUP BY r.id
-            ORDER BY r.created_at DESC
-        `);
-
-        // Calculate seasonal score and filter
-        const seasonalRecipes = rows
-            .map(recipe => {
-                const score = calculateSeasonalScore(recipe.ingredients, seasonKey);
-                const seasonalIngredients = recipe.ingredients.filter(ing =>
-                    isIngredientInSeason(ing.name, seasonKey)
-                );
-
-                return {
-                    ...recipe,
-                    seasonalScore: score,
-                    seasonalIngredients: seasonalIngredients.map(i => i.name),
-                    seasonInfo: {
-                        season: SEASONAL_CALENDAR[seasonKey].name,
-                        seasonKey,
-                        score,
-                        seasonalCount: seasonalIngredients.length,
-                        totalIngredients: recipe.ingredients.length
-                    }
-                };
-            })
-            .filter(recipe => recipe.seasonalScore >= minimumScore)
-            .sort((a, b) => b.seasonalScore - a.seasonalScore);
-
-        res.json({
-            season: SEASONAL_CALENDAR[seasonKey].name,
-            seasonKey,
-            minimumScore,
-            totalRecipes: rows.length,
-            seasonalRecipes: seasonalRecipes.length,
-            recipes: seasonalRecipes
-        });
-    } catch (error) {
-        logger.error('Error fetching seasonal recipes', { error: error.message, requestId: req.requestId, component: 'seasons' });
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Get seasonal recommendations for the start page
-app.get('/recipes/seasonal/recommendations', async (req, res) => {
-    try {
-        const { limit } = req.query;
-        const maxResults = Math.min(parseInt(limit) || 6, 20);
-        const currentSeason = getCurrentSeason();
-
-        // Fetch all recipes with ingredients
-        const { rows } = await db.query(`
-            SELECT
-                r.id,
-                r.name,
-                r.category,
-                r.servings,
-                r.is_favorite,
-                COALESCE(
-                    json_agg(DISTINCT jsonb_build_object(
-                        'name', i.name,
-                        'amount', i.amount,
-                        'unit', i.unit,
-                        'category', i.category
-                    )) FILTER (WHERE i.name IS NOT NULL),
-                    '[]'::json
-                ) as ingredients,
-                COALESCE(
-                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
-                    '[]'::json
-                ) as tags
-            FROM recipes r
-            LEFT JOIN ingredients i ON r.id = i.recipe_id
-            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
-            GROUP BY r.id
-            ORDER BY r.created_at DESC
-        `);
-
-        // Calculate seasonal score and get top recommendations
-        const recommendations = rows
-            .map(recipe => {
-                const score = calculateSeasonalScore(recipe.ingredients);
-                const seasonalIngredients = recipe.ingredients.filter(ing =>
-                    isIngredientInSeason(ing.name)
-                );
-
-                return {
-                    id: recipe.id,
-                    name: recipe.name,
-                    category: recipe.category,
-                    servings: recipe.servings,
-                    is_favorite: recipe.is_favorite,
-                    tags: recipe.tags,
-                    seasonalScore: score,
-                    seasonalIngredients: seasonalIngredients.map(i => i.name),
-                    totalIngredients: recipe.ingredients.length
-                };
-            })
-            .filter(recipe => recipe.seasonalScore >= 30) // At least 30% seasonal
-            .sort((a, b) => b.seasonalScore - a.seasonalScore)
-            .slice(0, maxResults);
-
-        res.json({
-            season: currentSeason.name,
-            seasonKey: currentSeason.key,
-            topSeasonalIngredients: currentSeason.ingredients.slice(0, 8),
-            recommendations
-        });
-    } catch (error) {
-        logger.error('Error fetching seasonal recommendations', { error: error.message, requestId: req.requestId, component: 'seasons' });
-        res.status(500).json({ error: error.message });
-    }
 });
 
 // AI-based portion scaling
@@ -3046,6 +3199,169 @@ Einheiten für Zutaten: g, kg, ml, l, Stück, EL, TL, Prise, Bund, Dose, Packung
 
         res.status(500).json({
             error: 'Fehler bei der Wochenplan-Generierung',
+            details: error.message
+        });
+    }
+});
+
+app.post('/ai/meal-prep-suggestions', aiLimiter, async (req, res) => {
+    if (!genAI) {
+        return res.status(503).json({
+            error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
+        });
+    }
+
+    const recipeCandidates = Array.isArray(req.body?.recipes) ? req.body.recipes : [];
+    const prepDayLabel = parseNullableText(req.body?.prepDay) || 'Meal-Prep Tag';
+    const eligibleRecipes = recipeCandidates
+        .filter((recipe) => recipe && (recipe.is_meal_prep_suitable === true || recipe.isMealPrepSuitable === true))
+        .map((recipe) => {
+            const prepTime = parseNullableInt(recipe.prep_time ?? recipe.prepTime) || 0;
+            const cookTime = parseNullableInt(recipe.cook_time ?? recipe.cookTime) || 0;
+            const fridgeDays = parseNullableInt(recipe.meal_prep_fridge_days ?? recipe.mealPrepFridgeDays);
+            const freezerDays = parseNullableInt(recipe.meal_prep_freezer_days ?? recipe.mealPrepFreezerDays);
+            const targetPortions = parseNullableInt(recipe.targetPortions ?? recipe.totalPortions) || recipe.servings || null;
+            const targetDates = Array.isArray(recipe.targetDates) ? recipe.targetDates : [];
+
+            return {
+                id: recipe.id,
+                name: recipe.name,
+                servings: recipe.servings || null,
+                category: recipe.category || null,
+                totalTime: prepTime + cookTime,
+                prepTime,
+                cookTime,
+                difficulty: recipe.difficulty || null,
+                fridgeDays,
+                freezerDays,
+                reheatTips: parseNullableText(recipe.meal_prep_reheat_tips ?? recipe.mealPrepReheatTips),
+                batchNotes: parseNullableText(recipe.meal_prep_batch_notes ?? recipe.mealPrepBatchNotes),
+                targetPortions,
+                targetDates,
+                mealTypes: Array.isArray(recipe.mealTypes) ? recipe.mealTypes : []
+            };
+        });
+
+    if (eligibleRecipes.length === 0) {
+        return res.status(400).json({
+            error: 'Bitte übermittle mindestens ein Meal-Prep geeignetes Rezept.'
+        });
+    }
+
+    try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+        const recipeSummaries = eligibleRecipes.map((recipe, index) => {
+            const parts = [
+                `${index + 1}. ${recipe.name} (ID: ${recipe.id})`,
+                recipe.category ? `Kategorie: ${recipe.category}` : null,
+                recipe.servings ? `Standard-Portionen: ${recipe.servings}` : null,
+                `Geschätzte Gesamtzeit: ${recipe.totalTime || 'unbekannt'} Minuten`,
+                recipe.mealTypes.length ? `Geplante Mahlzeiten: ${recipe.mealTypes.join(', ')}` : null,
+                recipe.targetPortions ? `Gewünschte Portionen: ${recipe.targetPortions}` : null,
+                recipe.targetDates.length ? `Verbrauchstage: ${recipe.targetDates.join(', ')}` : null,
+                recipe.fridgeDays ? `Kühlschrank: ${recipe.fridgeDays} Tage` : null,
+                recipe.freezerDays ? `Gefrierschrank: ${recipe.freezerDays} Tage` : null,
+                recipe.reheatTips ? `Aufwärm-Tipps: ${recipe.reheatTips}` : null,
+                recipe.batchNotes ? `Batch-Notizen: ${recipe.batchNotes}` : null
+            ].filter(Boolean);
+            return parts.join(' • ');
+        }).join('\n');
+
+        const prompt = `Du bist ein erfahrener Meal-Prep Coach. Plane effiziente Meal-Prep Sessions für den ${prepDayLabel}.\n\n` +
+            `Vorhandene Rezepte:\n${recipeSummaries}\n\n` +
+            `Ziele:\n` +
+            `- Ordne die Rezepte in produktive Sessions, die parallelisierbar sind.\n` +
+            `- Gib Hinweise zur optimalen Reihenfolge und wann Aufgaben parallel laufen können.\n` +
+            `- Berücksichtige vorhandene Haltbarkeitsdaten und Aufwärmhinweise.\n` +
+            `- Gruppiere Zutaten für gemeinsames Vorbereiten.\n\n` +
+            `Liefere ausschließlich ein valides JSON ohne zusätzlichen Text im Format:\n` +
+            `{\n` +
+            `  "sessions": [{\n` +
+            `    "label": "string",\n` +
+            `    "recommendedStartTime": "string",\n` +
+            `    "estimatedTotalMinutes": number,\n` +
+            `    "recipes": [{\n` +
+            `      "recipeId": "ID von oben",\n` +
+            `      "name": "string",\n` +
+            `      "batchPortions": number,\n` +
+            `      "prepOrder": number,\n` +
+            `      "parallelizationTips": "string",\n` +
+            `      "storage": {\n` +
+            `        "fridgeDays": number|null,\n` +
+            `        "freezerDays": number|null,\n` +
+            `        "notes": "string"\n` +
+            `      },\n` +
+            `      "reheatTips": "string",\n` +
+            `      "targetDates": ["YYYY-MM-DD", ...]\n` +
+            `    }],\n` +
+            `    "timeline": [{\n` +
+            `      "start": "HH:MM",\n` +
+            `      "end": "HH:MM",\n` +
+            `      "task": "string",\n` +
+            `      "relatedRecipeIds": ["ID", ...]\n` +
+            `    }],\n` +
+            `    "cleanupTips": ["string", ...]\n` +
+            `  }],\n` +
+            `  "shoppingGroups": [{\n` +
+            `    "label": "string",\n` +
+            `    "ingredients": [{\n` +
+            `      "name": "string",\n` +
+            `      "unit": "string",\n` +
+            `      "totalAmount": number|string,\n` +
+            `      "recipes": ["ID", ...]\n` +
+            `    }]\n` +
+            `  }],\n` +
+            `  "generalAdvice": ["string", ...]\n` +
+            `}\n\n` +
+            `Nutze ausschließlich die vorhandenen Rezept-IDs. Verwende keine Markdown-Codeblöcke.`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        let jsonText = response.text().trim();
+
+        if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '').trim();
+        }
+
+        const suggestions = JSON.parse(jsonText);
+
+        if (!suggestions.sessions || !Array.isArray(suggestions.sessions)) {
+            throw new Error('Invalid AI response: sessions missing');
+        }
+
+        logger.info('Meal-prep suggestions generated', {
+            recipeCount: eligibleRecipes.length,
+            requestId: req.requestId,
+            component: 'ai'
+        });
+
+        res.json({
+            sessions: suggestions.sessions,
+            shoppingGroups: Array.isArray(suggestions.shoppingGroups) ? suggestions.shoppingGroups : [],
+            generalAdvice: Array.isArray(suggestions.generalAdvice) ? suggestions.generalAdvice : [],
+            metadata: {
+                generatedAt: new Date().toISOString(),
+                recipeCount: eligibleRecipes.length,
+                prepDay: prepDayLabel
+            }
+        });
+    } catch (error) {
+        logger.error('Meal-prep suggestion error', {
+            error: error.message,
+            requestId: req.requestId,
+            component: 'ai'
+        });
+
+        if (error instanceof SyntaxError) {
+            return res.status(500).json({
+                error: 'Die KI-Antwort konnte nicht verarbeitet werden. Bitte versuche es erneut.',
+                details: 'JSON parsing failed'
+            });
+        }
+
+        res.status(500).json({
+            error: 'Fehler bei der Meal-Prep Empfehlung',
             details: error.message
         });
     }
