@@ -78,7 +78,7 @@ const PWA = {
             if (!indicator) {
                 indicator = document.createElement('div');
                 indicator.id = 'offline-indicator';
-                indicator.className = 'fixed top-0 left-0 right-0 bg-yellow-500 text-yellow-900 text-center py-1 text-sm font-medium z-50';
+                indicator.className = 'fixed top-0 left-0 right-0 bg-ac-yellow-400 text-ac-brown-900 text-center py-1 text-sm font-medium z-50';
                 indicator.textContent = 'Offline - Daten werden lokal gespeichert';
                 document.body.prepend(indicator);
             }
@@ -345,14 +345,14 @@ const Toast = {
         if (existingToast) existingToast.remove();
 
         // Determine background color based on type
-        let bgColor = 'bg-gray-800 dark:bg-gray-700';
-        if (type === 'success') bgColor = 'bg-green-600 dark:bg-green-700';
-        if (type === 'error') bgColor = 'bg-red-600 dark:bg-red-700';
+        let bgColor = 'bg-gray-800 dark:bg-ac-night-100';
+        if (type === 'success') bgColor = 'bg-ac-leaf-600 dark:bg-green-700';
+        if (type === 'error') bgColor = 'bg-ac-peach-500 dark:bg-red-700';
 
         // Create toast with ARIA live region for accessibility
         const toast = document.createElement('div');
         toast.id = 'toast-notification';
-        toast.className = `fixed bottom-4 right-4 ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-4 z-50 animate-slide-up`;
+        toast.className = `fixed bottom-4 right-4 ${bgColor} text-white px-6 py-4 rounded-lg shadow-ac-lg flex items-center gap-4 z-50 animate-slide-up`;
         toast.setAttribute('role', 'alert');
         toast.setAttribute('aria-live', 'polite');
         toast.setAttribute('aria-atomic', 'true');
@@ -367,7 +367,7 @@ const Toast = {
         if (showUndo) {
             const undoBtn = document.createElement('button');
             undoBtn.id = 'toast-undo-btn';
-            undoBtn.className = 'px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded transition-colors font-medium';
+            undoBtn.className = 'px-4 py-2 bg-ac-mint-400 hover:bg-ac-mint-500 rounded transition-colors font-medium';
             undoBtn.textContent = 'Rückgängig';
             toast.appendChild(undoBtn);
         }
@@ -531,30 +531,30 @@ const OnboardingManager = {
         overlay.innerHTML = `
             <div class="absolute inset-0 bg-black/60"></div>
             <div id="onboarding-spotlight" class="absolute rounded-lg transition-all duration-300" style="box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);"></div>
-            <div id="onboarding-tooltip" class="absolute bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm z-10 transform transition-all duration-300">
+            <div id="onboarding-tooltip" class="absolute bg-white dark:bg-ac-night-200 rounded-ac-xl shadow-ac-lg p-6 max-w-sm z-10 transform transition-all duration-300">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">${step.title}</h3>
-                    <span class="text-sm text-gray-500 dark:text-gray-400">${this.currentStep + 1}/${this.steps.length}</span>
+                    <h3 class="text-lg font-bold text-ac-brown-800 dark:text-ac-cream-100">${step.title}</h3>
+                    <span class="text-sm text-ac-brown-500 dark:text-ac-brown-400">${this.currentStep + 1}/${this.steps.length}</span>
                 </div>
-                <p class="text-gray-600 dark:text-gray-300 mb-6">${step.content}</p>
+                <p class="text-ac-brown-600 dark:text-ac-cream-300 mb-6">${step.content}</p>
                 <div class="flex items-center justify-between">
-                    <button id="onboarding-skip" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                    <button id="onboarding-skip" class="text-sm text-ac-brown-500 dark:text-ac-brown-400 hover:text-ac-brown-700 dark:hover:text-gray-200">
                         Tour überspringen
                     </button>
                     <div class="flex gap-2">
                         ${this.currentStep > 0 ? `
-                            <button id="onboarding-prev" class="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                            <button id="onboarding-prev" class="px-4 py-2 text-sm bg-ac-cream-200 dark:bg-ac-night-100 text-ac-brown-700 dark:text-ac-cream-200 rounded-lg hover:bg-gray-300 dark:hover:bg-ac-night-50 transition-colors">
                                 Zurück
                             </button>
                         ` : ''}
-                        <button id="onboarding-next" class="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        <button id="onboarding-next" class="px-4 py-2 text-sm bg-ac-mint-400 text-white rounded-lg hover:bg-ac-mint-500 transition-colors">
                             ${this.currentStep === this.steps.length - 1 ? 'Fertig' : 'Weiter'}
                         </button>
                     </div>
                 </div>
                 <div class="flex justify-center gap-1 mt-4">
                     ${this.steps.map((_, i) => `
-                        <div class="w-2 h-2 rounded-full transition-colors ${i === this.currentStep ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}"></div>
+                        <div class="w-2 h-2 rounded-full transition-colors ${i === this.currentStep ? 'bg-ac-mint-400' : 'bg-gray-300 dark:bg-gray-600'}"></div>
                     `).join('')}
                 </div>
             </div>
@@ -1654,7 +1654,7 @@ const App = {
 
     renderPullToRefresh() {
         return `
-            <div class="pull-to-refresh bg-blue-500 dark:bg-blue-600 text-white">
+            <div class="pull-to-refresh bg-ac-mint-400 dark:bg-ac-mint-500 text-white">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
@@ -1675,18 +1675,18 @@ const App = {
         const overflow = favorites.length - limitedFavorites.length;
 
         return `
-            <section class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
+            <section class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-red-500 dark:text-red-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <svg class="w-5 h-5 text-ac-peach-500 dark:text-red-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
                         </svg>
-                        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Favoriten Schnellzugriff</h3>
+                        <h3 class="text-base font-semibold text-ac-brown-800 dark:text-ac-cream-100">Favoriten Schnellzugriff</h3>
                     </div>
                 </div>
                 <div class="flex gap-3 overflow-x-auto favorite-quick-scroll pb-1">
                     ${limitedFavorites.map(recipe => `
-                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-red-100 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-left transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
+                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-ac-peach-200 dark:border-ac-peach-500 bg-ac-peach-50 dark:bg-ac-peach-500/20 text-left transition-colors hover:bg-ac-peach-100 dark:hover:bg-ac-peach-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
                             <div class="flex items-center justify-between gap-3">
                                 <span class="font-medium text-red-700 dark:text-red-200 truncate">${recipe.name}</span>
                                 <svg class="w-4 h-4 text-red-400 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -1697,7 +1697,7 @@ const App = {
                         </button>
                     `).join('')}
                     ${overflow > 0 ? `
-                        <div class="flex-shrink-0 min-w-[140px] px-4 py-3 rounded-lg border border-dashed border-red-200 dark:border-red-700 text-red-500 dark:text-red-300 flex items-center justify-center text-sm">
+                        <div class="flex-shrink-0 min-w-[140px] px-4 py-3 rounded-lg border border-dashed border-ac-peach-200 dark:border-ac-peach-500 text-ac-peach-500 dark:text-red-300 flex items-center justify-center text-sm">
                             +${overflow} weitere
                         </div>
                     ` : ''}
@@ -1712,29 +1712,29 @@ const App = {
         const moonIconClass = isDark ? '' : 'hidden';
 
         return `
-            <header class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-200 sticky top-0 z-30" role="banner">
+            <header class="bg-white dark:bg-ac-night-200 shadow-ac transition-colors duration-200 sticky top-0 z-30" role="banner">
                 <div class="container mx-auto px-4 py-3 sm:py-4">
                     <div class="flex justify-between items-center">
                         <div class="flex items-center gap-3">
                             <!-- Mobile menu button -->
-                            <button id="mobile-menu-toggle" class="sm:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Menü öffnen">
-                                <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button id="mobile-menu-toggle" class="sm:hidden p-2 -ml-2 rounded-lg hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors" aria-label="Menü öffnen">
+                                <svg class="w-6 h-6 text-ac-brown-700 dark:text-ac-cream-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                                 </svg>
                             </button>
                             <div>
-                                <h1 class="text-xl sm:text-3xl font-bold text-gray-800 dark:text-white">Food Planner</h1>
-                                <p class="text-xs sm:text-base text-gray-600 dark:text-gray-300 hidden sm:block">Dein persönlicher Essenswochenplaner</p>
+                                <h1 class="text-xl sm:text-3xl font-bold text-ac-brown-800 dark:text-ac-cream-100">Food Planner</h1>
+                                <p class="text-xs sm:text-base text-ac-brown-600 dark:text-ac-cream-300 hidden sm:block">Dein persönlicher Essenswochenplaner</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button id="restart-tour-btn" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Tour neu starten" aria-label="Einführungstour neu starten">
-                                <svg class="w-6 h-6 text-gray-800 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button id="restart-tour-btn" class="p-2 rounded-lg bg-ac-cream-200 dark:bg-ac-night-100 hover:bg-gray-300 dark:hover:bg-ac-night-50 transition-colors" title="Tour neu starten" aria-label="Einführungstour neu starten">
+                                <svg class="w-6 h-6 text-ac-brown-800 dark:text-ac-cream-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                             </button>
-                            <button id="dark-mode-toggle" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Dark Mode umschalten">
-                                <svg class="w-6 h-6 text-gray-800 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <button id="dark-mode-toggle" class="p-2 rounded-lg bg-ac-cream-200 dark:bg-ac-night-100 hover:bg-gray-300 dark:hover:bg-ac-night-50 transition-colors" title="Dark Mode umschalten">
+                                <svg class="w-6 h-6 text-ac-brown-800 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path class="${sunIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
                                     <path class="${moonIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
                                 </svg>
@@ -1762,12 +1762,12 @@ const App = {
             <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
 
             <!-- Mobile navigation menu -->
-            <nav class="mobile-nav-menu bg-white dark:bg-gray-800">
-                <div class="p-4 border-b dark:border-gray-700">
+            <nav class="mobile-nav-menu bg-white dark:bg-ac-night-200">
+                <div class="p-4 border-b dark:border-ac-night-50">
                     <div class="flex justify-between items-center">
-                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Menü</h2>
-                        <button id="close-mobile-menu" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                            <svg class="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <h2 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100">Menü</h2>
+                        <button id="close-mobile-menu" class="p-2 rounded-lg hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors">
+                            <svg class="w-6 h-6 text-ac-brown-500 dark:text-ac-brown-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </button>
@@ -1777,8 +1777,8 @@ const App = {
                     ${tabs.map(tab => `
                         <button class="mobile-nav-btn w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                             AppState.currentView === tab.id
-                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-l-4 border-blue-600 dark:border-blue-400'
-                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                ? 'bg-ac-mint-50 dark:bg-ac-mint-900/30 text-ac-mint-600 dark:text-ac-mint-400 border-l-4 border-blue-600 dark:border-ac-mint-400'
+                                : 'text-ac-brown-700 dark:text-ac-cream-300 hover:bg-ac-cream-50 dark:hover:bg-ac-night-100'
                         }" data-view="${tab.id}">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${tab.icon}"></path>
@@ -1804,15 +1804,15 @@ const App = {
 
         // Desktop navigation (hidden on mobile)
         return `
-            <nav class="hidden sm:block bg-white dark:bg-gray-800 border-b dark:border-gray-700 transition-colors duration-200 overflow-x-auto" role="navigation" aria-label="Hauptnavigation">
+            <nav class="hidden sm:block bg-white dark:bg-ac-night-200 border-b dark:border-ac-night-50 transition-colors duration-200 overflow-x-auto" role="navigation" aria-label="Hauptnavigation">
                 <div class="container mx-auto px-4">
                     <div class="flex space-x-1 min-w-max" role="tablist" aria-label="Ansichten">
                         ${tabs.map((tab, index) => `
                             <button
                                 class="nav-btn px-3 md:px-6 py-3 font-medium transition-colors whitespace-nowrap text-sm md:text-base ${
                                     AppState.currentView === tab.id
-                                        ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                                        : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                                        ? 'text-ac-mint-600 dark:text-ac-mint-400 border-b-2 border-blue-600 dark:border-ac-mint-400'
+                                        : 'text-ac-brown-600 dark:text-ac-cream-300 hover:text-ac-mint-600 dark:hover:text-blue-400'
                                 }"
                                 data-view="${tab.id}"
                                 data-nav="${tab.id}"
@@ -1956,15 +1956,15 @@ const CookingHistoryView = {
     render() {
         if (!this.historyData) {
             this.loadData().then(() => App.render());
-            return '<div class="text-gray-800 dark:text-gray-200">Lade Kochverlauf...</div>';
+            return '<div class="text-ac-brown-800 dark:text-ac-cream-200">Lade Kochverlauf...</div>';
         }
 
         return `
             <div class="space-y-6">
                 <div class="flex justify-between items-center flex-wrap gap-3">
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Kochverlauf</h2>
+                    <h2 class="text-2xl font-bold text-ac-brown-800 dark:text-ac-cream-100">Kochverlauf</h2>
                     <div class="flex gap-2">
-                        <select id="history-filter" class="px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                        <select id="history-filter" class="px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-ac-brown-800 dark:text-ac-cream-100">
                             <option value="0" ${this.filterDays === 0 ? 'selected' : ''}>Alle Rezepte</option>
                             <option value="30" ${this.filterDays === 30 ? 'selected' : ''}>Lange nicht gekocht (30+ Tage)</option>
                             <option value="60" ${this.filterDays === 60 ? 'selected' : ''}>Lange nicht gekocht (60+ Tage)</option>
@@ -1983,9 +1983,9 @@ const CookingHistoryView = {
 
         if (history.length === 0) {
             return `
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-                    <p class="text-gray-500 dark:text-gray-400">Noch keine Einträge im Kochverlauf.</p>
-                    <p class="text-sm text-gray-400 dark:text-gray-500 mt-2">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow p-8 text-center">
+                    <p class="text-ac-brown-500 dark:text-ac-brown-400">Noch keine Einträge im Kochverlauf.</p>
+                    <p class="text-sm text-ac-brown-400 dark:text-ac-brown-500 mt-2">
                         Markiere Rezepte im Wochenplan als "Gekocht", um sie hier zu sehen.
                     </p>
                 </div>
@@ -1993,24 +1993,24 @@ const CookingHistoryView = {
         }
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900">
-                <div class="p-4 border-b dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-800 dark:text-white">
+            <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark">
+                <div class="p-4 border-b dark:border-ac-night-50">
+                    <h3 class="font-semibold text-ac-brown-800 dark:text-ac-cream-100">
                         ${total} Einträge insgesamt
                     </h3>
                 </div>
                 <div class="divide-y dark:divide-gray-700">
                     ${history.map(entry => `
-                        <div class="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <div class="p-4 flex justify-between items-center hover:bg-ac-cream-50 dark:hover:bg-ac-night-100/50 transition-colors">
                             <div>
-                                <p class="font-medium text-gray-800 dark:text-white">${this.escapeHtml(entry.recipe_name)}</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                <p class="font-medium text-ac-brown-800 dark:text-ac-cream-100">${this.escapeHtml(entry.recipe_name)}</p>
+                                <p class="text-sm text-ac-brown-500 dark:text-ac-brown-400">
                                     ${this.formatDate(entry.cooked_at)}
                                     ${entry.servings ? ` • ${entry.servings} Portionen` : ''}
                                 </p>
-                                ${entry.notes ? `<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">${this.escapeHtml(entry.notes)}</p>` : ''}
+                                ${entry.notes ? `<p class="text-sm text-ac-brown-600 dark:text-ac-cream-300 mt-1">${this.escapeHtml(entry.notes)}</p>` : ''}
                             </div>
-                            <button class="delete-history-btn text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 p-2"
+                            <button class="delete-history-btn text-ac-peach-500 dark:text-ac-peach-400 hover:text-ac-peach-600 dark:hover:text-red-600 p-2"
                                     data-id="${entry.id}" title="Eintrag löschen">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -2020,15 +2020,15 @@ const CookingHistoryView = {
                     `).join('')}
                 </div>
                 ${totalPages > 1 ? `
-                    <div class="p-4 border-t dark:border-gray-700 flex justify-center gap-2">
-                        <button id="prev-page-btn" class="px-4 py-2 border dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 dark:text-gray-300"
+                    <div class="p-4 border-t dark:border-ac-night-50 flex justify-center gap-2">
+                        <button id="prev-page-btn" class="px-4 py-2 border dark:border-ac-night-100 rounded hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-ac-brown-700 dark:text-ac-cream-300"
                                 ${page <= 1 ? 'disabled' : ''}>
                             Zurück
                         </button>
-                        <span class="px-4 py-2 text-gray-600 dark:text-gray-400">
+                        <span class="px-4 py-2 text-ac-brown-600 dark:text-ac-brown-400">
                             Seite ${page} von ${totalPages}
                         </span>
-                        <button id="next-page-btn" class="px-4 py-2 border dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 dark:text-gray-300"
+                        <button id="next-page-btn" class="px-4 py-2 border dark:border-ac-night-100 rounded hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-ac-brown-700 dark:text-ac-cream-300"
                                 ${page >= totalPages ? 'disabled' : ''}>
                             Weiter
                         </button>
@@ -2046,13 +2046,13 @@ const CookingHistoryView = {
                 this.notCookedData = data;
                 App.render();
             });
-            return '<div class="text-gray-500 dark:text-gray-400">Lade Daten...</div>';
+            return '<div class="text-ac-brown-500 dark:text-ac-brown-400">Lade Daten...</div>';
         }
 
         if (this.notCookedData.length === 0) {
             return `
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-                    <p class="text-gray-500 dark:text-gray-400">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow p-8 text-center">
+                    <p class="text-ac-brown-500 dark:text-ac-brown-400">
                         Alle Rezepte wurden in den letzten ${this.filterDays} Tagen gekocht!
                     </p>
                 </div>
@@ -2060,24 +2060,24 @@ const CookingHistoryView = {
         }
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900">
-                <div class="p-4 border-b dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-800 dark:text-white">
+            <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark">
+                <div class="p-4 border-b dark:border-ac-night-50">
+                    <h3 class="font-semibold text-ac-brown-800 dark:text-ac-cream-100">
                         ${this.notCookedData.length} Rezepte seit ${this.filterDays}+ Tagen nicht gekocht
                     </h3>
                 </div>
                 <div class="divide-y dark:divide-gray-700">
                     ${this.notCookedData.map(recipe => `
-                        <div class="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <div class="p-4 flex justify-between items-center hover:bg-ac-cream-50 dark:hover:bg-ac-night-100/50 transition-colors">
                             <div>
-                                <p class="font-medium text-gray-800 dark:text-white">${this.escapeHtml(recipe.recipe_name)}</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                <p class="font-medium text-ac-brown-800 dark:text-ac-cream-100">${this.escapeHtml(recipe.recipe_name)}</p>
+                                <p class="text-sm text-ac-brown-500 dark:text-ac-brown-400">
                                     ${recipe.last_cooked_at
                                         ? `Zuletzt gekocht: ${this.formatDate(recipe.last_cooked_at)} (${Math.round(recipe.days_since_last_cooked)} Tage her)`
                                         : 'Noch nie gekocht'}
                                 </p>
                             </div>
-                            <button class="quick-cook-btn px-3 py-1 bg-green-500 dark:bg-green-600 text-white text-sm rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors"
+                            <button class="quick-cook-btn px-3 py-1 bg-ac-leaf-500 dark:bg-ac-leaf-600 text-white text-sm rounded hover:bg-ac-leaf-600 dark:hover:bg-ac-leaf-700 transition-colors"
                                     data-recipe-id="${recipe.recipe_id}"
                                     data-recipe-name="${this.escapeHtml(recipe.recipe_name)}">
                                 Jetzt kochen
@@ -2097,20 +2097,20 @@ const CookingHistoryView = {
         const topRecipes = this.statsData.slice(0, 5);
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 mt-6">
-                <div class="p-4 border-b dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-800 dark:text-white">Top 5 häufig gekochte Rezepte</h3>
+            <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark mt-6">
+                <div class="p-4 border-b dark:border-ac-night-50">
+                    <h3 class="font-semibold text-ac-brown-800 dark:text-ac-cream-100">Top 5 häufig gekochte Rezepte</h3>
                 </div>
                 <div class="divide-y dark:divide-gray-700">
                     ${topRecipes.map((stat, index) => `
                         <div class="p-4 flex justify-between items-center">
                             <div class="flex items-center gap-3">
-                                <span class="w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 font-bold text-sm">
+                                <span class="w-8 h-8 flex items-center justify-center rounded-full bg-ac-mint-100 dark:bg-ac-mint-900 text-ac-mint-600 dark:text-ac-mint-300 font-bold text-sm">
                                     ${index + 1}
                                 </span>
                                 <div>
-                                    <p class="font-medium text-gray-800 dark:text-white">${this.escapeHtml(stat.recipe_name)}</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    <p class="font-medium text-ac-brown-800 dark:text-ac-cream-100">${this.escapeHtml(stat.recipe_name)}</p>
+                                    <p class="text-sm text-ac-brown-500 dark:text-ac-brown-400">
                                         ${stat.times_cooked}x gekocht
                                         ${stat.last_cooked_at ? ` • Zuletzt: ${this.formatDate(stat.last_cooked_at)}` : ''}
                                     </p>
@@ -2244,35 +2244,35 @@ const WeekPlannerView = {
         const seasonIcon = this.getSeasonIcon(seasonKey);
 
         return `
-            <section class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
+            <section class="bg-gradient-to-r from-ac-leaf-100 to-ac-mint-100 dark:from-ac-leaf-700/20 dark:to-ac-mint-700/20 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-xl">${seasonIcon}</span>
-                        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Saisonale Empfehlungen (${season})</h3>
+                        <h3 class="text-base font-semibold text-ac-brown-800 dark:text-ac-cream-100">Saisonale Empfehlungen (${season})</h3>
                     </div>
-                    <span class="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-2 py-1 rounded-full">
+                    <span class="text-xs text-ac-leaf-600 dark:text-ac-leaf-400 bg-ac-leaf-100 dark:bg-ac-leaf-700/40 px-2 py-1 rounded-full">
                         ${topSeasonalIngredients.slice(0, 3).join(', ')}...
                     </span>
                 </div>
                 <div class="flex gap-3 overflow-x-auto pb-1">
                     ${recommendations.map(recipe => `
-                        <div class="seasonal-recipe-card flex-shrink-0 min-w-[180px] max-w-[200px] px-4 py-3 rounded-lg border border-green-200 dark:border-green-800 bg-white dark:bg-gray-800 text-left transition-colors hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer" data-recipe-id="${recipe.id}">
+                        <div class="seasonal-recipe-card flex-shrink-0 min-w-[180px] max-w-[200px] px-4 py-3 rounded-lg border border-ac-leaf-200 dark:border-ac-leaf-700 bg-white dark:bg-ac-night-200 text-left transition-colors hover:bg-ac-leaf-100 dark:hover:bg-ac-leaf-700/30 cursor-pointer" data-recipe-id="${recipe.id}">
                             <div class="flex items-start justify-between gap-2 mb-1">
-                                <span class="font-medium text-gray-800 dark:text-white text-sm line-clamp-2">${recipe.name}</span>
+                                <span class="font-medium text-ac-brown-800 dark:text-ac-cream-100 text-sm line-clamp-2">${recipe.name}</span>
                                 ${recipe.is_favorite ? `
-                                    <svg class="w-4 h-4 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                                    <svg class="w-4 h-4 text-ac-peach-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
                                     </svg>
                                 ` : ''}
                             </div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">${recipe.category || 'Rezept'}</p>
+                            <p class="text-xs text-ac-brown-500 dark:text-ac-brown-400 mb-2">${recipe.category || 'Rezept'}</p>
                             <div class="flex items-center gap-2">
-                                <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-ac-leaf-100 dark:bg-ac-leaf-700/40 text-ac-leaf-700 dark:text-ac-leaf-300">
                                     ${recipe.seasonalScore}% saisonal
                                 </span>
                             </div>
                             ${recipe.seasonalIngredients && recipe.seasonalIngredients.length > 0 ? `
-                                <p class="text-xs text-green-600 dark:text-green-400 mt-2 line-clamp-1" title="${recipe.seasonalIngredients.join(', ')}">
+                                <p class="text-xs text-ac-leaf-600 dark:text-ac-leaf-400 mt-2 line-clamp-1" title="${recipe.seasonalIngredients.join(', ')}">
                                     ${seasonIcon} ${recipe.seasonalIngredients.slice(0, 2).join(', ')}${recipe.seasonalIngredients.length > 2 ? '...' : ''}
                                 </p>
                             ` : ''}
@@ -2285,7 +2285,7 @@ const WeekPlannerView = {
 
     render() {
         if (!AppState.weekPlan || !AppState.currentWeekStart) {
-            return '<div class="text-gray-800 dark:text-gray-200">Lade Wochenplan...</div>';
+            return '<div class="text-ac-brown-800 dark:text-ac-cream-200">Lade Wochenplan...</div>';
         }
 
         // Load seasonal recommendations if not loaded
@@ -2312,9 +2312,9 @@ const WeekPlannerView = {
             <div class="space-y-4 sm:space-y-6">
                 <!-- Header with responsive buttons -->
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Wochenplan</h2>
+                    <h2 class="text-xl sm:text-2xl font-bold text-ac-brown-800 dark:text-ac-cream-100">Wochenplan</h2>
                     <div class="flex gap-2 flex-wrap">
-                        <button id="ai-generate-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-purple-500 dark:bg-purple-600 text-white rounded hover:bg-purple-600 dark:hover:bg-purple-700 transition-colors text-sm sm:text-base flex items-center justify-center gap-2" ${this.aiGenerating ? 'disabled' : ''}>
+                        <button id="ai-generate-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-ac-blue-400 dark:bg-ac-blue-500 text-white rounded hover:bg-ac-blue-500 dark:hover:bg-ac-blue-600 transition-colors text-sm sm:text-base flex items-center justify-center gap-2" ${this.aiGenerating ? 'disabled' : ''}>
                             <svg class="w-4 h-4 ${this.aiGenerating ? 'animate-spin' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 ${this.aiGenerating
                                     ? '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>'
@@ -2324,15 +2324,15 @@ const WeekPlannerView = {
                             <span class="hidden sm:inline">${this.aiGenerating ? 'Generiere...' : 'KI-Vorschläge'}</span>
                             <span class="sm:hidden">${this.aiGenerating ? '...' : 'KI'}</span>
                         </button>
-                        <button id="save-template-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors text-sm sm:text-base">
+                        <button id="save-template-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-ac-mint-400 dark:bg-ac-mint-500 text-white rounded hover:bg-ac-mint-500 dark:hover:bg-blue-700 transition-colors text-sm sm:text-base">
                             <span class="hidden sm:inline">Als Vorlage speichern</span>
                             <span class="sm:hidden">Speichern</span>
                         </button>
-                        <button id="load-template-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors text-sm sm:text-base">
+                        <button id="load-template-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-ac-leaf-500 dark:bg-ac-leaf-600 text-white rounded hover:bg-ac-leaf-600 dark:hover:bg-ac-leaf-700 transition-colors text-sm sm:text-base">
                             <span class="hidden sm:inline">Aus Vorlage laden</span>
                             <span class="sm:hidden">Laden</span>
                         </button>
-                        <button id="reset-week-btn" class="px-3 sm:px-4 py-2 bg-red-500 dark:bg-red-600 text-white rounded hover:bg-red-600 dark:hover:bg-red-700 transition-colors text-sm sm:text-base">
+                        <button id="reset-week-btn" class="px-3 sm:px-4 py-2 bg-ac-peach-400 dark:bg-ac-peach-500 text-white rounded hover:bg-ac-peach-500 dark:hover:bg-ac-peach-600 transition-colors text-sm sm:text-base">
                             <span class="hidden sm:inline">Zurücksetzen</span>
                             <span class="sm:hidden">Reset</span>
                         </button>
@@ -2342,23 +2342,23 @@ const WeekPlannerView = {
                 ${this.renderSeasonalRecommendations()}
 
                 <!-- Week Navigation -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200">
                     <div class="flex items-center justify-between">
-                        <button id="prev-week-btn" class="p-3 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95" title="Vorherige Woche">
-                            <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button id="prev-week-btn" class="p-3 sm:p-2 rounded-lg bg-ac-cream-100 dark:bg-ac-night-100 hover:bg-ac-cream-200 dark:hover:bg-ac-night-50 transition-colors active:scale-95" title="Vorherige Woche">
+                            <svg class="w-6 h-6 text-ac-brown-700 dark:text-ac-cream-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
                         </button>
                         <div class="text-center flex-1 mx-2">
-                            <h3 class="text-base sm:text-xl font-semibold text-gray-800 dark:text-white">${weekRange}</h3>
+                            <h3 class="text-base sm:text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100">${weekRange}</h3>
                             ${!isCurrentWeek ? `
-                                <button id="go-to-current-week-btn" class="mt-1 text-sm text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500 transition-colors">
+                                <button id="go-to-current-week-btn" class="mt-1 text-sm text-ac-mint-500 dark:text-ac-mint-400 hover:text-ac-mint-600 dark:hover:text-ac-mint-500 transition-colors">
                                     Zur aktuellen Woche
                                 </button>
-                            ` : '<span class="mt-1 text-sm text-green-600 dark:text-green-400 block">Aktuelle Woche</span>'}
+                            ` : '<span class="mt-1 text-sm text-ac-leaf-600 dark:text-ac-leaf-400 block">Aktuelle Woche</span>'}
                         </div>
-                        <button id="next-week-btn" class="p-3 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95" title="Nächste Woche">
-                            <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button id="next-week-btn" class="p-3 sm:p-2 rounded-lg bg-ac-cream-100 dark:bg-ac-night-100 hover:bg-ac-cream-200 dark:hover:bg-ac-night-50 transition-colors active:scale-95" title="Nächste Woche">
+                            <svg class="w-6 h-6 text-ac-brown-700 dark:text-ac-cream-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
                         </button>
@@ -2368,8 +2368,8 @@ const WeekPlannerView = {
                 <!-- Mobile Day Selector -->
                 <div class="sm:hidden">
                     <div class="flex items-center justify-between mb-3">
-                        <button id="prev-day-btn" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95 ${this.mobileViewDay <= 0 ? 'opacity-50' : ''}" ${this.mobileViewDay <= 0 ? 'disabled' : ''}>
-                            <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button id="prev-day-btn" class="p-2 rounded-lg bg-ac-cream-100 dark:bg-ac-night-100 hover:bg-ac-cream-200 dark:hover:bg-ac-night-50 transition-colors active:scale-95 ${this.mobileViewDay <= 0 ? 'opacity-50' : ''}" ${this.mobileViewDay <= 0 ? 'disabled' : ''}>
+                            <svg class="w-5 h-5 text-ac-brown-700 dark:text-ac-cream-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
                         </button>
@@ -2381,24 +2381,24 @@ const WeekPlannerView = {
                                 return `
                                     <button class="day-selector-btn flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                                         this.mobileViewDay === index
-                                            ? 'bg-blue-500 text-white'
+                                            ? 'bg-ac-mint-400 text-white'
                                             : isToday
-                                                ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
-                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                                ? 'bg-ac-mint-100 dark:bg-ac-mint-900 text-ac-mint-600 dark:text-ac-mint-300'
+                                                : 'bg-ac-cream-100 dark:bg-ac-night-100 text-ac-brown-700 dark:text-ac-cream-300'
                                     }" data-day-index="${index}">
                                         ${dayName}
                                     </button>
                                 `;
                             }).join('')}
                         </div>
-                        <button id="next-day-btn" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95 ${this.mobileViewDay >= 6 ? 'opacity-50' : ''}" ${this.mobileViewDay >= 6 ? 'disabled' : ''}>
-                            <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button id="next-day-btn" class="p-2 rounded-lg bg-ac-cream-100 dark:bg-ac-night-100 hover:bg-ac-cream-200 dark:hover:bg-ac-night-50 transition-colors active:scale-95 ${this.mobileViewDay >= 6 ? 'opacity-50' : ''}" ${this.mobileViewDay >= 6 ? 'disabled' : ''}>
+                            <svg class="w-5 h-5 text-ac-brown-700 dark:text-ac-cream-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
                         </button>
                     </div>
                     <!-- Swipe hint -->
-                    <p class="text-xs text-center text-gray-400 dark:text-gray-500 mb-2">← Wischen für Tageswechsel →</p>
+                    <p class="text-xs text-center text-ac-brown-400 dark:text-ac-brown-500 mb-2">← Wischen für Tageswechsel →</p>
                 </div>
 
                 <!-- Mobile view: Single day with swipe -->
@@ -2426,23 +2426,23 @@ const WeekPlannerView = {
         const isPast = DateUtils.isPast(dayDate);
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200 ${isToday ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''} ${isPast && !isMobileView ? 'opacity-75' : ''}">
+            <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200 ${isToday ? 'ring-2 ring-ac-mint-500 dark:ring-ac-mint-400' : ''} ${isPast && !isMobileView ? 'opacity-75' : ''}">
                 <div class="flex items-center justify-between gap-2 mb-3">
                     <div class="flex items-center gap-2">
-                        <h3 class="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">${formattedDate}</h3>
-                        ${isToday ? '<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">Heute</span>' : ''}
+                        <h3 class="text-lg sm:text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100">${formattedDate}</h3>
+                        ${isToday ? '<span class="px-2 py-0.5 text-xs font-medium bg-ac-mint-100 dark:bg-ac-mint-900 text-ac-mint-700 dark:text-ac-mint-200 rounded-full">Heute</span>' : ''}
                     </div>
-                    ${isPast ? '<span class="text-xs text-gray-400 dark:text-gray-500">Vergangen</span>' : ''}
+                    ${isPast ? '<span class="text-xs text-ac-brown-400 dark:text-ac-brown-500">Vergangen</span>' : ''}
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     ${mealTypes.map(mealType => {
                         const meal = day.meals[mealType];
                         return `
-                            <div class="border dark:border-gray-700 rounded-lg p-3 sm:p-3">
+                            <div class="border dark:border-ac-night-50 rounded-lg p-3 sm:p-3">
                                 <div class="flex justify-between items-center mb-2">
-                                    <h4 class="font-medium text-gray-700 dark:text-gray-300 text-sm sm:text-base">${mealType}</h4>
+                                    <h4 class="font-medium text-ac-brown-700 dark:text-ac-cream-300 text-sm sm:text-base">${mealType}</h4>
                                     ${meal ? `
-                                        <button class="remove-meal-btn p-2 -mr-1 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                        <button class="remove-meal-btn p-2 -mr-1 text-ac-peach-500 dark:text-ac-peach-400 hover:text-ac-peach-600 dark:hover:text-red-600 hover:bg-ac-peach-50 dark:hover:bg-ac-peach-500/20 rounded transition-colors"
                                                 data-day="${dayIndex}"
                                                 data-meal="${mealType}"
                                                 aria-label="Mahlzeit entfernen">
@@ -2453,10 +2453,10 @@ const WeekPlannerView = {
                                     ` : ''}
                                 </div>
                                 ${meal ? `
-                                    <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
-                                        <p class="text-sm text-gray-800 dark:text-gray-200 font-medium ${meal.recipeId ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline open-recipe-btn' : ''}"
+                                    <div class="bg-ac-mint-50 dark:bg-ac-mint-900/30 p-3 rounded-lg">
+                                        <p class="text-sm text-ac-brown-800 dark:text-ac-cream-200 font-medium ${meal.recipeId ? 'cursor-pointer hover:text-ac-mint-600 dark:hover:text-blue-400 hover:underline open-recipe-btn' : ''}"
                                            ${meal.recipeId ? `data-recipe-id="${meal.recipeId}"` : ''}>${meal.recipeName}</p>
-                                        <button class="mark-cooked-btn mt-3 w-full py-2.5 text-sm bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center justify-center gap-2 active:scale-98"
+                                        <button class="mark-cooked-btn mt-3 w-full py-2.5 text-sm bg-ac-leaf-500 dark:bg-ac-leaf-600 text-white rounded-lg hover:bg-ac-leaf-600 dark:hover:bg-ac-leaf-700 transition-colors flex items-center justify-center gap-2 active:scale-98"
                                                 data-recipe-id="${meal.recipeId}"
                                                 data-recipe-name="${meal.recipeName}">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2466,7 +2466,7 @@ const WeekPlannerView = {
                                         </button>
                                     </div>
                                 ` : `
-                                    <button class="add-meal-btn w-full py-4 sm:py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-center gap-2 active:scale-98"
+                                    <button class="add-meal-btn w-full py-4 sm:py-3 border-2 border-dashed border-ac-cream-400 dark:border-ac-night-100 rounded-lg text-ac-brown-500 dark:text-ac-brown-400 hover:border-ac-mint-400 dark:hover:border-ac-mint-500 hover:text-ac-mint-500 dark:hover:text-blue-400 hover:bg-ac-mint-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-center gap-2 active:scale-98"
                                             data-day="${dayIndex}"
                                             data-meal="${mealType}">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2486,37 +2486,37 @@ const WeekPlannerView = {
     renderSaveTemplateModal() {
         return `
             <div id="save-template-modal" class="modal">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg max-w-md w-full p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Vorlage speichern</h3>
-                        <button id="close-save-template" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                        <h3 class="text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100">Vorlage speichern</h3>
+                        <button id="close-save-template" class="text-ac-brown-500 dark:text-ac-brown-400 hover:text-ac-brown-700 dark:hover:text-gray-200 text-2xl">
                             ✕
                         </button>
                     </div>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">
                                 Name der Vorlage *
                             </label>
                             <input type="text" id="template-name-input"
-                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                   class="w-full px-3 py-2 border dark:border-ac-night-100 rounded focus:ring-2 focus:ring-ac-mint-500 dark:bg-ac-night-100 dark:text-ac-cream-100"
                                    placeholder="z.B. Standardwoche, Sommerwoche..."
                                    required>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">
                                 Beschreibung (optional)
                             </label>
                             <textarea id="template-description-input"
-                                      class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                      class="w-full px-3 py-2 border dark:border-ac-night-100 rounded focus:ring-2 focus:ring-ac-mint-500 dark:bg-ac-night-100 dark:text-ac-cream-100"
                                       rows="3"
                                       placeholder="Beschreibe diese Vorlage..."></textarea>
                         </div>
                         <div class="flex gap-2 justify-end">
-                            <button id="cancel-save-template" class="px-4 py-2 border dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <button id="cancel-save-template" class="px-4 py-2 border dark:border-ac-night-100 rounded text-ac-brown-700 dark:text-ac-cream-300 hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors">
                                 Abbrechen
                             </button>
-                            <button id="confirm-save-template" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                            <button id="confirm-save-template" class="px-4 py-2 bg-ac-mint-400 text-white rounded hover:bg-ac-mint-500 transition-colors">
                                 Speichern
                             </button>
                         </div>
@@ -2529,15 +2529,15 @@ const WeekPlannerView = {
     renderLoadTemplateModal() {
         return `
             <div id="load-template-modal" class="modal">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
-                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Vorlage laden</h3>
-                        <button id="close-load-template" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                    <div class="p-4 border-b dark:border-ac-night-50 flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100">Vorlage laden</h3>
+                        <button id="close-load-template" class="text-ac-brown-500 dark:text-ac-brown-400 hover:text-ac-brown-700 dark:hover:text-gray-200 text-2xl">
                             ✕
                         </button>
                     </div>
                     <div id="templates-list" class="p-4 overflow-y-auto max-h-[60vh]">
-                        <p class="text-gray-500 dark:text-gray-400 text-center py-8">Lade Vorlagen...</p>
+                        <p class="text-ac-brown-500 dark:text-ac-brown-400 text-center py-8">Lade Vorlagen...</p>
                     </div>
                 </div>
             </div>
@@ -2547,25 +2547,25 @@ const WeekPlannerView = {
     renderRecipeSelector() {
         return `
             <div id="recipe-selector-modal" class="modal">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
-                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Rezept auswählen</h3>
-                        <button id="close-recipe-selector" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                    <div class="p-4 border-b dark:border-ac-night-50 flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100">Rezept auswählen</h3>
+                        <button id="close-recipe-selector" class="text-ac-brown-500 dark:text-ac-brown-400 hover:text-ac-brown-700 dark:hover:text-gray-200 text-2xl">
                             ✕
                         </button>
                     </div>
                     <div class="p-4 overflow-y-auto max-h-[60vh]">
                         ${AppState.recipes.length === 0 ? `
-                            <p class="text-gray-500 dark:text-gray-400 text-center py-8">
+                            <p class="text-ac-brown-500 dark:text-ac-brown-400 text-center py-8">
                                 Noch keine Rezepte vorhanden. Erstelle zuerst Rezepte in der Rezeptdatenbank.
                             </p>
                         ` : `
                             <div class="grid gap-2">
                                 ${AppState.recipes.map(recipe => `
-                                    <button class="select-recipe-btn text-left p-3 border dark:border-gray-700 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                                    <button class="select-recipe-btn text-left p-3 border dark:border-ac-night-50 rounded hover:bg-ac-mint-50 dark:hover:bg-blue-900/30 hover:border-ac-mint-400 dark:hover:border-ac-mint-500 transition-colors"
                                             data-recipe-id="${recipe.id}">
-                                        <p class="font-medium text-gray-800 dark:text-white">${recipe.name}</p>
-                                        ${recipe.category ? `<p class="text-sm text-gray-600 dark:text-gray-400">${recipe.category}</p>` : ''}
+                                        <p class="font-medium text-ac-brown-800 dark:text-ac-cream-100">${recipe.name}</p>
+                                        ${recipe.category ? `<p class="text-sm text-ac-brown-600 dark:text-ac-brown-400">${recipe.category}</p>` : ''}
                                     </button>
                                 `).join('')}
                             </div>
@@ -2579,54 +2579,54 @@ const WeekPlannerView = {
     renderAIGenerateModal() {
         return `
             <div id="ai-generate-modal" class="modal">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-                            <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <h3 class="text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100 flex items-center gap-2">
+                            <svg class="w-6 h-6 text-ac-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                             </svg>
                             KI-Wochenplan generieren
                         </h3>
-                        <button id="close-ai-generate" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                        <button id="close-ai-generate" class="text-ac-brown-500 dark:text-ac-brown-400 hover:text-ac-brown-700 dark:hover:text-gray-200 text-2xl">
                             ✕
                         </button>
                     </div>
 
                     ${this.aiError ? `
-                        <div class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                        <div class="mb-4 p-3 bg-ac-peach-50 dark:bg-ac-peach-500/30 border border-ac-peach-200 dark:border-ac-peach-500 rounded-lg">
                             <p class="text-red-700 dark:text-red-300 text-sm">${this.aiError}</p>
                         </div>
                     ` : ''}
 
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">
                                 Für welche Mahlzeiten soll die KI Vorschläge erstellen?
                             </label>
                             <div class="space-y-2">
-                                <label class="flex items-center gap-3 p-3 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                    <input type="checkbox" id="ai-meal-breakfast" value="Frühstück" class="w-5 h-5 text-purple-500 rounded focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600">
-                                    <span class="text-gray-800 dark:text-gray-200">Frühstück</span>
-                                    <span class="text-gray-500 dark:text-gray-400 text-sm ml-auto">Schnelle, einfache Gerichte</span>
+                                <label class="flex items-center gap-3 p-3 border dark:border-ac-night-100 rounded-lg cursor-pointer hover:bg-ac-cream-50 dark:hover:bg-ac-night-100 transition-colors">
+                                    <input type="checkbox" id="ai-meal-breakfast" value="Frühstück" class="w-5 h-5 text-ac-blue-500 rounded focus:ring-ac-blue-400 dark:bg-ac-night-100 dark:border-ac-night-100">
+                                    <span class="text-ac-brown-800 dark:text-ac-cream-200">Frühstück</span>
+                                    <span class="text-ac-brown-500 dark:text-ac-brown-400 text-sm ml-auto">Schnelle, einfache Gerichte</span>
                                 </label>
-                                <label class="flex items-center gap-3 p-3 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                    <input type="checkbox" id="ai-meal-lunch" value="Mittagessen" class="w-5 h-5 text-purple-500 rounded focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600">
-                                    <span class="text-gray-800 dark:text-gray-200">Mittagessen</span>
-                                    <span class="text-gray-500 dark:text-gray-400 text-sm ml-auto">Meal-Prep geeignet</span>
+                                <label class="flex items-center gap-3 p-3 border dark:border-ac-night-100 rounded-lg cursor-pointer hover:bg-ac-cream-50 dark:hover:bg-ac-night-100 transition-colors">
+                                    <input type="checkbox" id="ai-meal-lunch" value="Mittagessen" class="w-5 h-5 text-ac-blue-500 rounded focus:ring-ac-blue-400 dark:bg-ac-night-100 dark:border-ac-night-100">
+                                    <span class="text-ac-brown-800 dark:text-ac-cream-200">Mittagessen</span>
+                                    <span class="text-ac-brown-500 dark:text-ac-brown-400 text-sm ml-auto">Meal-Prep geeignet</span>
                                 </label>
-                                <label class="flex items-center gap-3 p-3 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                    <input type="checkbox" id="ai-meal-dinner" value="Abendessen" checked class="w-5 h-5 text-purple-500 rounded focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600">
-                                    <span class="text-gray-800 dark:text-gray-200">Abendessen</span>
-                                    <span class="text-gray-500 dark:text-gray-400 text-sm ml-auto">Hauptmahlzeit des Tages</span>
+                                <label class="flex items-center gap-3 p-3 border dark:border-ac-night-100 rounded-lg cursor-pointer hover:bg-ac-cream-50 dark:hover:bg-ac-night-100 transition-colors">
+                                    <input type="checkbox" id="ai-meal-dinner" value="Abendessen" checked class="w-5 h-5 text-ac-blue-500 rounded focus:ring-ac-blue-400 dark:bg-ac-night-100 dark:border-ac-night-100">
+                                    <span class="text-ac-brown-800 dark:text-ac-cream-200">Abendessen</span>
+                                    <span class="text-ac-brown-500 dark:text-ac-brown-400 text-sm ml-auto">Hauptmahlzeit des Tages</span>
                                 </label>
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">
                                 Ernährungspräferenzen (optional)
                             </label>
-                            <select id="ai-dietary-preference" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                            <select id="ai-dietary-preference" class="w-full px-3 py-2 border dark:border-ac-night-100 rounded-lg focus:ring-2 focus:ring-ac-blue-400 dark:bg-ac-night-100 dark:text-ac-cream-100">
                                 <option value="">Keine Einschränkungen</option>
                                 <option value="vegetarisch">Vegetarisch</option>
                                 <option value="vegan">Vegan</option>
@@ -2638,10 +2638,10 @@ const WeekPlannerView = {
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">
                                     Kochzeit pro Mahlzeit
                                 </label>
-                                <select id="ai-cooking-time" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                                <select id="ai-cooking-time" class="w-full px-3 py-2 border dark:border-ac-night-100 rounded-lg focus:ring-2 focus:ring-ac-blue-400 dark:bg-ac-night-100 dark:text-ac-cream-100">
                                     <option value="">Egal</option>
                                     <option value="schnell">Schnell (&lt; 30 Min)</option>
                                     <option value="mittel">Mittel (30-60 Min)</option>
@@ -2649,10 +2649,10 @@ const WeekPlannerView = {
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">
                                     Budget
                                 </label>
-                                <select id="ai-budget" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                                <select id="ai-budget" class="w-full px-3 py-2 border dark:border-ac-night-100 rounded-lg focus:ring-2 focus:ring-ac-blue-400 dark:bg-ac-night-100 dark:text-ac-cream-100">
                                     <option value="">Egal</option>
                                     <option value="günstig">Günstig</option>
                                     <option value="mittel">Mittel</option>
@@ -2662,10 +2662,10 @@ const WeekPlannerView = {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">
                                 Bevorzugte Küche (optional)
                             </label>
-                            <select id="ai-cuisine" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                            <select id="ai-cuisine" class="w-full px-3 py-2 border dark:border-ac-night-100 rounded-lg focus:ring-2 focus:ring-ac-blue-400 dark:bg-ac-night-100 dark:text-ac-cream-100">
                                 <option value="">Gemischt / Keine Präferenz</option>
                                 <option value="deutsch">Deutsche Küche</option>
                                 <option value="italienisch">Italienisch</option>
@@ -2676,15 +2676,15 @@ const WeekPlannerView = {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">
                                 Zutaten vermeiden (optional)
                             </label>
                             <input type="text" id="ai-avoid-ingredients"
-                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                                   class="w-full px-3 py-2 border dark:border-ac-night-100 rounded-lg focus:ring-2 focus:ring-ac-blue-400 dark:bg-ac-night-100 dark:text-ac-cream-100"
                                    placeholder="z.B. Nüsse, Sellerie, Meeresfrüchte">
                         </div>
 
-                        <div class="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+                        <div class="bg-ac-blue-100 dark:bg-purple-900/20 p-3 rounded-lg">
                             <p class="text-sm text-purple-700 dark:text-purple-300">
                                 <strong>Hinweis:</strong> Die KI erstellt Vorschläge für die gesamte angezeigte Woche.
                                 Bestehende Mahlzeiten werden überschrieben.
@@ -2692,10 +2692,10 @@ const WeekPlannerView = {
                         </div>
 
                         <div class="flex gap-2 justify-end pt-2">
-                            <button id="cancel-ai-generate" class="px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <button id="cancel-ai-generate" class="px-4 py-2 border dark:border-ac-night-100 rounded-lg text-ac-brown-700 dark:text-ac-cream-300 hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors">
                                 Abbrechen
                             </button>
-                            <button id="confirm-ai-generate" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center gap-2">
+                            <button id="confirm-ai-generate" class="px-4 py-2 bg-ac-blue-400 text-white rounded-lg hover:bg-ac-blue-500 transition-colors flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                 </svg>
@@ -3070,7 +3070,7 @@ const WeekPlannerView = {
 
         if (!templates || templates.length === 0) {
             templatesList.innerHTML = `
-                <p class="text-gray-500 dark:text-gray-400 text-center py-8">
+                <p class="text-ac-brown-500 dark:text-ac-brown-400 text-center py-8">
                     Noch keine Vorlagen vorhanden.<br>
                     Speichere deinen aktuellen Wochenplan als Vorlage!
                 </p>
@@ -3081,23 +3081,23 @@ const WeekPlannerView = {
         templatesList.innerHTML = `
             <div class="space-y-3">
                 ${templates.map(template => `
-                    <div class="border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="border dark:border-ac-night-50 rounded-lg p-4 hover:bg-ac-cream-50 dark:hover:bg-ac-night-100 transition-colors">
                         <div class="flex justify-between items-start mb-2">
                             <div class="flex-1">
-                                <h4 class="font-semibold text-gray-800 dark:text-white">${template.name}</h4>
+                                <h4 class="font-semibold text-ac-brown-800 dark:text-ac-cream-100">${template.name}</h4>
                                 ${template.description ? `
-                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${template.description}</p>
+                                    <p class="text-sm text-ac-brown-600 dark:text-ac-brown-400 mt-1">${template.description}</p>
                                 ` : ''}
-                                <p class="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                                <p class="text-xs text-ac-brown-500 dark:text-ac-brown-500 mt-2">
                                     Erstellt: ${new Date(template.createdAt).toLocaleDateString('de-DE')}
                                 </p>
                             </div>
                             <div class="flex gap-2">
-                                <button class="load-template-btn px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-sm"
+                                <button class="load-template-btn px-3 py-1 bg-ac-leaf-500 text-white rounded hover:bg-ac-leaf-600 transition-colors text-sm"
                                         data-template-id="${template.id}">
                                     Laden
                                 </button>
-                                <button class="delete-template-btn px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
+                                <button class="delete-template-btn px-3 py-1 bg-ac-peach-400 text-white rounded hover:bg-ac-peach-500 transition-colors text-sm"
                                         data-template-id="${template.id}">
                                     Löschen
                                 </button>
@@ -3371,18 +3371,18 @@ const RecipeDatabaseView = {
         const overflow = favorites.length - limitedFavorites.length;
 
         return `
-            <section class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
+            <section class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-red-500 dark:text-red-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <svg class="w-5 h-5 text-ac-peach-500 dark:text-red-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
                         </svg>
-                        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Favoriten Schnellzugriff</h3>
+                        <h3 class="text-base font-semibold text-ac-brown-800 dark:text-ac-cream-100">Favoriten Schnellzugriff</h3>
                     </div>
                 </div>
                 <div class="flex gap-3 overflow-x-auto favorite-quick-scroll pb-1">
                     ${limitedFavorites.map(recipe => `
-                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-red-100 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-left transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
+                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-ac-peach-200 dark:border-ac-peach-500 bg-ac-peach-50 dark:bg-ac-peach-500/20 text-left transition-colors hover:bg-ac-peach-100 dark:hover:bg-ac-peach-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
                             <div class="flex items-center justify-between gap-3">
                                 <span class="font-medium text-red-700 dark:text-red-200 truncate">${recipe.name}</span>
                                 <svg class="w-4 h-4 text-red-400 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -3393,7 +3393,7 @@ const RecipeDatabaseView = {
                         </button>
                     `).join('')}
                     ${overflow > 0 ? `
-                        <div class="flex-shrink-0 min-w-[140px] px-4 py-3 rounded-lg border border-dashed border-red-200 dark:border-red-700 text-red-500 dark:text-red-300 flex items-center justify-center text-sm">
+                        <div class="flex-shrink-0 min-w-[140px] px-4 py-3 rounded-lg border border-dashed border-ac-peach-200 dark:border-ac-peach-500 text-ac-peach-500 dark:text-red-300 flex items-center justify-center text-sm">
                             +${overflow} weitere
                         </div>
                     ` : ''}
@@ -3461,18 +3461,18 @@ const RecipeDatabaseView = {
         const overflow = favorites.length - limitedFavorites.length;
 
         return `
-            <section class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
+            <section class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-red-500 dark:text-red-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <svg class="w-5 h-5 text-ac-peach-500 dark:text-red-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
                         </svg>
-                        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Favoriten Schnellzugriff</h3>
+                        <h3 class="text-base font-semibold text-ac-brown-800 dark:text-ac-cream-100">Favoriten Schnellzugriff</h3>
                     </div>
                 </div>
                 <div class="flex gap-3 overflow-x-auto favorite-quick-scroll pb-1">
                     ${limitedFavorites.map(recipe => `
-                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-red-100 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-left transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
+                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-ac-peach-200 dark:border-ac-peach-500 bg-ac-peach-50 dark:bg-ac-peach-500/20 text-left transition-colors hover:bg-ac-peach-100 dark:hover:bg-ac-peach-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
                             <div class="flex items-center justify-between gap-3">
                                 <span class="font-medium text-red-700 dark:text-red-200 truncate">${recipe.name}</span>
                                 <svg class="w-4 h-4 text-red-400 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -3483,7 +3483,7 @@ const RecipeDatabaseView = {
                         </button>
                     `).join('')}
                     ${overflow > 0 ? `
-                        <div class="flex-shrink-0 min-w-[140px] px-4 py-3 rounded-lg border border-dashed border-red-200 dark:border-red-700 text-red-500 dark:text-red-300 flex items-center justify-center text-sm">
+                        <div class="flex-shrink-0 min-w-[140px] px-4 py-3 rounded-lg border border-dashed border-ac-peach-200 dark:border-ac-peach-500 text-ac-peach-500 dark:text-red-300 flex items-center justify-center text-sm">
                             +${overflow} weitere
                         </div>
                     ` : ''}
@@ -3541,8 +3541,8 @@ const RecipeDatabaseView = {
             <div class="space-y-4 sm:space-y-6">
                 <!-- Header - stacks on mobile -->
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Rezeptdatenbank</h2>
-                    <button id="new-recipe-btn" class="w-full sm:w-auto px-4 py-3 sm:py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 active:scale-98">
+                    <h2 class="text-xl sm:text-2xl font-bold text-ac-brown-800 dark:text-ac-cream-100">Rezeptdatenbank</h2>
+                    <button id="new-recipe-btn" class="w-full sm:w-auto px-4 py-3 sm:py-2 bg-ac-mint-400 dark:bg-ac-mint-500 text-white rounded-lg hover:bg-ac-mint-500 dark:hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 active:scale-98">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
@@ -3553,7 +3553,7 @@ const RecipeDatabaseView = {
                 ${this.renderFavoritesQuickAccess(favoriteRecipes)}
 
                 ${AppState.recipes.length > 0 ? `
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
+                    <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200">
                         <div class="flex gap-2">
                             <div class="relative flex-1">
                                 <input
@@ -3561,14 +3561,14 @@ const RecipeDatabaseView = {
                                     id="recipe-search-input"
                                     value="${this.searchQuery}"
                                     placeholder="${this.aiSearchActive ? 'z.B. \"Etwas Leichtes für heute Abend\" oder \"Was kann ich mit Tomaten machen?\"' : 'Rezepte durchsuchen...'}"
-                                    class="w-full px-4 py-3 sm:py-2 pl-10 ${this.searchQuery && !this.aiSearchActive ? 'pr-10' : ''} border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-base"
+                                    class="w-full px-4 py-3 sm:py-2 pl-10 ${this.searchQuery && !this.aiSearchActive ? 'pr-10' : ''} border dark:border-ac-night-100 rounded-lg bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400 text-base"
                                     aria-label="Rezepte durchsuchen"
                                 />
-                                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-ac-brown-400 dark:text-ac-brown-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
                                 ${this.searchQuery && !this.aiSearchActive ? `
-                                    <button id="clear-search-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                                    <button id="clear-search-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-ac-brown-400 hover:text-ac-brown-600 dark:text-ac-brown-500 dark:hover:text-gray-300">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                         </svg>
@@ -3577,7 +3577,7 @@ const RecipeDatabaseView = {
                             </div>
                             <button
                                 id="ai-search-toggle-btn"
-                                class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.aiSearchActive ? 'bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300' : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-200 dark:hover:border-purple-800'}"
+                                class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.aiSearchActive ? 'bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300' : 'bg-ac-cream-100 dark:bg-ac-night-100 border-ac-cream-300 dark:border-ac-night-100 text-ac-brown-600 dark:text-ac-cream-300 hover:bg-ac-blue-100 dark:hover:bg-purple-900/20 hover:border-purple-200 dark:hover:border-purple-800'}"
                                 title="${this.aiSearchActive ? 'KI-Suche deaktivieren' : 'KI-Suche aktivieren - Suche mit natürlicher Sprache'}"
                             >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3606,7 +3606,7 @@ const RecipeDatabaseView = {
                             ` : ''}
                         </div>
                         ${this.aiSearchActive && this.aiSearchInfo ? `
-                            <div class="mt-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                            <div class="mt-3 p-3 bg-ac-blue-100 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                                 <div class="flex items-start gap-2">
                                     <svg class="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
@@ -3621,7 +3621,7 @@ const RecipeDatabaseView = {
                                             ${this.aiSearchInfo.duration ? ` in ${(this.aiSearchInfo.duration / 1000).toFixed(1)}s` : ''}
                                         </p>
                                     </div>
-                                    <button id="clear-ai-search-btn" class="p-1 text-purple-400 hover:text-purple-600 dark:text-purple-500 dark:hover:text-purple-300">
+                                    <button id="clear-ai-search-btn" class="p-1 text-purple-400 hover:text-purple-600 dark:text-ac-blue-500 dark:hover:text-purple-300">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                         </svg>
@@ -3631,7 +3631,7 @@ const RecipeDatabaseView = {
                         ` : ''}
                         <div class="flex flex-wrap items-center gap-2 mt-3 text-sm">
                             ${favoriteCount > 0 ? `
-                                <button id="favorites-filter-btn" class="favorites-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showFavoritesOnly ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-600 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}" aria-pressed="${this.showFavoritesOnly}">
+                                <button id="favorites-filter-btn" class="favorites-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showFavoritesOnly ? 'bg-ac-peach-50 dark:bg-ac-peach-500/30 border-ac-peach-200 dark:border-ac-peach-500 text-red-600 dark:text-red-300' : 'bg-ac-cream-100 dark:bg-ac-night-100 border-ac-cream-300 dark:border-ac-night-100 text-ac-brown-600 dark:text-ac-cream-300 hover:bg-ac-cream-200 dark:hover:bg-ac-night-50'}" aria-pressed="${this.showFavoritesOnly}">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
                                     </svg>
@@ -3640,14 +3640,14 @@ const RecipeDatabaseView = {
                                 </button>
                             ` : ''}
                             ${seasonalCount > 0 ? `
-                                <button id="seasonal-filter-btn" class="seasonal-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showSeasonalOnly ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-600 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}" aria-pressed="${this.showSeasonalOnly}" title="Rezepte mit saisonalen Zutaten (${seasonName})">
+                                <button id="seasonal-filter-btn" class="seasonal-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showSeasonalOnly ? 'bg-green-50 dark:bg-ac-leaf-700/30 border-ac-leaf-200 dark:border-ac-leaf-700 text-ac-leaf-600 dark:text-ac-leaf-300' : 'bg-ac-cream-100 dark:bg-ac-night-100 border-ac-cream-300 dark:border-ac-night-100 text-ac-brown-600 dark:text-ac-cream-300 hover:bg-ac-cream-200 dark:hover:bg-ac-night-50'}" aria-pressed="${this.showSeasonalOnly}" title="Rezepte mit saisonalen Zutaten (${seasonName})">
                                     <span class="text-base">${seasonIcon}</span>
                                     <span class="hidden sm:inline">${this.showSeasonalOnly ? 'Alle' : seasonName}</span>
                                     <span class="sm:hidden">${seasonalCount}</span>
                                 </button>
                             ` : ''}
                             ${mealPrepCount > 0 ? `
-                                <button id="meal-prep-filter-btn" class="meal-prep-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showMealPrepOnly ? 'bg-teal-50 dark:bg-teal-900/30 border-teal-200 dark:border-teal-800 text-teal-600 dark:text-teal-300' : 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}" aria-pressed="${this.showMealPrepOnly}" title="Meal-Prep geeignete Rezepte">
+                                <button id="meal-prep-filter-btn" class="meal-prep-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showMealPrepOnly ? 'bg-teal-50 dark:bg-teal-900/30 border-teal-200 dark:border-teal-800 text-teal-600 dark:text-teal-300' : 'bg-ac-cream-100 dark:bg-ac-night-100 border-ac-cream-300 dark:border-ac-night-100 text-ac-brown-600 dark:text-ac-cream-300 hover:bg-ac-cream-200 dark:hover:bg-ac-night-50'}" aria-pressed="${this.showMealPrepOnly}" title="Meal-Prep geeignete Rezepte">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
@@ -3656,7 +3656,7 @@ const RecipeDatabaseView = {
                                 </button>
                             ` : ''}
                             <div class="relative">
-                                <select id="time-filter" class="px-3 py-2 rounded-lg border bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nach Zeit filtern">
+                                <select id="time-filter" class="px-3 py-2 rounded-lg border bg-ac-cream-100 dark:bg-ac-night-100 border-ac-cream-300 dark:border-ac-night-100 text-ac-brown-600 dark:text-ac-cream-300 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-ac-mint-500" aria-label="Nach Zeit filtern">
                                     <option value="">Zeit</option>
                                     <option value="15" ${this.maxTimeFilter === 15 ? 'selected' : ''}>Unter 15 Min.</option>
                                     <option value="30" ${this.maxTimeFilter === 30 ? 'selected' : ''}>Unter 30 Min.</option>
@@ -3664,19 +3664,19 @@ const RecipeDatabaseView = {
                                 </select>
                             </div>
                             <div class="relative">
-                                <select id="difficulty-filter" class="px-3 py-2 rounded-lg border bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Nach Schwierigkeit filtern">
+                                <select id="difficulty-filter" class="px-3 py-2 rounded-lg border bg-ac-cream-100 dark:bg-ac-night-100 border-ac-cream-300 dark:border-ac-night-100 text-ac-brown-600 dark:text-ac-cream-300 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-ac-mint-500" aria-label="Nach Schwierigkeit filtern">
                                     <option value="">Schwierigkeit</option>
                                     <option value="Einfach" ${this.difficultyFilter === 'Einfach' ? 'selected' : ''}>Einfach</option>
                                     <option value="Mittel" ${this.difficultyFilter === 'Mittel' ? 'selected' : ''}>Mittel</option>
                                     <option value="Fortgeschritten" ${this.difficultyFilter === 'Fortgeschritten' ? 'selected' : ''}>Fortgeschritten</option>
                                 </select>
                             </div>
-                            <span class="ml-auto text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
+                            <span class="ml-auto text-ac-brown-500 dark:text-ac-brown-400 text-xs sm:text-sm">
                                 ${filteredRecipes.length} von ${AppState.recipes.length} Rezepte
                             </span>
                         </div>
                         ${this.searchQuery ? `
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                            <p class="text-sm text-ac-brown-600 dark:text-ac-brown-400 mt-2">
                                 ${filteredRecipes.length} von ${AppState.recipes.length} Rezept${filteredRecipes.length !== 1 ? 'en' : ''} gefunden
                             </p>
                         ` : ''}
@@ -3684,17 +3684,17 @@ const RecipeDatabaseView = {
                 ` : ''}
 
                 ${AppState.recipes.length === 0 ? `
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center transition-colors duration-200">
-                        <svg class="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-8 text-center transition-colors duration-200">
+                        <svg class="w-16 h-16 mx-auto text-gray-300 dark:text-ac-brown-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                         </svg>
-                        <p class="text-gray-500 dark:text-gray-400">Noch keine Rezepte vorhanden.</p>
-                        <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">Erstelle dein erstes Rezept!</p>
+                        <p class="text-ac-brown-500 dark:text-ac-brown-400">Noch keine Rezepte vorhanden.</p>
+                        <p class="text-ac-brown-400 dark:text-ac-brown-500 text-sm mt-2">Erstelle dein erstes Rezept!</p>
                     </div>
                 ` : filteredRecipes.length === 0 ? `
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center transition-colors duration-200">
-                        <p class="text-gray-500 dark:text-gray-400">Keine Rezepte gefunden.</p>
-                        <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">Versuche einen anderen Suchbegriff.</p>
+                    <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-8 text-center transition-colors duration-200">
+                        <p class="text-ac-brown-500 dark:text-ac-brown-400">Keine Rezepte gefunden.</p>
+                        <p class="text-ac-brown-400 dark:text-ac-brown-500 text-sm mt-2">Versuche einen anderen Suchbegriff.</p>
                     </div>
                 ` : `
                     <!-- Responsive grid: 1 col on mobile, 2 on tablet, 3 on desktop -->
@@ -3703,9 +3703,9 @@ const RecipeDatabaseView = {
                             const cookingStat = this.getCookingStatsForRecipe(recipe.id);
                             const lastCookedText = cookingStat ? this.formatLastCooked(cookingStat.last_cooked_at) : null;
                             return `
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99] cursor-pointer recipe-card" data-recipe-card-id="${recipe.id}">
+                            <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-4 hover:shadow-ac-lg dark:hover:shadow-ac-dark-lg transition-all duration-200 active:scale-[0.99] cursor-pointer recipe-card" data-recipe-card-id="${recipe.id}">
                                 <div class="flex items-start justify-between gap-3 mb-2">
-                                    <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white line-clamp-2 flex-1">${recipe.name}</h3>
+                                    <h3 class="text-base sm:text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100 line-clamp-2 flex-1">${recipe.name}</h3>
                                     <button type="button" class="favorite-toggle-btn ${recipe.is_favorite ? 'is-favorite' : ''} p-2 rounded-full transition transform favorite-heart" data-recipe-id="${recipe.id}" title="${recipe.is_favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" aria-label="${recipe.is_favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">
                                         <svg class="w-5 h-5 favorite-heart-icon" viewBox="0 0 24 24" fill="${recipe.is_favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8">
                                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
@@ -3714,12 +3714,12 @@ const RecipeDatabaseView = {
                                 </div>
                                 <div class="flex flex-wrap gap-1 mb-2">
                                     ${recipe.category ? `
-                                        <span class="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs rounded">
+                                        <span class="inline-block px-2 py-1 bg-ac-mint-100 dark:bg-ac-mint-900/40 text-ac-mint-700 dark:text-ac-mint-300 text-xs rounded">
                                             ${recipe.category}
                                         </span>
                                     ` : ''}
                                     ${recipe.is_meal_prep_suitable ? `
-                                        <span class="inline-block px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs rounded" title="Meal-Prep geeignet">
+                                        <span class="inline-block px-2 py-1 bg-ac-leaf-100 dark:bg-ac-leaf-700/40 text-green-800 dark:text-ac-leaf-300 text-xs rounded" title="Meal-Prep geeignet">
                                             Meal-Prep
                                         </span>
                                     ` : ''}
@@ -3737,23 +3737,23 @@ const RecipeDatabaseView = {
                                 ${recipe.tags && recipe.tags.length > 0 ? `
                                     <div class="flex flex-wrap gap-1 mb-2">
                                         ${recipe.tags.slice(0, 3).map(tag => `
-                                            <span class="px-2 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs rounded-full">
+                                            <span class="px-2 py-0.5 bg-ac-leaf-100 dark:bg-ac-leaf-700/40 text-green-800 dark:text-ac-leaf-300 text-xs rounded-full">
                                                 ${tag}
                                             </span>
                                         `).join('')}
-                                        ${recipe.tags.length > 3 ? `<span class="text-xs text-gray-400">+${recipe.tags.length - 3}</span>` : ''}
+                                        ${recipe.tags.length > 3 ? `<span class="text-xs text-ac-brown-400">+${recipe.tags.length - 3}</span>` : ''}
                                     </div>
                                 ` : ''}
                                 ${recipe._searchReason ? `
-                                    <div class="flex items-center gap-2 mb-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                                        <svg class="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="flex items-center gap-2 mb-2 p-2 bg-ac-blue-100 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                                        <svg class="w-4 h-4 text-ac-blue-500 dark:text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                         </svg>
                                         <span class="text-xs text-purple-700 dark:text-purple-300">${recipe._searchReason}</span>
                                         ${recipe._searchScore ? `<span class="ml-auto text-xs font-medium text-purple-600 dark:text-purple-400">${recipe._searchScore}%</span>` : ''}
                                     </div>
                                 ` : ''}
-                                <div class="flex items-center flex-wrap gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                <div class="flex items-center flex-wrap gap-2 text-xs sm:text-sm text-ac-brown-600 dark:text-ac-brown-400 mb-3">
                                     ${recipe.prep_time || recipe.cook_time ? `
                                         <span class="inline-flex items-center gap-1">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3777,22 +3777,22 @@ const RecipeDatabaseView = {
                                 </div>
                                 <div class="flex flex-col gap-2">
                                     ${recipe.servings && recipe.ingredients.length > 0 ? `
-                                        <button class="scale-portions-btn w-full px-3 py-2.5 sm:py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors text-sm font-medium active:scale-98"
+                                        <button class="scale-portions-btn w-full px-3 py-2.5 sm:py-2 bg-ac-leaf-100 dark:bg-ac-leaf-700/30 text-ac-leaf-700 dark:text-ac-leaf-400 rounded-lg hover:bg-green-200 dark:hover:bg-ac-leaf-700/50 transition-colors text-sm font-medium active:scale-98"
                                                 data-recipe-id="${recipe.id}">
                                             Portionen anpassen
                                         </button>
                                     ` : ''}
                                     <div class="grid grid-cols-2 gap-2">
-                                        <button class="edit-recipe-btn px-3 py-2.5 sm:py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium active:scale-98"
+                                        <button class="edit-recipe-btn px-3 py-2.5 sm:py-2 bg-ac-cream-100 dark:bg-ac-night-100 text-ac-brown-700 dark:text-ac-cream-200 rounded-lg hover:bg-ac-cream-200 dark:hover:bg-ac-night-50 transition-colors text-sm font-medium active:scale-98"
                                                 data-recipe-id="${recipe.id}">
                                             Bearbeiten
                                         </button>
-                                        <button class="delete-recipe-btn px-3 py-2.5 sm:py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors text-sm font-medium active:scale-98"
+                                        <button class="delete-recipe-btn px-3 py-2.5 sm:py-2 bg-red-100 dark:bg-ac-peach-500/30 text-red-700 dark:text-ac-peach-400 rounded-lg hover:bg-red-200 dark:hover:bg-ac-peach-500/50 transition-colors text-sm font-medium active:scale-98"
                                                 data-recipe-id="${recipe.id}">
                                             Löschen
                                         </button>
                                     </div>
-                                    <button class="duplicate-recipe-btn w-full px-3 py-2.5 sm:py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium active:scale-98"
+                                    <button class="duplicate-recipe-btn w-full px-3 py-2.5 sm:py-2 bg-ac-mint-100 dark:bg-ac-mint-900/30 text-blue-700 dark:text-ac-mint-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors text-sm font-medium active:scale-98"
                                             data-recipe-id="${recipe.id}">
                                         Duplizieren
                                     </button>
@@ -3820,7 +3820,7 @@ const RecipeDatabaseView = {
 
         // Parse markdown for instructions
         const renderMarkdown = (text) => {
-            if (!text) return '<p class="text-gray-500 dark:text-gray-400 italic">Keine Anleitung vorhanden</p>';
+            if (!text) return '<p class="text-ac-brown-500 dark:text-ac-brown-400 italic">Keine Anleitung vorhanden</p>';
 
             const preprocessInstructions = (raw) => {
                 // First, split inline "Schritt X:" patterns onto new lines
@@ -3886,9 +3886,9 @@ const RecipeDatabaseView = {
 
         return `
             <div id="recipe-detail-modal" class="modal active" data-backdrop="true" role="dialog" aria-modal="true" aria-labelledby="recipe-detail-title">
-                <div id="recipe-detail-content" class="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl flex flex-col">
+                <div id="recipe-detail-content" class="bg-white dark:bg-ac-night-200 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-ac-lg flex flex-col">
                     <!-- Header -->
-                    <div class="p-4 sm:p-6 border-b dark:border-gray-700 bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0">
+                    <div class="p-4 sm:p-6 border-b dark:border-ac-night-50 bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
                                 <h2 id="recipe-detail-title" class="text-xl sm:text-2xl font-bold text-white mb-2">${recipe.name}</h2>
@@ -3943,7 +3943,7 @@ const RecipeDatabaseView = {
                         ${recipe.tags && recipe.tags.length > 0 ? `
                             <div class="flex flex-wrap gap-2 mb-6">
                                 ${recipe.tags.map(tag => `
-                                    <span class="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-sm rounded-full">
+                                    <span class="px-3 py-1 bg-ac-leaf-100 dark:bg-ac-leaf-700/40 text-green-800 dark:text-ac-leaf-300 text-sm rounded-full">
                                         ${tag}
                                     </span>
                                 `).join('')}
@@ -3952,37 +3952,37 @@ const RecipeDatabaseView = {
 
                         <!-- Meal-Prep Info -->
                         ${recipe.is_meal_prep_suitable ? `
-                            <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
+                            <div class="bg-green-50 dark:bg-ac-leaf-700/20 border border-ac-leaf-200 dark:border-ac-leaf-700 rounded-ac-xl p-4 mb-6">
                                 <div class="flex items-center gap-2 mb-3">
-                                    <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-5 h-5 text-ac-leaf-600 dark:text-ac-leaf-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
                                     <h4 class="font-semibold text-green-800 dark:text-green-200">Meal-Prep geeignet</h4>
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                                     ${recipe.meal_prep_fridge_days ? `
-                                        <div class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                                        <div class="flex items-center gap-2 text-ac-brown-700 dark:text-ac-cream-300">
                                             <span class="text-lg">🧊</span>
                                             <span><strong>${recipe.meal_prep_fridge_days} Tage</strong> im Kühlschrank</span>
                                         </div>
                                     ` : ''}
                                     ${recipe.meal_prep_freezer_days ? `
-                                        <div class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                                        <div class="flex items-center gap-2 text-ac-brown-700 dark:text-ac-cream-300">
                                             <span class="text-lg">❄️</span>
                                             <span><strong>${recipe.meal_prep_freezer_days} Tage</strong> im Gefrierschrank</span>
                                         </div>
                                     ` : ''}
                                 </div>
                                 ${recipe.meal_prep_reheat_tips ? `
-                                    <div class="mt-3 pt-3 border-t border-green-200 dark:border-green-700">
-                                        <p class="text-sm text-gray-700 dark:text-gray-300">
+                                    <div class="mt-3 pt-3 border-t border-ac-leaf-200 dark:border-green-700">
+                                        <p class="text-sm text-ac-brown-700 dark:text-ac-cream-300">
                                             <strong class="text-green-800 dark:text-green-200">Aufwärm-Tipps:</strong> ${recipe.meal_prep_reheat_tips}
                                         </p>
                                     </div>
                                 ` : ''}
                                 ${recipe.meal_prep_batch_notes ? `
-                                    <div class="mt-3 ${recipe.meal_prep_reheat_tips ? '' : 'pt-3 border-t border-green-200 dark:border-green-700'}">
-                                        <p class="text-sm text-gray-700 dark:text-gray-300">
+                                    <div class="mt-3 ${recipe.meal_prep_reheat_tips ? '' : 'pt-3 border-t border-ac-leaf-200 dark:border-green-700'}">
+                                        <p class="text-sm text-ac-brown-700 dark:text-ac-cream-300">
                                             <strong class="text-green-800 dark:text-green-200">Batch-Cooking Tipps:</strong> ${recipe.meal_prep_batch_notes}
                                         </p>
                                     </div>
@@ -3993,7 +3993,7 @@ const RecipeDatabaseView = {
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <!-- Ingredients -->
                             <div>
-                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                                <h3 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100 mb-4 flex items-center gap-2">
                                     <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                                     </svg>
@@ -4003,11 +4003,11 @@ const RecipeDatabaseView = {
                                     <div class="space-y-4">
                                         ${Object.entries(ingredientsByCategory).map(([category, ingredients]) => `
                                             <div>
-                                                <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">${category}</h4>
+                                                <h4 class="text-sm font-medium text-ac-brown-500 dark:text-ac-brown-400 mb-2">${category}</h4>
                                                 <ul class="space-y-2">
                                                     ${ingredients.map(ing => `
-                                                        <li class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                                                            <span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
+                                                        <li class="flex items-center gap-3 text-ac-brown-700 dark:text-ac-cream-300">
+                                                            <span class="w-2 h-2 bg-ac-mint-400 rounded-full flex-shrink-0"></span>
                                                             <span class="font-medium">${ing.amount || ''} ${ing.unit || ''}</span>
                                                             <span>${ing.name}</span>
                                                         </li>
@@ -4017,14 +4017,14 @@ const RecipeDatabaseView = {
                                         `).join('')}
                                     </div>
                                 ` : `
-                                    <p class="text-gray-500 dark:text-gray-400 italic">Keine Zutaten vorhanden</p>
+                                    <p class="text-ac-brown-500 dark:text-ac-brown-400 italic">Keine Zutaten vorhanden</p>
                                 `}
                             </div>
 
                             <!-- Instructions -->
                             <div>
-                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                                    <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <h3 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100 mb-4 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-ac-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
                                     </svg>
                                     Zubereitung
@@ -4037,17 +4037,17 @@ const RecipeDatabaseView = {
 
                         <!-- AI Assistant -->
                         <div class="mt-6">
-                            <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-xl p-4 sm:p-5">
+                            <div class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 rounded-ac-xl p-4 sm:p-5">
                                 <div class="flex items-start gap-3">
                                     <span class="text-2xl">🤖</span>
                                     <div class="flex-1 space-y-3">
                                         <div>
-                                            <h4 class="font-semibold text-gray-800 dark:text-white">KI-Assistent</h4>
-                                            <p class="text-sm text-gray-600 dark:text-gray-400">Erhalte Verbesserungsvorschläge oder erstelle direkt eine Variante dieses Rezepts.</p>
+                                            <h4 class="font-semibold text-ac-brown-800 dark:text-ac-cream-100">KI-Assistent</h4>
+                                            <p class="text-sm text-ac-brown-600 dark:text-ac-brown-400">Erhalte Verbesserungsvorschläge oder erstelle direkt eine Variante dieses Rezepts.</p>
                                         </div>
                                         <div class="flex flex-wrap gap-2">
                                             <button id="analyze-recipe-btn"
-                                                    class="px-4 py-2 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                                                    class="px-4 py-2 bg-white dark:bg-ac-night-200 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-ac-night-100 transition-colors disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
                                                     data-recipe-id="${recipe.id}" ${this.isAnalyzing ? 'disabled' : ''}>
                                                 ${this.isAnalyzing ? 'Analysiere...' : 'Analysieren'}
                                             </button>
@@ -4065,22 +4065,22 @@ const RecipeDatabaseView = {
                     </div>
 
                     <!-- Footer Actions -->
-                    <div class="p-4 sm:p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex flex-wrap gap-3 flex-shrink-0">
-                        <button id="edit-recipe-from-detail" class="flex-1 sm:flex-none px-4 py-2.5 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                    <div class="p-4 sm:p-6 border-t dark:border-ac-night-50 bg-ac-cream-50 dark:bg-ac-night-500/50 flex flex-wrap gap-3 flex-shrink-0">
+                        <button id="edit-recipe-from-detail" class="flex-1 sm:flex-none px-4 py-2.5 bg-ac-mint-400 dark:bg-ac-mint-500 text-white rounded-lg hover:bg-ac-mint-500 dark:hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                                 data-recipe-id="${recipe.id}">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
                             Bearbeiten
                         </button>
-                        <button id="mark-cooked-from-detail" class="flex-1 sm:flex-none px-4 py-2.5 bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                        <button id="mark-cooked-from-detail" class="flex-1 sm:flex-none px-4 py-2.5 bg-ac-leaf-500 dark:bg-ac-leaf-600 text-white rounded-lg hover:bg-ac-leaf-600 dark:hover:bg-ac-leaf-700 transition-colors flex items-center justify-center gap-2"
                                 data-recipe-id="${recipe.id}" data-recipe-name="${recipe.name}">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
                             Als gekocht markieren
                         </button>
-                        <button id="favorite-from-detail" class="px-4 py-2.5 ${recipe.is_favorite ? 'bg-red-500 dark:bg-red-600' : 'bg-gray-200 dark:bg-gray-700'} ${recipe.is_favorite ? 'text-white' : 'text-gray-700 dark:text-gray-200'} rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+                        <button id="favorite-from-detail" class="px-4 py-2.5 ${recipe.is_favorite ? 'bg-ac-peach-400 dark:bg-ac-peach-500' : 'bg-ac-cream-200 dark:bg-ac-night-100'} ${recipe.is_favorite ? 'text-white' : 'text-ac-brown-700 dark:text-ac-cream-200'} rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
                                 data-recipe-id="${recipe.id}">
                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="${recipe.is_favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
@@ -4096,51 +4096,51 @@ const RecipeDatabaseView = {
     renderRecipeForm() {
         return `
             <div id="recipe-form-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="recipe-form-title">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden">
-                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                        <h3 id="recipe-form-title" class="text-xl font-semibold text-gray-800 dark:text-white">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden">
+                    <div class="p-4 border-b dark:border-ac-night-50 flex justify-between items-center">
+                        <h3 id="recipe-form-title" class="text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100">
                             ${this.editingRecipe ? 'Rezept bearbeiten' : 'Neues Rezept'}
                         </h3>
-                        <button id="close-recipe-form" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                        <button id="close-recipe-form" class="text-ac-brown-500 dark:text-ac-brown-400 hover:text-ac-brown-700 dark:hover:text-gray-200 text-2xl">
                             ✕
                         </button>
                     </div>
                     <form id="recipe-form" class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
                         <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rezeptname *</label>
+                                <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Rezeptname *</label>
                                 <input type="text" id="recipe-name" required
-                                       class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                       class="w-full px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                             </div>
 
                             <div class="grid md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategorie</label>
+                                    <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Kategorie</label>
                                     <input type="text" id="recipe-category" placeholder="z.B. Hauptgericht, Dessert"
-                                           class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                           class="w-full px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Portionen</label>
+                                    <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Portionen</label>
                                     <input type="number" id="recipe-servings" min="1"
-                                           class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                           class="w-full px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                                 </div>
                             </div>
 
                             <div class="grid md:grid-cols-3 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vorbereitungszeit (Min.)</label>
+                                    <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Vorbereitungszeit (Min.)</label>
                                     <input type="number" id="recipe-prep-time" min="0" placeholder="z.B. 15"
-                                           class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                           class="w-full px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kochzeit (Min.)</label>
+                                    <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Kochzeit (Min.)</label>
                                     <input type="number" id="recipe-cook-time" min="0" placeholder="z.B. 30"
-                                           class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                           class="w-full px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Schwierigkeit</label>
+                                    <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Schwierigkeit</label>
                                     <select id="recipe-difficulty"
-                                            class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                            class="w-full px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                                         <option value="">-- Auswählen --</option>
                                         <option value="Einfach">Einfach</option>
                                         <option value="Mittel">Mittel</option>
@@ -4150,44 +4150,44 @@ const RecipeDatabaseView = {
                             </div>
 
                             <!-- Meal-Prep Section -->
-                            <div class="border dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700/50">
+                            <div class="border dark:border-ac-night-100 rounded-lg p-4 bg-ac-cream-50 dark:bg-ac-night-100/50">
                                 <div class="flex items-center gap-3 mb-4">
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" id="recipe-meal-prep-suitable"
-                                               class="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-green-500 focus:ring-green-500 dark:focus:ring-green-400">
-                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Meal-Prep geeignet</span>
+                                               class="w-5 h-5 rounded border-ac-cream-400 dark:border-ac-night-100 text-green-500 focus:ring-green-500 dark:focus:ring-green-400">
+                                        <span class="text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300">Meal-Prep geeignet</span>
                                     </label>
                                 </div>
                                 <div id="meal-prep-fields" class="hidden space-y-4">
                                     <div class="grid md:grid-cols-2 gap-4">
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Haltbarkeit Kühlschrank (Tage)</label>
+                                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Haltbarkeit Kühlschrank (Tage)</label>
                                             <input type="number" id="recipe-fridge-days" min="0" max="14" placeholder="z.B. 3"
-                                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                                   class="w-full px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                                         </div>
                                         <div>
-                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Haltbarkeit Gefrierschrank (Tage)</label>
+                                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Haltbarkeit Gefrierschrank (Tage)</label>
                                             <input type="number" id="recipe-freezer-days" min="0" max="365" placeholder="z.B. 30"
-                                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                                   class="w-full px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                                         </div>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aufwärm-Tipps</label>
+                                        <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Aufwärm-Tipps</label>
                                         <textarea id="recipe-reheat-tips" rows="2" placeholder="z.B. In der Mikrowelle 2-3 Min. bei 600W"
-                                                  class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"></textarea>
+                                                  class="w-full px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400"></textarea>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Batch-Cooking Notizen</label>
+                                        <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Batch-Cooking Notizen</label>
                                         <textarea id="recipe-batch-notes" rows="2" placeholder="z.B. Sauce separat aufbewahren"
-                                                  class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"></textarea>
+                                                  class="w-full px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400"></textarea>
                                     </div>
                                 </div>
                             </div>
 
                             <div>
                                 <div class="flex justify-between items-center mb-2">
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Zutaten</label>
-                                    <button type="button" id="add-ingredient-btn" class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+                                    <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300">Zutaten</label>
+                                    <button type="button" id="add-ingredient-btn" class="text-sm text-ac-mint-600 dark:text-ac-mint-400 hover:text-blue-700 dark:hover:text-blue-300">
                                         + Zutat hinzufügen
                                     </button>
                                 </div>
@@ -4195,18 +4195,18 @@ const RecipeDatabaseView = {
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags</label>
+                                <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">Tags</label>
                                 <div class="flex flex-wrap gap-2 mb-2" id="selected-tags-container">
                                     ${this.tags.map(tag => `
-                                        <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-full text-sm">
+                                        <span class="inline-flex items-center gap-1 px-3 py-1 bg-ac-mint-100 dark:bg-ac-mint-900/40 text-ac-mint-700 dark:text-ac-mint-300 rounded-full text-sm">
                                             ${tag}
-                                            <button type="button" class="remove-tag-btn hover:text-blue-600 dark:hover:text-blue-200" data-tag="${tag}">✕</button>
+                                            <button type="button" class="remove-tag-btn hover:text-ac-mint-600 dark:hover:text-blue-200" data-tag="${tag}">✕</button>
                                         </span>
                                     `).join('')}
                                 </div>
                                 <div class="flex flex-wrap gap-2">
                                     ${this.availableTags.map(tag => `
-                                        <button type="button" class="add-tag-btn px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors ${this.tags.includes(tag) ? 'opacity-50 cursor-not-allowed' : ''}"
+                                        <button type="button" class="add-tag-btn px-3 py-1 text-sm border border-ac-cream-400 dark:border-ac-night-100 rounded-full hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 text-ac-brown-700 dark:text-ac-cream-300 transition-colors ${this.tags.includes(tag) ? 'opacity-50 cursor-not-allowed' : ''}"
                                                 data-tag="${tag}" ${this.tags.includes(tag) ? 'disabled' : ''}>
                                             + ${tag}
                                         </button>
@@ -4215,9 +4215,9 @@ const RecipeDatabaseView = {
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">
                                     Zubereitung
-                                    <span class="text-xs font-normal text-gray-500 dark:text-gray-400 ml-2">(Markdown unterstützt)</span>
+                                    <span class="text-xs font-normal text-ac-brown-500 dark:text-ac-brown-400 ml-2">(Markdown unterstützt)</span>
                                 </label>
                                 <textarea id="recipe-instructions" rows="8" placeholder="## Vorbereitung
 1. Gemüse waschen und schneiden
@@ -4230,18 +4230,18 @@ const RecipeDatabaseView = {
 
 ## Tipps
 - Kann gut vorbereitet werden"
-                                          class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 font-mono text-sm"></textarea>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                          class="w-full px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400 font-mono text-sm"></textarea>
+                                <p class="text-xs text-ac-brown-500 dark:text-ac-brown-400 mt-1">
                                     Nutze **fett**, *kursiv*, ## Überschriften und nummerierte Listen
                                 </p>
                             </div>
                         </div>
 
                         <div class="flex gap-3 mt-6">
-                            <button type="submit" class="flex-1 px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
+                            <button type="submit" class="flex-1 px-4 py-2 bg-ac-mint-400 dark:bg-ac-mint-500 text-white rounded hover:bg-ac-mint-500 dark:hover:bg-blue-700 transition-colors">
                                 ${this.editingRecipe ? 'Aktualisieren' : 'Erstellen'}
                             </button>
-                            <button type="button" id="cancel-recipe-form" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                            <button type="button" id="cancel-recipe-form" class="px-4 py-2 bg-ac-cream-200 dark:bg-ac-night-100 text-ac-brown-700 dark:text-ac-cream-200 rounded hover:bg-gray-300 dark:hover:bg-ac-night-50 transition-colors">
                                 Abbrechen
                             </button>
                         </div>
@@ -4734,18 +4734,18 @@ const RecipeDatabaseView = {
         container.innerHTML = this.ingredients.map((ing, index) => `
             <div class="flex gap-2 mb-2">
                 <input type="text" placeholder="Zutat" value="${ing.name}" data-index="${index}" data-field="name"
-                       class="ingredient-input flex-1 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                       class="ingredient-input flex-1 px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                 <input type="text" placeholder="Menge" value="${ing.amount}" data-index="${index}" data-field="amount"
-                       class="ingredient-input w-20 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                       class="ingredient-input w-20 px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                 <input type="text" placeholder="Einheit" value="${ing.unit}" data-index="${index}" data-field="unit"
-                       class="ingredient-input w-20 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                       class="ingredient-input w-20 px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                 <select data-index="${index}" data-field="category" title="Kategorie (wird automatisch erkannt)"
-                        class="ingredient-input ingredient-category-select w-40 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                        class="ingredient-input ingredient-category-select w-40 px-3 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                     ${this.categories.map(cat => `
                         <option value="${cat}" ${(ing.category || 'Sonstiges') === cat ? 'selected' : ''}>${cat}</option>
                     `).join('')}
                 </select>
-                <button type="button" class="remove-ingredient-btn px-3 py-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" data-index="${index}">
+                <button type="button" class="remove-ingredient-btn px-3 py-2 text-red-600 dark:text-ac-peach-400 hover:text-ac-peach-600 dark:hover:text-red-300" data-index="${index}">
                     ✕
                 </button>
             </div>
@@ -4852,30 +4852,30 @@ const RecipeDatabaseView = {
 
         return `
             <div id="portion-scaling-modal" class="modal active">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
-                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+                    <div class="p-4 border-b dark:border-ac-night-50 flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100">
                             Portionen anpassen - ${this.scalingRecipe.name}
                         </h3>
-                        <button id="close-portion-scaling" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                        <button id="close-portion-scaling" class="text-ac-brown-500 dark:text-ac-brown-400 hover:text-ac-brown-700 dark:hover:text-gray-200 text-2xl">
                             ✕
                         </button>
                     </div>
                     <div class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
                         <div class="space-y-6">
-                            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                                <p class="text-sm text-blue-800 dark:text-blue-300">
+                            <div class="bg-ac-mint-50 dark:bg-ac-mint-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                                <p class="text-sm text-ac-mint-700 dark:text-ac-mint-300">
                                     Original: <strong>${this.scalingRecipe.servings} Portionen</strong>
                                 </p>
                                 <div class="mt-3">
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">
                                         Neue Portionsanzahl:
                                     </label>
                                     <input type="number" id="new-servings-input" min="1" value="${this.newServings || this.scalingRecipe.servings}"
-                                           class="w-full px-4 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                           class="w-full px-4 py-2 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                                 </div>
                                 <button id="calculate-portions-btn"
-                                        class="mt-3 w-full px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors ${this.isScaling ? 'opacity-50 cursor-not-allowed' : ''}"
+                                        class="mt-3 w-full px-4 py-2 bg-ac-mint-400 dark:bg-ac-mint-500 text-white rounded hover:bg-ac-mint-500 dark:hover:bg-blue-700 transition-colors ${this.isScaling ? 'opacity-50 cursor-not-allowed' : ''}"
                                         ${this.isScaling ? 'disabled' : ''}>
                                     ${this.isScaling ? 'Berechne...' : '🤖 Mengen berechnen'}
                                 </button>
@@ -4883,38 +4883,38 @@ const RecipeDatabaseView = {
 
                             ${this.scaledIngredients ? `
                                 <div>
-                                    <h4 class="font-semibold text-gray-800 dark:text-white mb-3">
+                                    <h4 class="font-semibold text-ac-brown-800 dark:text-ac-cream-100 mb-3">
                                         Angepasste Zutaten (${this.newServings} Portionen):
                                     </h4>
-                                    <div class="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4 space-y-2">
+                                    <div class="bg-ac-cream-50 dark:bg-ac-night-500/30 rounded-lg p-4 space-y-2">
                                         ${this.scaledIngredients.map(ing => `
-                                            <div class="flex justify-between items-center py-2 border-b dark:border-gray-700 last:border-0">
-                                                <span class="text-gray-800 dark:text-gray-200">${ing.name}</span>
-                                                <span class="font-medium text-green-600 dark:text-green-400">
+                                            <div class="flex justify-between items-center py-2 border-b dark:border-ac-night-50 last:border-0">
+                                                <span class="text-ac-brown-800 dark:text-ac-cream-200">${ing.name}</span>
+                                                <span class="font-medium text-ac-leaf-600 dark:text-ac-leaf-400">
                                                     ${ing.amount} ${ing.unit}
                                                 </span>
                                             </div>
                                         `).join('')}
                                     </div>
-                                    <div class="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                                        <p class="text-sm text-green-800 dark:text-green-300">
+                                    <div class="mt-4 p-4 bg-green-50 dark:bg-ac-leaf-700/20 border border-ac-leaf-200 dark:border-ac-leaf-700 rounded-lg">
+                                        <p class="text-sm text-green-800 dark:text-ac-leaf-300">
                                             ✓ Die Mengen wurden intelligent gerundet und optimiert.
                                         </p>
-                                        <p class="text-xs text-green-700 dark:text-green-400 mt-1">
+                                        <p class="text-xs text-ac-leaf-700 dark:text-ac-leaf-400 mt-1">
                                             Hinweis: Die Original-Portionen bleiben in der Datenbank gespeichert.
                                         </p>
                                     </div>
                                 </div>
                             ` : `
-                                <div class="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
-                                    <h4 class="font-semibold text-gray-800 dark:text-white mb-3">
+                                <div class="bg-ac-cream-50 dark:bg-ac-night-500/30 rounded-lg p-4">
+                                    <h4 class="font-semibold text-ac-brown-800 dark:text-ac-cream-100 mb-3">
                                         Aktuelle Zutaten (${this.scalingRecipe.servings} Portionen):
                                     </h4>
                                     <div class="space-y-2">
                                         ${this.scalingRecipe.ingredients.map(ing => `
-                                            <div class="flex justify-between items-center py-2 border-b dark:border-gray-700 last:border-0">
-                                                <span class="text-gray-800 dark:text-gray-200">${ing.name}</span>
-                                                <span class="text-gray-600 dark:text-gray-400">
+                                            <div class="flex justify-between items-center py-2 border-b dark:border-ac-night-50 last:border-0">
+                                                <span class="text-ac-brown-800 dark:text-ac-cream-200">${ing.name}</span>
+                                                <span class="text-ac-brown-600 dark:text-ac-brown-400">
                                                     ${ing.amount} ${ing.unit}
                                                 </span>
                                             </div>
@@ -5016,9 +5016,9 @@ const RecipeDatabaseView = {
         const selectedTagsContainer = document.getElementById('selected-tags-container');
         if (selectedTagsContainer) {
             selectedTagsContainer.innerHTML = this.tags.map(tag => `
-                <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-full text-sm">
+                <span class="inline-flex items-center gap-1 px-3 py-1 bg-ac-mint-100 dark:bg-ac-mint-900/40 text-ac-mint-700 dark:text-ac-mint-300 rounded-full text-sm">
                     ${tag}
-                    <button type="button" class="remove-tag-btn hover:text-blue-600 dark:hover:text-blue-200" data-tag="${tag}">✕</button>
+                    <button type="button" class="remove-tag-btn hover:text-ac-mint-600 dark:hover:text-blue-200" data-tag="${tag}">✕</button>
                 </span>
             `).join('');
         }
@@ -5298,8 +5298,8 @@ const RecipeDatabaseView = {
         const loadingContent = `
             <div class="flex flex-col items-center justify-center py-12">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
-                <p class="text-gray-600 dark:text-gray-400">Analysiere Rezept mit KI...</p>
-                <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Dies kann einige Sekunden dauern</p>
+                <p class="text-ac-brown-600 dark:text-ac-brown-400">Analysiere Rezept mit KI...</p>
+                <p class="text-sm text-ac-brown-500 dark:text-ac-brown-500 mt-2">Dies kann einige Sekunden dauern</p>
             </div>
         `;
 
@@ -5307,33 +5307,33 @@ const RecipeDatabaseView = {
             <div class="space-y-4">
                 <!-- Overall Rating -->
                 <div class="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg p-4">
-                    <h4 class="font-medium text-gray-800 dark:text-white mb-3">Gesamtbewertung</h4>
+                    <h4 class="font-medium text-ac-brown-800 dark:text-ac-cream-100 mb-3">Gesamtbewertung</h4>
                     <div class="grid grid-cols-3 gap-4 mb-3">
                         <div class="text-center">
                             <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">${this.analysisData.overallRating?.taste || '-'}/5</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Geschmack</div>
+                            <div class="text-xs text-ac-brown-500 dark:text-ac-brown-400">Geschmack</div>
                         </div>
                         <div class="text-center">
-                            <div class="text-2xl font-bold text-green-600 dark:text-green-400">${this.analysisData.overallRating?.health || '-'}/5</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Gesundheit</div>
+                            <div class="text-2xl font-bold text-ac-leaf-600 dark:text-ac-leaf-400">${this.analysisData.overallRating?.health || '-'}/5</div>
+                            <div class="text-xs text-ac-brown-500 dark:text-ac-brown-400">Gesundheit</div>
                         </div>
                         <div class="text-center">
                             <div class="text-2xl font-bold text-orange-600 dark:text-orange-400">${this.analysisData.overallRating?.difficulty || '-'}/5</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Schwierigkeit</div>
+                            <div class="text-xs text-ac-brown-500 dark:text-ac-brown-400">Schwierigkeit</div>
                         </div>
                     </div>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">${this.analysisData.overallRating?.comment || ''}</p>
+                    <p class="text-sm text-ac-brown-600 dark:text-ac-brown-400">${this.analysisData.overallRating?.comment || ''}</p>
                 </div>
 
                 <!-- Suggestions -->
                 <div class="space-y-3">
                     ${(this.analysisData.suggestions || []).map(suggestion => `
-                        <div class="bg-white dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                        <div class="bg-white dark:bg-ac-night-100 rounded-lg p-4 border border-ac-cream-300 dark:border-ac-night-100">
                             <div class="flex items-start gap-3">
                                 <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
                                     suggestion.icon === 'taste' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' :
-                                    suggestion.icon === 'health' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
-                                    suggestion.icon === 'time' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
+                                    suggestion.icon === 'health' ? 'bg-ac-leaf-100 dark:bg-ac-leaf-700/30 text-ac-leaf-600 dark:text-ac-leaf-400' :
+                                    suggestion.icon === 'time' ? 'bg-ac-mint-100 dark:bg-ac-mint-900/30 text-ac-mint-600 dark:text-ac-mint-400' :
                                     'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
                                 }">
                                     ${this.getAnalysisIcon(suggestion.icon)}
@@ -5342,14 +5342,14 @@ const RecipeDatabaseView = {
                                     <div class="flex items-center gap-2 mb-1">
                                         <span class="text-xs font-medium px-2 py-0.5 rounded-full ${
                                             suggestion.icon === 'taste' ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300' :
-                                            suggestion.icon === 'health' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
-                                            suggestion.icon === 'time' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                                            suggestion.icon === 'health' ? 'bg-ac-leaf-100 dark:bg-ac-leaf-700/30 text-ac-leaf-700 dark:text-ac-leaf-300' :
+                                            suggestion.icon === 'time' ? 'bg-ac-mint-100 dark:bg-ac-mint-900/30 text-blue-700 dark:text-ac-mint-300' :
                                             'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
                                         }">${suggestion.category}</span>
-                                        ${suggestion.impact === 'high' ? '<span class="text-xs text-green-600 dark:text-green-400 font-medium">Hoher Einfluss</span>' : ''}
+                                        ${suggestion.impact === 'high' ? '<span class="text-xs text-ac-leaf-600 dark:text-ac-leaf-400 font-medium">Hoher Einfluss</span>' : ''}
                                     </div>
-                                    <h5 class="font-medium text-gray-800 dark:text-white">${suggestion.title}</h5>
-                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${suggestion.description}</p>
+                                    <h5 class="font-medium text-ac-brown-800 dark:text-ac-cream-100">${suggestion.title}</h5>
+                                    <p class="text-sm text-ac-brown-600 dark:text-ac-brown-400 mt-1">${suggestion.description}</p>
                                 </div>
                             </div>
                         </div>
@@ -5360,14 +5360,14 @@ const RecipeDatabaseView = {
 
         return `
             <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" id="analysis-modal-backdrop">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-                    <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 flex-shrink-0">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-ac-lg flex flex-col">
+                    <div class="flex items-center justify-between p-4 border-b dark:border-ac-night-50 flex-shrink-0">
                         <div class="flex items-center gap-2">
                             <span class="text-xl">🤖</span>
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">KI-Rezeptanalyse</h3>
+                            <h3 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100">KI-Rezeptanalyse</h3>
                         </div>
-                        <button id="close-analysis-modal" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button id="close-analysis-modal" class="p-2 hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-ac-brown-500 dark:text-ac-brown-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </button>
@@ -5375,8 +5375,8 @@ const RecipeDatabaseView = {
                     <div class="flex-1 overflow-y-auto p-4">
                         ${this.isAnalyzing ? loadingContent : analysisContent}
                     </div>
-                    <div class="p-4 border-t dark:border-gray-700 flex-shrink-0">
-                        <button id="close-analysis-btn" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    <div class="p-4 border-t dark:border-ac-night-50 flex-shrink-0">
+                        <button id="close-analysis-btn" class="w-full px-4 py-2 bg-ac-cream-100 dark:bg-ac-night-100 text-ac-brown-700 dark:text-ac-cream-300 rounded-lg hover:bg-ac-cream-200 dark:hover:bg-ac-night-50 transition-colors">
                             Schließen
                         </button>
                     </div>
@@ -5389,50 +5389,50 @@ const RecipeDatabaseView = {
         if (!this.showVariantModal) return '';
 
         const variantTypesHtml = (this.variantTypes || []).map(vt => `
-            <button class="variant-type-btn flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${this.isGeneratingVariant ? 'opacity-50 cursor-not-allowed' : ''}" data-variant-type="${vt.id}" ${this.isGeneratingVariant ? 'disabled' : ''}>
+            <button class="variant-type-btn flex items-center gap-3 p-3 rounded-lg border border-ac-cream-300 dark:border-ac-night-100 hover:bg-ac-cream-50 dark:hover:bg-ac-night-100 transition-colors ${this.isGeneratingVariant ? 'opacity-50 cursor-not-allowed' : ''}" data-variant-type="${vt.id}" ${this.isGeneratingVariant ? 'disabled' : ''}>
                 <span class="text-2xl">${vt.icon}</span>
                 <div class="text-left">
-                    <div class="font-medium text-gray-800 dark:text-white">${vt.name}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">${vt.description}</div>
+                    <div class="font-medium text-ac-brown-800 dark:text-ac-cream-100">${vt.name}</div>
+                    <div class="text-xs text-ac-brown-500 dark:text-ac-brown-400">${vt.description}</div>
                 </div>
             </button>
         `).join('');
         const hasVariantTypes = Array.isArray(this.variantTypes) && this.variantTypes.length > 0;
         const variantSelectionHtml = `
             <div class="space-y-3">
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Wähle eine Variante, die du von diesem Rezept erstellen möchtest:</p>
-                ${hasVariantTypes ? variantTypesHtml : '<div class="p-4 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-400">Keine Varianten verfügbar. Bitte prüfe deine KI-Konfiguration oder versuche es später erneut.</div>'}
+                <p class="text-sm text-ac-brown-600 dark:text-ac-brown-400 mb-4">Wähle eine Variante, die du von diesem Rezept erstellen möchtest:</p>
+                ${hasVariantTypes ? variantTypesHtml : '<div class="p-4 rounded-lg border border-dashed border-ac-cream-400 dark:border-ac-night-100 text-sm text-ac-brown-600 dark:text-ac-brown-400">Keine Varianten verfügbar. Bitte prüfe deine KI-Konfiguration oder versuche es später erneut.</div>'}
             </div>
         `;
 
         const loadingContent = `
             <div class="flex flex-col items-center justify-center py-8">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
-                <p class="text-gray-600 dark:text-gray-400">Generiere Variante mit KI...</p>
-                <p class="text-sm text-gray-500 dark:text-gray-500 mt-2">Dies kann einige Sekunden dauern</p>
+                <p class="text-ac-brown-600 dark:text-ac-brown-400">Generiere Variante mit KI...</p>
+                <p class="text-sm text-ac-brown-500 dark:text-ac-brown-500 mt-2">Dies kann einige Sekunden dauern</p>
             </div>
         `;
 
         const variantResultHtml = this.variantData ? `
             <div class="space-y-4">
-                <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4">
+                <div class="bg-gradient-to-r from-ac-leaf-100 to-ac-mint-100 dark:from-ac-leaf-700/20 dark:to-ac-mint-700/20 rounded-lg p-4">
                     <div class="flex items-center gap-2 mb-2">
                         <span class="text-xl">${(this.variantTypes || []).find(v => v.id === this.variantData.variantType)?.icon || '🍽️'}</span>
-                        <h4 class="font-semibold text-gray-800 dark:text-white">${this.variantData.variantName}</h4>
+                        <h4 class="font-semibold text-ac-brown-800 dark:text-ac-cream-100">${this.variantData.variantName}</h4>
                     </div>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">${this.variantData.nutritionNote || ''}</p>
+                    <p class="text-sm text-ac-brown-600 dark:text-ac-brown-400">${this.variantData.nutritionNote || ''}</p>
                     <div class="flex gap-4 mt-3 text-sm">
-                        <span class="text-gray-500 dark:text-gray-400">${this.variantData.servings} Portionen</span>
-                        <span class="text-gray-500 dark:text-gray-400">${this.variantData.prepTime || ''}</span>
-                        <span class="text-gray-500 dark:text-gray-400">${this.variantData.difficulty || ''}</span>
+                        <span class="text-ac-brown-500 dark:text-ac-brown-400">${this.variantData.servings} Portionen</span>
+                        <span class="text-ac-brown-500 dark:text-ac-brown-400">${this.variantData.prepTime || ''}</span>
+                        <span class="text-ac-brown-500 dark:text-ac-brown-400">${this.variantData.difficulty || ''}</span>
                     </div>
                 </div>
 
                 <div>
-                    <h5 class="font-medium text-gray-800 dark:text-white mb-2">Wichtigste Änderungen:</h5>
+                    <h5 class="font-medium text-ac-brown-800 dark:text-ac-cream-100 mb-2">Wichtigste Änderungen:</h5>
                     <ul class="space-y-1">
                         ${(this.variantData.changes || []).map(change => `
-                            <li class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                            <li class="flex items-start gap-2 text-sm text-ac-brown-600 dark:text-ac-brown-400">
                                 <span class="text-green-500 mt-0.5">✓</span>
                                 ${change}
                             </li>
@@ -5441,18 +5441,18 @@ const RecipeDatabaseView = {
                 </div>
 
                 <div>
-                    <h5 class="font-medium text-gray-800 dark:text-white mb-2">Zutaten (${this.variantData.ingredients?.length || 0}):</h5>
+                    <h5 class="font-medium text-ac-brown-800 dark:text-ac-cream-100 mb-2">Zutaten (${this.variantData.ingredients?.length || 0}):</h5>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
                         ${(this.variantData.ingredients || []).map(ing => `
-                            <div class="flex items-center gap-2 text-sm ${ing.isNew ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}">
-                                ${ing.isNew ? '<span class="text-xs bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">Neu</span>' : ''}
+                            <div class="flex items-center gap-2 text-sm ${ing.isNew ? 'text-ac-leaf-600 dark:text-ac-leaf-400' : 'text-ac-brown-600 dark:text-ac-brown-400'}">
+                                ${ing.isNew ? '<span class="text-xs bg-ac-leaf-100 dark:bg-ac-leaf-700/30 px-1.5 py-0.5 rounded">Neu</span>' : ''}
                                 <span>${ing.amount || ''} ${ing.unit || ''} ${ing.name}</span>
                             </div>
                         `).join('')}
                     </div>
                 </div>
 
-                <button id="save-variant-btn" class="w-full px-4 py-3 bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2">
+                <button id="save-variant-btn" class="w-full px-4 py-3 bg-ac-leaf-500 dark:bg-ac-leaf-600 text-white rounded-lg hover:bg-ac-leaf-600 dark:hover:bg-ac-leaf-700 transition-colors font-medium flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                     </svg>
@@ -5463,17 +5463,17 @@ const RecipeDatabaseView = {
 
         return `
             <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" id="variant-modal-backdrop">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-                    <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 flex-shrink-0">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-ac-lg flex flex-col">
+                    <div class="flex items-center justify-between p-4 border-b dark:border-ac-night-50 flex-shrink-0">
                         <div class="flex items-center gap-2">
                             <span class="text-xl">🔄</span>
                             <div>
-                                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Rezept-Variante erstellen</h3>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">${this.viewingRecipe?.name || ''}</p>
+                                <h3 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100">Rezept-Variante erstellen</h3>
+                                <p class="text-sm text-ac-brown-500 dark:text-ac-brown-400">${this.viewingRecipe?.name || ''}</p>
                             </div>
                         </div>
-                        <button id="close-variant-modal" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button id="close-variant-modal" class="p-2 hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 rounded-lg transition-colors">
+                            <svg class="w-5 h-5 text-ac-brown-500 dark:text-ac-brown-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </button>
@@ -5481,13 +5481,13 @@ const RecipeDatabaseView = {
                     <div class="flex-1 overflow-y-auto p-4">
                         ${this.isGeneratingVariant ? loadingContent : (this.variantData ? variantResultHtml : variantSelectionHtml)}
                     </div>
-                    <div class="p-4 border-t dark:border-gray-700 flex-shrink-0">
+                    <div class="p-4 border-t dark:border-ac-night-50 flex-shrink-0">
                         ${this.variantData ? `
-                            <button id="back-to-variants-btn" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                            <button id="back-to-variants-btn" class="w-full px-4 py-2 bg-ac-cream-100 dark:bg-ac-night-100 text-ac-brown-700 dark:text-ac-cream-300 rounded-lg hover:bg-ac-cream-200 dark:hover:bg-ac-night-50 transition-colors">
                                 Andere Variante wählen
                             </button>
                         ` : `
-                            <button id="close-variant-btn" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                            <button id="close-variant-btn" class="w-full px-4 py-2 bg-ac-cream-100 dark:bg-ac-night-100 text-ac-brown-700 dark:text-ac-cream-300 rounded-lg hover:bg-ac-cream-200 dark:hover:bg-ac-night-50 transition-colors">
                                 Abbrechen
                             </button>
                         `}
@@ -5675,14 +5675,14 @@ const MealPrepView = {
         const prepDate = AppState.weekPlan?.mealPrepPlan?.prepDate || '';
         const prepDateValue = prepDate ? prepDate.substring(0, 10) : '';
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+            <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-4 transition-colors duration-200">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Geplanter Meal-Prep Tag</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Wähle den Tag, an dem du batch-kochen möchtest.</p>
+                        <h3 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100">Geplanter Meal-Prep Tag</h3>
+                        <p class="text-sm text-ac-brown-500 dark:text-ac-brown-400">Wähle den Tag, an dem du batch-kochen möchtest.</p>
                     </div>
                     <input type="date" id="meal-prep-date" value="${escapeHtml(prepDateValue)}"
-                        class="px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                        class="px-3 py-2 border dark:border-ac-night-100 rounded-lg bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500" />
                 </div>
             </div>
         `;
@@ -5709,13 +5709,13 @@ const MealPrepView = {
         }
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+            <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-4 transition-colors duration-200">
                 <div class="flex items-center justify-between flex-wrap gap-3">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Meal-Prep Rezepte</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Füge Rezepte hinzu, die du in deiner Meal-Prep Session kochen möchtest.</p>
+                        <h3 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100">Meal-Prep Rezepte</h3>
+                        <p class="text-sm text-ac-brown-500 dark:text-ac-brown-400">Füge Rezepte hinzu, die du in deiner Meal-Prep Session kochen möchtest.</p>
                     </div>
-                    <button id="add-meal-prep-recipe-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center gap-2">
+                    <button id="add-meal-prep-recipe-btn" class="px-4 py-2 bg-ac-leaf-500 dark:bg-ac-leaf-600 text-white rounded-lg hover:bg-ac-leaf-600 dark:hover:bg-ac-leaf-700 transition-colors flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
@@ -5728,10 +5728,10 @@ const MealPrepView = {
             </div>
 
             <div id="meal-prep-recipe-modal" class="modal ${this.isRecipeModalOpen ? 'active' : ''}">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full max-h-[80vh] overflow-hidden">
-                    <div class="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Meal-Prep Rezept hinzufügen</h3>
-                        <button class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl" id="close-meal-prep-modal">✕</button>
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow-xl max-w-3xl w-full max-h-[80vh] overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-3 border-b dark:border-ac-night-50">
+                        <h3 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100">Meal-Prep Rezept hinzufügen</h3>
+                        <button class="text-ac-brown-500 hover:text-ac-brown-700 dark:text-ac-brown-400 dark:hover:text-gray-200 text-2xl" id="close-meal-prep-modal">✕</button>
                     </div>
                     <div class="p-4 overflow-y-auto max-h-[70vh]">
                         <div class="grid gap-3">
@@ -5753,12 +5753,12 @@ const MealPrepView = {
         const notesValue = escapeHtml(isSelected?.notes || '');
 
         return `
-            <div class="p-3 rounded-lg border dark:border-gray-700 ${isSelected ? 'bg-green-50 border-green-200 dark:bg-green-900/30 dark:border-green-700' : 'bg-white dark:bg-gray-800'}">
+            <div class="p-3 rounded-lg border dark:border-ac-night-50 ${isSelected ? 'bg-green-50 border-ac-leaf-200 dark:bg-ac-leaf-700/30 dark:border-green-700' : 'bg-white dark:bg-ac-night-200'}">
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex-1">
-                        <h4 class="font-medium text-gray-800 dark:text-white">${recipeNameSafe}</h4>
-                        <div class="text-xs text-gray-500 dark:text-gray-400 flex flex-wrap gap-2 mt-1">
-                            ${recipe.category ? `<span class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">${categorySafe}</span>` : ''}
+                        <h4 class="font-medium text-ac-brown-800 dark:text-ac-cream-100">${recipeNameSafe}</h4>
+                        <div class="text-xs text-ac-brown-500 dark:text-ac-brown-400 flex flex-wrap gap-2 mt-1">
+                            ${recipe.category ? `<span class="bg-ac-mint-100 dark:bg-ac-mint-900/30 text-blue-700 dark:text-ac-mint-300 px-2 py-0.5 rounded-full">${categorySafe}</span>` : ''}
                             ${recipe.servings ? `<span>${recipe.servings} Portionen</span>` : ''}
                             ${recipe.prep_time || recipe.cook_time ? `<span>${(recipe.prep_time || 0) + (recipe.cook_time || 0)} Min.</span>` : ''}
                             ${recipe.meal_prep_fridge_days ? `<span>🧊 ${recipe.meal_prep_fridge_days} Tage Kühlung</span>` : ''}
@@ -5766,36 +5766,36 @@ const MealPrepView = {
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button class="px-3 py-2 text-sm rounded-lg border dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition" data-action="preview" data-recipe-id="${recipeIdSafe}">
+                        <button class="px-3 py-2 text-sm rounded-lg border dark:border-ac-night-100 text-ac-brown-600 dark:text-ac-cream-300 hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition" data-action="preview" data-recipe-id="${recipeIdSafe}">
                             Details
                         </button>
-                        <button class="px-3 py-2 text-sm rounded-lg ${isSelected ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50' : 'bg-green-500 text-white hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700'} transition" data-action="toggle" data-recipe-id="${recipeIdSafe}">
+                        <button class="px-3 py-2 text-sm rounded-lg ${isSelected ? 'bg-red-100 text-red-600 dark:bg-ac-peach-500/40 dark:text-red-300 hover:bg-red-200 dark:hover:bg-ac-peach-500/50' : 'bg-ac-leaf-500 text-white hover:bg-ac-leaf-600 dark:bg-ac-leaf-600 dark:hover:bg-ac-leaf-700'} transition" data-action="toggle" data-recipe-id="${recipeIdSafe}">
                             ${isSelected ? 'Entfernen' : 'Hinzufügen'}
                         </button>
                     </div>
                 </div>
                 ${isSelected ? `
                     <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                        <label class="flex flex-col text-sm text-gray-600 dark:text-gray-300">
+                        <label class="flex flex-col text-sm text-ac-brown-600 dark:text-ac-cream-300">
                             Geplante Portionen
                             <input type="number" min="1" data-field="targetPortions" data-recipe-id="${recipeIdSafe}" value="${isSelected.targetPortions || recipe.servings || ''}"
-                                class="mt-1 px-2 py-1 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                                class="mt-1 px-2 py-1 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100" />
                         </label>
-                        <label class="flex flex-col text-sm text-gray-600 dark:text-gray-300">
+                        <label class="flex flex-col text-sm text-ac-brown-600 dark:text-ac-cream-300">
                             Mahlzeiten-Typen
                             <input type="text" placeholder="z.B. Mittagessen"
                                 data-field="mealTypes" data-recipe-id="${recipeIdSafe}" value="${mealTypesValue}"
-                                class="mt-1 px-2 py-1 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                                class="mt-1 px-2 py-1 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100" />
                         </label>
-                        <label class="flex flex-col text-sm text-gray-600 dark:text-gray-300 sm:col-span-2">
+                        <label class="flex flex-col text-sm text-ac-brown-600 dark:text-ac-cream-300 sm:col-span-2">
                             Verbrauchstage (kommagetrennt YYYY-MM-DD)
                             <input type="text" data-field="targetDates" data-recipe-id="${recipeIdSafe}" value="${targetDatesValue}"
-                                class="mt-1 px-2 py-1 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                                class="mt-1 px-2 py-1 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100" />
                         </label>
-                        <label class="flex flex-col text-sm text-gray-600 dark:text-gray-300 sm:col-span-2">
+                        <label class="flex flex-col text-sm text-ac-brown-600 dark:text-ac-cream-300 sm:col-span-2">
                             Zusätzliche Notizen
                             <textarea data-field="notes" data-recipe-id="${recipeIdSafe}" rows="2"
-                                class="mt-1 px-2 py-1 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">${notesValue}</textarea>
+                                class="mt-1 px-2 py-1 border dark:border-ac-night-100 rounded bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100">${notesValue}</textarea>
                         </label>
                     </div>
                 ` : ''}
@@ -5805,27 +5805,27 @@ const MealPrepView = {
 
     renderMealPrepCard(item) {
         const recipeNameSafe = escapeHtml(item.recipeName || 'Rezept');
-        const mealTypes = (item.mealTypes || []).map((m) => `<span class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">${escapeHtml(m)}</span>`).join('');
+        const mealTypes = (item.mealTypes || []).map((m) => `<span class="px-2 py-0.5 rounded-full bg-ac-mint-100 dark:bg-ac-mint-900/30 text-blue-700 dark:text-ac-mint-300">${escapeHtml(m)}</span>`).join('');
         const targetDates = (item.targetDates || []).map((date) => escapeHtml(date));
         const extraDates = targetDates.slice(2);
         const reheatSafe = escapeHtml(item.reheatTips || '');
         const notesSafe = escapeHtml(item.notes || '');
 
         return `
-            <div class="border dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/30">
+            <div class="border dark:border-ac-night-50 rounded-lg p-4 bg-ac-cream-50 dark:bg-ac-night-500/30">
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white">${recipeNameSafe}</h4>
-                        <div class="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400 mt-2">
-                            ${item.totalPortions ? `<span class="inline-flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">🍽️ ${item.totalPortions} Portionen</span>` : ''}
+                        <h4 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100">${recipeNameSafe}</h4>
+                        <div class="flex flex-wrap gap-2 text-xs text-ac-brown-500 dark:text-ac-brown-400 mt-2">
+                            ${item.totalPortions ? `<span class="inline-flex items-center gap-1 bg-ac-leaf-100 dark:bg-ac-leaf-700/30 text-ac-leaf-700 dark:text-ac-leaf-300 px-2 py-1 rounded-full">🍽️ ${item.totalPortions} Portionen</span>` : ''}
                             ${mealTypes}
                             ${targetDates.slice(0, 2).map((date) => `<span class="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">📆 ${date}</span>`).join('')}
                         </div>
                     </div>
-                    <button class="remove-meal-prep-item text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300" data-recipe-id="${escapeHtml(String(item.recipeId))}">✕</button>
+                    <button class="remove-meal-prep-item text-ac-peach-500 hover:text-ac-peach-600 dark:text-ac-peach-400 dark:hover:text-red-300" data-recipe-id="${escapeHtml(String(item.recipeId))}">✕</button>
                 </div>
 
-                <dl class="mt-3 grid gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <dl class="mt-3 grid gap-2 text-sm text-ac-brown-600 dark:text-ac-cream-300">
                     ${item.fridgeDays ? `<div><dt class="font-medium inline">Kühlung:</dt> <dd class="inline">${item.fridgeDays} Tage</dd></div>` : ''}
                     ${item.freezerDays ? `<div><dt class="font-medium inline">Gefrieren:</dt> <dd class="inline">${item.freezerDays} Tage</dd></div>` : ''}
                     ${item.reheatTips ? `<div><dt class="font-medium inline">Aufwärmen:</dt> <dd class="inline">${reheatSafe}</dd></div>` : ''}
@@ -5833,7 +5833,7 @@ const MealPrepView = {
                 </dl>
 
                 ${extraDates.length ? `
-                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Weitere Verbrauchstage: ${extraDates.join(', ')}</p>
+                    <p class="mt-2 text-xs text-ac-brown-500 dark:text-ac-brown-400">Weitere Verbrauchstage: ${extraDates.join(', ')}</p>
                 ` : ''}
             </div>
         `;
@@ -5841,7 +5841,7 @@ const MealPrepView = {
 
     renderEmptyState() {
         return `
-            <div class="col-span-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center text-gray-500 dark:text-gray-400">
+            <div class="col-span-full border-2 border-dashed border-ac-cream-400 dark:border-ac-night-100 rounded-lg p-8 text-center text-ac-brown-500 dark:text-ac-brown-400">
                 <p class="font-medium">Noch keine Meal-Prep Rezepte ausgewählt.</p>
                 <p class="text-sm mt-1">Füge oben Rezepte hinzu, um deine Meal-Prep Session zu planen.</p>
             </div>
@@ -5852,32 +5852,32 @@ const MealPrepView = {
         const aiData = AppState.weekPlan?.mealPrepPlan?.aiSuggestions;
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+            <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-4 transition-colors duration-200">
                 <div class="flex items-center justify-between flex-wrap gap-3">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                        <h3 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100 flex items-center gap-2">
                             <span>KI Meal-Prep Hilfe</span>
-                            ${this.aiLoading ? '<span class="text-xs text-purple-500">Lädt...</span>' : ''}
+                            ${this.aiLoading ? '<span class="text-xs text-ac-blue-500">Lädt...</span>' : ''}
                         </h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                        <p class="text-sm text-ac-brown-500 dark:text-ac-brown-400">
                             Lass dir Sessions, Zeitplan und Einkaufshinweise für deine Meal-Prep Rezepte generieren.
                         </p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button id="refresh-meal-prep-ai" class="px-4 py-2 bg-purple-500 dark:bg-purple-600 text-white rounded-lg hover:bg-purple-600 dark:hover:bg-purple-700 transition-colors flex items-center gap-2" ${this.aiLoading ? 'disabled' : ''}>
+                        <button id="refresh-meal-prep-ai" class="px-4 py-2 bg-ac-blue-400 dark:bg-ac-blue-500 text-white rounded-lg hover:bg-ac-blue-500 dark:hover:bg-ac-blue-600 transition-colors flex items-center gap-2" ${this.aiLoading ? 'disabled' : ''}>
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                             </svg>
                             Vorschläge aktualisieren
                         </button>
-                        <button id="clear-meal-prep-ai" class="px-3 py-2 border dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" ${!aiData ? 'disabled' : ''}>
+                        <button id="clear-meal-prep-ai" class="px-3 py-2 border dark:border-ac-night-100 rounded-lg text-ac-brown-600 dark:text-ac-cream-300 hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors" ${!aiData ? 'disabled' : ''}>
                             Zurücksetzen
                         </button>
                     </div>
                 </div>
 
                 ${this.aiError ? `
-                    <div class="mt-3 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                    <div class="mt-3 p-3 bg-ac-peach-50 dark:bg-ac-peach-500/30 border border-ac-peach-200 dark:border-ac-peach-500 rounded-lg">
                         <p class="text-sm text-red-700 dark:text-red-300">${escapeHtml(this.aiError)}</p>
                     </div>
                 ` : ''}
@@ -5901,9 +5901,9 @@ const MealPrepView = {
             <div class="mt-6 space-y-6">
                 ${sessions.length ? `
                     <section>
-                        <h4 class="text-md font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                        <h4 class="text-md font-semibold text-ac-brown-800 dark:text-ac-cream-100 flex items-center gap-2">
                             <span>Meal-Prep Sessions</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">${sessions.length} Vorschläge</span>
+                            <span class="text-xs text-ac-brown-500 dark:text-ac-brown-400">${sessions.length} Vorschläge</span>
                         </h4>
                         <div class="mt-3 grid gap-4">
                             ${sessions.map((session) => this.renderSession(session)).join('')}
@@ -5913,7 +5913,7 @@ const MealPrepView = {
 
                 ${shoppingGroups.length ? `
                     <section>
-                        <h4 class="text-md font-semibold text-gray-800 dark:text-white">Einkauf & Mise en Place</h4>
+                        <h4 class="text-md font-semibold text-ac-brown-800 dark:text-ac-cream-100">Einkauf & Mise en Place</h4>
                         <div class="mt-3 grid gap-3">
                             ${shoppingGroups.map((group) => this.renderShoppingGroup(group)).join('')}
                         </div>
@@ -5922,8 +5922,8 @@ const MealPrepView = {
 
                 ${advice.length ? `
                     <section>
-                        <h4 class="text-md font-semibold text-gray-800 dark:text-white">Allgemeine Tipps</h4>
-                        <ul class="mt-2 space-y-1 list-disc list-inside text-gray-600 dark:text-gray-300">
+                        <h4 class="text-md font-semibold text-ac-brown-800 dark:text-ac-cream-100">Allgemeine Tipps</h4>
+                        <ul class="mt-2 space-y-1 list-disc list-inside text-ac-brown-600 dark:text-ac-cream-300">
                             ${advice.map((tip) => `<li>${escapeHtml(tip)}</li>`).join('')}
                         </ul>
                     </section>
@@ -5939,11 +5939,11 @@ const MealPrepView = {
         const startSafe = escapeHtml(session.recommendedStartTime || '');
 
         return `
-            <div class="border dark:border-gray-700 rounded-lg p-4">
+            <div class="border dark:border-ac-night-50 rounded-lg p-4">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
-                        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">${labelSafe}</h5>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 flex gap-3 mt-1">
+                        <h5 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100">${labelSafe}</h5>
+                        <p class="text-sm text-ac-brown-500 dark:text-ac-brown-400 flex gap-3 mt-1">
                             ${session.recommendedStartTime ? `<span>⏰ Start: ${startSafe}</span>` : ''}
                             ${session.estimatedTotalMinutes ? `<span>🕒 Dauer: ${session.estimatedTotalMinutes} Min.</span>` : ''}
                         </p>
@@ -5952,7 +5952,7 @@ const MealPrepView = {
 
                 ${recipes.length ? `
                     <div class="mt-4">
-                        <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">Rezepte in dieser Session</h6>
+                        <h6 class="text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300">Rezepte in dieser Session</h6>
                         <div class="mt-2 grid gap-2">
                             ${recipes.map((recipe) => this.renderSessionRecipe(recipe)).join('')}
                         </div>
@@ -5961,11 +5961,11 @@ const MealPrepView = {
 
                 ${timeline.length ? `
                     <div class="mt-4">
-                        <h6 class="text-sm font-medium text-gray-700 dark:text-gray-300">Zeitplan</h6>
+                        <h6 class="text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300">Zeitplan</h6>
                         <ul class="mt-2 space-y-2">
                             ${timeline.map((step) => `
-                                <li class="flex gap-3 text-sm text-gray-600 dark:text-gray-300">
-                                    <span class="font-medium text-gray-800 dark:text-white">${escapeHtml(step.start || '')} - ${escapeHtml(step.end || '')}</span>
+                                <li class="flex gap-3 text-sm text-ac-brown-600 dark:text-ac-cream-300">
+                                    <span class="font-medium text-ac-brown-800 dark:text-ac-cream-100">${escapeHtml(step.start || '')} - ${escapeHtml(step.end || '')}</span>
                                     <span>${escapeHtml(step.task || '')}</span>
                                 </li>
                             `).join('')}
@@ -5985,18 +5985,18 @@ const MealPrepView = {
         const targetDates = (recipe.targetDates || []).map((date) => escapeHtml(date)).join(', ');
 
         return `
-            <div class="border border-dashed dark:border-gray-600 rounded-lg p-3 text-sm">
+            <div class="border border-dashed dark:border-ac-night-100 rounded-lg p-3 text-sm">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div>
-                        <p class="font-medium text-gray-800 dark:text-white">${nameSafe}</p>
-                        <div class="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <p class="font-medium text-ac-brown-800 dark:text-ac-cream-100">${nameSafe}</p>
+                        <div class="flex flex-wrap gap-2 text-xs text-ac-brown-500 dark:text-ac-brown-400 mt-1">
                             ${recipe.batchPortions ? `<span>🍽️ ${recipe.batchPortions} Portionen</span>` : ''}
                             ${recipe.prepOrder ? `<span>#${recipe.prepOrder} in der Reihenfolge</span>` : ''}
                             ${recipe.parallelizationTips ? `<span>⚙️ ${parallelSafe}</span>` : ''}
                         </div>
                     </div>
                 </div>
-                <div class="mt-2 grid gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <div class="mt-2 grid gap-2 text-xs text-ac-brown-500 dark:text-ac-brown-400">
                     ${storage.fridgeDays ? `<p>🧊 Kühlschrank: ${storage.fridgeDays} Tage${storage.notes ? ` (${notesSafe})` : ''}</p>` : ''}
                     ${storage.freezerDays ? `<p>❄️ Gefrierschrank: ${storage.freezerDays} Tage</p>` : ''}
                     ${recipe.reheatTips ? `<p>🔥 Aufwärmen: ${reheatSafe}</p>` : ''}
@@ -6011,14 +6011,14 @@ const MealPrepView = {
         const labelSafe = escapeHtml(group.label || 'Vorbereitungsschritt');
 
         return `
-            <div class="border dark:border-gray-700 rounded-lg p-3">
-                <h6 class="font-medium text-gray-800 dark:text-white">${labelSafe}</h6>
-                <ul class="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-300">
+            <div class="border dark:border-ac-night-50 rounded-lg p-3">
+                <h6 class="font-medium text-ac-brown-800 dark:text-ac-cream-100">${labelSafe}</h6>
+                <ul class="mt-2 space-y-1 text-sm text-ac-brown-600 dark:text-ac-cream-300">
                     ${ingredients.map((ingredient) => `
                         <li>
                             ${ingredient.totalAmount ? `<strong>${escapeHtml(String(ingredient.totalAmount))}</strong>` : ''}
                             ${escapeHtml(ingredient.unit || '')} ${escapeHtml(ingredient.name || '')}
-                            ${ingredient.recipes && ingredient.recipes.length ? `<span class="text-xs text-gray-400 dark:text-gray-500">(${escapeHtml(ingredient.recipes.join(', '))})</span>` : ''}
+                            ${ingredient.recipes && ingredient.recipes.length ? `<span class="text-xs text-ac-brown-400 dark:text-ac-brown-500">(${escapeHtml(ingredient.recipes.join(', '))})</span>` : ''}
                         </li>
                     `).join('')}
                 </ul>
@@ -6028,17 +6028,17 @@ const MealPrepView = {
 
     render() {
         if (!AppState.weekPlan) {
-            return '<div class="text-gray-800 dark:text-gray-200">Lade Meal-Prep Daten...</div>';
+            return '<div class="text-ac-brown-800 dark:text-ac-cream-200">Lade Meal-Prep Daten...</div>';
         }
 
         return `
             <div class="space-y-4 sm:space-y-6">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
-                        <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Meal-Prep Planung</h2>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Plane deine Batch-Cooking Sessions, halte Haltbarkeit im Blick und lass dir von der KI helfen.</p>
+                        <h2 class="text-xl sm:text-2xl font-bold text-ac-brown-800 dark:text-ac-cream-100">Meal-Prep Planung</h2>
+                        <p class="text-sm text-ac-brown-500 dark:text-ac-brown-400">Plane deine Batch-Cooking Sessions, halte Haltbarkeit im Blick und lass dir von der KI helfen.</p>
                     </div>
-                    <button id="save-meal-prep-plan" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center gap-2" ${this.isSaving ? 'disabled' : ''}>
+                    <button id="save-meal-prep-plan" class="px-4 py-2 bg-ac-leaf-500 dark:bg-ac-leaf-600 text-white rounded-lg hover:bg-ac-leaf-600 dark:hover:bg-ac-leaf-700 transition-colors flex items-center gap-2" ${this.isSaving ? 'disabled' : ''}>
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
@@ -6295,13 +6295,13 @@ const AIRecipeGeneratorView = {
     render() {
         return `
             <div class="space-y-6">
-                <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
+                <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-ac-lg p-6 text-white">
                     <h2 class="text-3xl font-bold mb-2">KI Rezept-Generator</h2>
                     <p class="text-blue-100">Gib deine verfügbaren Zutaten ein und lass die KI kreative Rezepte für dich generieren!</p>
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-6 transition-colors duration-200">
-                    <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Verfügbare Zutaten</h3>
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow-ac-lg dark:shadow-ac-dark p-6 transition-colors duration-200">
+                    <h3 class="text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100 mb-4">Verfügbare Zutaten</h3>
 
                     <div id="ai-ingredients-container" class="space-y-2 mb-4">
                         ${this.ingredients.map((ing, index) => `
@@ -6310,9 +6310,9 @@ const AIRecipeGeneratorView = {
                                        placeholder="z.B. Tomaten, Nudeln, Hähnchen..."
                                        value="${ing}"
                                        data-index="${index}"
-                                       class="ai-ingredient-input flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                       class="ai-ingredient-input flex-1 px-4 py-2 border dark:border-ac-night-100 rounded-lg bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                                 ${this.ingredients.length > 1 ? `
-                                    <button type="button" class="remove-ai-ingredient-btn px-3 py-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" data-index="${index}">
+                                    <button type="button" class="remove-ai-ingredient-btn px-3 py-2 text-red-600 dark:text-ac-peach-400 hover:text-ac-peach-600 dark:hover:text-red-300" data-index="${index}">
                                         ✕
                                     </button>
                                 ` : ''}
@@ -6320,18 +6320,18 @@ const AIRecipeGeneratorView = {
                         `).join('')}
                     </div>
 
-                    <button id="add-ai-ingredient-btn" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    <button id="add-ai-ingredient-btn" class="px-4 py-2 bg-ac-cream-100 dark:bg-ac-night-100 text-ac-brown-700 dark:text-ac-cream-200 rounded-lg hover:bg-ac-cream-200 dark:hover:bg-ac-night-50 transition-colors">
                         + Zutat hinzufügen
                     </button>
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-6 transition-colors duration-200">
-                    <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Präferenzen (optional)</h3>
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow-ac-lg dark:shadow-ac-dark p-6 transition-colors duration-200">
+                    <h3 class="text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100 mb-4">Präferenzen (optional)</h3>
 
                     <div class="grid md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ernährungsweise</label>
-                            <select id="ai-dietary" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">Ernährungsweise</label>
+                            <select id="ai-dietary" class="w-full px-4 py-2 border dark:border-ac-night-100 rounded-lg bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                                 <option value="">Keine Einschränkung</option>
                                 <option value="vegetarisch">Vegetarisch</option>
                                 <option value="vegan">Vegan</option>
@@ -6341,8 +6341,8 @@ const AIRecipeGeneratorView = {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kochzeit</label>
-                            <select id="ai-cooking-time" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">Kochzeit</label>
+                            <select id="ai-cooking-time" class="w-full px-4 py-2 border dark:border-ac-night-100 rounded-lg bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                                 <option value="">Egal</option>
                                 <option value="15">Bis 15 Min</option>
                                 <option value="30">Bis 30 Min</option>
@@ -6351,8 +6351,8 @@ const AIRecipeGeneratorView = {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Schwierigkeit</label>
-                            <select id="ai-difficulty" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">Schwierigkeit</label>
+                            <select id="ai-difficulty" class="w-full px-4 py-2 border dark:border-ac-night-100 rounded-lg bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ac-mint-500 dark:focus:ring-ac-mint-400">
                                 <option value="">Egal</option>
                                 <option value="einfach">Einfach</option>
                                 <option value="mittel">Mittel</option>
@@ -6370,27 +6370,27 @@ const AIRecipeGeneratorView = {
 
                 ${this.generatedRecipes.length > 0 ? `
                     <div class="space-y-4">
-                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white">Generierte Rezepte</h3>
+                        <h3 class="text-2xl font-bold text-ac-brown-800 dark:text-ac-cream-100">Generierte Rezepte</h3>
 
                         ${this.generatedRecipes.map((recipe, index) => `
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-6 transition-colors duration-200">
+                            <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow-ac-lg dark:shadow-ac-dark p-6 transition-colors duration-200">
                                 <div class="flex justify-between items-start mb-4">
                                     <div>
-                                        <h4 class="text-xl font-semibold text-gray-800 dark:text-white">${recipe.name}</h4>
+                                        <h4 class="text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100">${recipe.name}</h4>
                                         <div class="flex gap-2 mt-2">
                                             ${recipe.category ? `
-                                                <span class="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs rounded">
+                                                <span class="inline-block px-2 py-1 bg-ac-mint-100 dark:bg-ac-mint-900/40 text-ac-mint-700 dark:text-ac-mint-300 text-xs rounded">
                                                     ${recipe.category}
                                                 </span>
                                             ` : ''}
                                             ${recipe.servings ? `
-                                                <span class="inline-block px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs rounded">
+                                                <span class="inline-block px-2 py-1 bg-ac-leaf-100 dark:bg-ac-leaf-700/40 text-green-800 dark:text-ac-leaf-300 text-xs rounded">
                                                     ${recipe.servings} Portionen
                                                 </span>
                                             ` : ''}
                                         </div>
                                     </div>
-                                    <button class="save-ai-recipe-btn px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
+                                    <button class="save-ai-recipe-btn px-4 py-2 bg-ac-mint-400 dark:bg-ac-mint-500 text-white rounded-lg hover:bg-ac-mint-500 dark:hover:bg-blue-700 transition-colors"
                                             data-recipe-index="${index}">
                                         💾 Speichern
                                     </button>
@@ -6398,8 +6398,8 @@ const AIRecipeGeneratorView = {
 
                                 <div class="grid md:grid-cols-2 gap-6">
                                     <div>
-                                        <h5 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Zutaten:</h5>
-                                        <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
+                                        <h5 class="font-semibold text-ac-brown-700 dark:text-ac-cream-300 mb-2">Zutaten:</h5>
+                                        <ul class="list-disc list-inside space-y-1 text-ac-brown-600 dark:text-ac-brown-400">
                                             ${recipe.ingredients.map(ing => `
                                                 <li>${ing.amount} ${ing.unit} ${ing.name}</li>
                                             `).join('')}
@@ -6407,8 +6407,8 @@ const AIRecipeGeneratorView = {
                                     </div>
 
                                     <div>
-                                        <h5 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Zubereitung:</h5>
-                                        <p class="text-gray-600 dark:text-gray-400 whitespace-pre-line">${recipe.instructions}</p>
+                                        <h5 class="font-semibold text-ac-brown-700 dark:text-ac-cream-300 mb-2">Zubereitung:</h5>
+                                        <p class="text-ac-brown-600 dark:text-ac-brown-400 whitespace-pre-line">${recipe.instructions}</p>
                                     </div>
                                 </div>
                             </div>
@@ -6556,17 +6556,17 @@ const RecipeParserView = {
     render() {
         return `
             <div class="max-w-6xl mx-auto p-6">
-                <h2 class="text-3xl font-bold mb-6 text-gray-800 dark:text-gray-100">📝 Rezept Parser</h2>
+                <h2 class="text-3xl font-bold mb-6 text-ac-brown-800 dark:text-gray-100">📝 Rezept Parser</h2>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Input Section -->
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                    <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow-ac p-6">
                         <!-- Tab Navigation -->
-                        <div class="flex border-b border-gray-200 dark:border-gray-700 mb-4">
-                            <button id="tab-text" class="px-4 py-2 font-medium transition-colors ${this.activeTab === 'text' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}">
+                        <div class="flex border-b border-ac-cream-300 dark:border-ac-night-50 mb-4">
+                            <button id="tab-text" class="px-4 py-2 font-medium transition-colors ${this.activeTab === 'text' ? 'text-ac-mint-600 border-b-2 border-blue-600' : 'text-ac-brown-500 dark:text-ac-brown-400 hover:text-ac-brown-700 dark:hover:text-gray-300'}">
                                 📝 Text / URL
                             </button>
-                            <button id="tab-video" class="px-4 py-2 font-medium transition-colors ${this.activeTab === 'video' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}">
+                            <button id="tab-video" class="px-4 py-2 font-medium transition-colors ${this.activeTab === 'video' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-ac-brown-500 dark:text-ac-brown-400 hover:text-ac-brown-700 dark:hover:text-gray-300'}">
                                 🎬 Video
                             </button>
                         </div>
@@ -6575,56 +6575,56 @@ const RecipeParserView = {
                     </div>
 
                     <!-- Output Section -->
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                        <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Geparste Daten</h3>
+                    <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow-ac p-6">
+                        <h3 class="text-xl font-semibold mb-4 text-ac-brown-800 dark:text-gray-100">Geparste Daten</h3>
 
                 ${this.showDisclaimer ? this.renderDisclaimerModal() : ''}
 
                         ${this.parsedRecipe ? `
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                                    <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Name</label>
                                     <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">${this.parsedRecipe.name}</p>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategorie</label>
+                                        <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Kategorie</label>
                                         <p class="text-gray-900 dark:text-gray-100">${this.parsedRecipe.category}</p>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Portionen</label>
+                                        <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">Portionen</label>
                                         <p class="text-gray-900 dark:text-gray-100">${this.parsedRecipe.servings}</p>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zutaten</label>
+                                    <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">Zutaten</label>
                                     <ul class="space-y-2">
                                         ${this.parsedRecipe.ingredients.map(ing => `
                                             <li class="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                                                 <span class="w-16 text-right font-mono text-sm">${ing.amount} ${ing.unit}</span>
                                                 <span>${ing.name}</span>
-                                                <span class="ml-auto text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">${ing.category}</span>
+                                                <span class="ml-auto text-xs px-2 py-1 bg-ac-cream-100 dark:bg-ac-night-100 rounded">${ing.category}</span>
                                             </li>
                                         `).join('')}
                                     </ul>
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zubereitung</label>
+                                    <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-2">Zubereitung</label>
                                     <p class="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">${this.parsedRecipe.instructions}</p>
                                 </div>
 
                                 <button
                                     id="save-parsed-recipe-btn"
-                                    class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                                    class="w-full bg-ac-leaf-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
                                 >
                                     💾 Rezept speichern
                                 </button>
                             </div>
                         ` : `
-                            <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+                            <div class="text-center py-12 text-ac-brown-500 dark:text-ac-brown-400">
                                 <p class="text-lg mb-2">Noch kein Rezept geparst</p>
                                 <p class="text-sm">Füge links einen Rezepttext ein und klicke auf "Rezept parsen"</p>
                             </div>
@@ -6637,20 +6637,20 @@ const RecipeParserView = {
 
     renderTextInput() {
         return `
-            <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Rezept eingeben</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <h3 class="text-xl font-semibold mb-4 text-ac-brown-800 dark:text-gray-100">Rezept eingeben</h3>
+            <p class="text-sm text-ac-brown-600 dark:text-ac-brown-400 mb-4">
                 🔗 URL einer Rezeptseite ODER 📝 Rezepttext (von WhatsApp, E-Mail, etc.)
             </p>
 
             <textarea
                 id="recipe-input"
-                class="w-full h-80 p-4 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                class="w-full h-80 p-4 border dark:border-ac-night-100 rounded-lg focus:ring-2 focus:ring-ac-mint-500 focus:border-transparent bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100"
                 placeholder="Option 1 - URL einfügen:\nhttps://www.chefkoch.de/rezepte/...\n\nOption 2 - Rezepttext einfügen:\n\nSpaghetti Carbonara\n\nZutaten:\n- 400g Spaghetti\n- 200g Speck..."
             >${this.inputText}</textarea>
 
             <button
                 id="parse-recipe-btn"
-                class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                class="mt-4 w-full bg-ac-mint-500 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 ${this.isLoading ? 'disabled' : ''}
             >
                 ${this.isLoading ? '🔄 Wird geparst...' : '🤖 Rezept parsen'}
@@ -6660,12 +6660,12 @@ const RecipeParserView = {
 
     renderVideoInput() {
         return `
-            <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">🎬 Video-Rezept importieren</h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <h3 class="text-xl font-semibold mb-4 text-ac-brown-800 dark:text-gray-100">🎬 Video-Rezept importieren</h3>
+            <p class="text-sm text-ac-brown-600 dark:text-ac-brown-400 mb-4">
                 Importiere Rezepte aus TikTok, Instagram Reels, Pinterest oder YouTube Shorts
             </p>
 
-            <div class="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+            <div class="mb-4 p-3 bg-ac-blue-100 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
                 <p class="text-sm text-purple-700 dark:text-purple-300">
                     <strong>Unterstützte Plattformen:</strong><br>
                     TikTok, Instagram Reels, Pinterest Pins, YouTube Shorts
@@ -6675,7 +6675,7 @@ const RecipeParserView = {
             <input
                 type="url"
                 id="video-url-input"
-                class="w-full p-4 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                class="w-full p-4 border dark:border-ac-night-100 rounded-lg focus:ring-2 focus:ring-ac-blue-400 focus:border-transparent bg-white dark:bg-ac-night-100 text-gray-900 dark:text-gray-100"
                 placeholder="https://www.tiktok.com/@user/video/..."
                 value="${this.videoUrl}"
             />
@@ -6703,7 +6703,7 @@ const RecipeParserView = {
                 ` : '🎬 Video-Rezept extrahieren'}
             </button>
 
-            <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 text-center">
+            <p class="mt-3 text-xs text-ac-brown-500 dark:text-ac-brown-400 text-center">
                 Das Video wird heruntergeladen, analysiert und danach gelöscht.
             </p>
         `;
@@ -6712,18 +6712,18 @@ const RecipeParserView = {
     renderDisclaimerModal() {
         return `
             <div class="modal active">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
-                    <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-white">⚠️ Rechtlicher Hinweis</h3>
-                    <p class="text-gray-600 dark:text-gray-400 mb-4">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg max-w-md w-full p-6">
+                    <h3 class="text-xl font-semibold mb-4 text-ac-brown-800 dark:text-ac-cream-100">⚠️ Rechtlicher Hinweis</h3>
+                    <p class="text-ac-brown-600 dark:text-ac-brown-400 mb-4">
                         Diese Funktion ist ausschließlich für Videos gedacht, zu deren Nutzung du berechtigt bist.
                     </p>
-                    <ul class="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 mb-4 space-y-1">
+                    <ul class="list-disc list-inside text-sm text-ac-brown-600 dark:text-ac-brown-400 mb-4 space-y-1">
                         <li>Originalvideos werden nicht gespeichert</li>
                         <li>Respektiere die Urheberrechte der Content-Creator</li>
                         <li>Nutze diese Funktion nur für persönliche Zwecke</li>
                     </ul>
                     <div class="flex gap-3">
-                        <button id="disclaimer-cancel" class="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <button id="disclaimer-cancel" class="flex-1 px-4 py-2 border dark:border-ac-night-100 rounded-lg text-ac-brown-700 dark:text-ac-cream-300 hover:bg-ac-cream-100 dark:hover:bg-ac-night-100">
                             Abbrechen
                         </button>
                         <button id="disclaimer-accept" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
@@ -6948,8 +6948,8 @@ const ShoppingListView = {
         if (!AppState.weekPlan) {
             return `
                 <div class="bg-white rounded-lg shadow p-8 text-center">
-                    <p class="text-gray-500">Kein Wochenplan vorhanden.</p>
-                    <p class="text-gray-400 text-sm mt-2">
+                    <p class="text-ac-brown-500">Kein Wochenplan vorhanden.</p>
+                    <p class="text-ac-brown-400 text-sm mt-2">
                         Erstelle zuerst einen Wochenplan, um eine Einkaufsliste zu generieren.
                     </p>
                 </div>
@@ -6960,15 +6960,15 @@ const ShoppingListView = {
             return `
                 <div class="space-y-6">
                     <div class="flex justify-between items-center flex-wrap gap-3">
-                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Einkaufsliste</h2>
-                        <button id="add-manual-item-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors">
+                        <h2 class="text-2xl font-bold text-ac-brown-800 dark:text-ac-cream-100">Einkaufsliste</h2>
+                        <button id="add-manual-item-btn" class="px-4 py-2 bg-ac-leaf-500 dark:bg-ac-leaf-600 text-white rounded hover:bg-ac-leaf-600 dark:hover:bg-ac-leaf-700 transition-colors">
                             + Artikel hinzufügen
                         </button>
                     </div>
 
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center transition-colors duration-200">
-                        <p class="text-gray-500 dark:text-gray-400">Keine Zutaten im Wochenplan.</p>
-                        <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">
+                    <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-8 text-center transition-colors duration-200">
+                        <p class="text-ac-brown-500 dark:text-ac-brown-400">Keine Zutaten im Wochenplan.</p>
+                        <p class="text-ac-brown-400 dark:text-ac-brown-500 text-sm mt-2">
                             Füge Rezepte zu deinem Wochenplan hinzu oder klicke auf "Artikel hinzufügen", um manuelle Einträge zu erstellen.
                         </p>
                     </div>
@@ -6985,23 +6985,23 @@ const ShoppingListView = {
             <div class="space-y-6">
                 <div class="flex justify-between items-center flex-wrap gap-3">
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Einkaufsliste</h2>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        <h2 class="text-2xl font-bold text-ac-brown-800 dark:text-ac-cream-100">Einkaufsliste</h2>
+                        <p class="text-sm text-ac-brown-600 dark:text-ac-brown-400 mt-1">
                             ${checkedCount} von ${this.shoppingList.length} Artikel${this.shoppingList.length !== 1 ? 'n' : ''} abgehakt
                         </p>
                     </div>
                     <div class="flex gap-2 flex-wrap">
-                        <button id="add-manual-item-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors">
+                        <button id="add-manual-item-btn" class="px-4 py-2 bg-ac-leaf-500 dark:bg-ac-leaf-600 text-white rounded hover:bg-ac-leaf-600 dark:hover:bg-ac-leaf-700 transition-colors">
                             + Artikel hinzufügen
                         </button>
-                        <button id="copy-list-btn" class="px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-700 transition-colors">
+                        <button id="copy-list-btn" class="px-4 py-2 bg-ac-cream-500 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-ac-night-100 transition-colors">
                             Kopieren
                         </button>
-                        <button id="export-list-btn" class="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
+                        <button id="export-list-btn" class="px-4 py-2 bg-ac-mint-400 dark:bg-ac-mint-500 text-white rounded hover:bg-ac-mint-500 dark:hover:bg-blue-700 transition-colors">
                             Exportieren
                         </button>
                         ${checkedCount > 0 ? `
-                            <button id="clear-checked-btn" class="px-4 py-2 bg-red-500 dark:bg-red-600 text-white rounded hover:bg-red-600 dark:hover:bg-red-700 transition-colors">
+                            <button id="clear-checked-btn" class="px-4 py-2 bg-ac-peach-400 dark:bg-ac-peach-500 text-white rounded hover:bg-ac-peach-500 dark:hover:bg-ac-peach-600 transition-colors">
                                 Abgehakte entfernen
                             </button>
                         ` : ''}
@@ -7011,9 +7011,9 @@ const ShoppingListView = {
                 <!-- Budget Panel -->
                 ${this.renderBudgetPanel()}
 
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                        <div class="bg-green-500 dark:bg-green-600 h-3 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-4 transition-colors duration-200">
+                    <div class="w-full bg-ac-cream-200 dark:bg-ac-night-100 rounded-full h-3">
+                        <div class="bg-ac-leaf-500 dark:bg-ac-leaf-600 h-3 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
                     </div>
                 </div>
 
@@ -7022,8 +7022,8 @@ const ShoppingListView = {
 
                 ${this.renderCategorizedList()}
 
-                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 transition-colors duration-200">
-                    <p class="text-sm text-blue-800 dark:text-blue-300">
+                <div class="bg-ac-mint-50 dark:bg-ac-mint-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 transition-colors duration-200">
+                    <p class="text-sm text-ac-mint-700 dark:text-ac-mint-300">
                         <strong>Tipp:</strong> Klicke auf einen Artikel, um ihn als erledigt zu markieren.
                         Du kannst die Liste exportieren oder in die Zwischenablage kopieren.
                     </p>
@@ -7037,17 +7037,17 @@ const ShoppingListView = {
 
     renderBudgetPanel() {
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+            <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-4 transition-colors duration-200">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="text-lg font-semibold text-gray-800 dark:text-white">Budget</span>
-                            <span id="budget-display" class="text-2xl font-bold text-green-600 dark:text-green-400">${this.budgetAmount} €</span>
+                            <span class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100">Budget</span>
+                            <span id="budget-display" class="text-2xl font-bold text-ac-leaf-600 dark:text-ac-leaf-400">${this.budgetAmount} €</span>
                         </div>
                         <input type="range" id="budget-slider"
                                min="10" max="200" step="5" value="${this.budgetAmount}"
-                               class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500">
-                        <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                               class="w-full h-2 bg-ac-cream-200 dark:bg-ac-night-100 rounded-lg appearance-none cursor-pointer accent-green-500">
+                        <div class="flex justify-between text-xs text-ac-brown-500 dark:text-ac-brown-400 mt-1">
                             <span>10 €</span>
                             <span>200 €</span>
                         </div>
@@ -7057,17 +7057,17 @@ const ShoppingListView = {
                         <div class="flex items-center gap-2">
                             <input type="checkbox" id="pref-seasonal" ${this.preferences.prioritizeSeasonal ? 'checked' : ''}
                                    class="w-4 h-4 accent-green-500 cursor-pointer">
-                            <label for="pref-seasonal" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">Saisonal bevorzugen</label>
+                            <label for="pref-seasonal" class="text-sm text-ac-brown-700 dark:text-ac-cream-300 cursor-pointer">Saisonal bevorzugen</label>
                         </div>
                         <div class="flex items-center gap-2">
                             <input type="checkbox" id="pref-brands" ${this.preferences.avoidBrands ? 'checked' : ''}
                                    class="w-4 h-4 accent-green-500 cursor-pointer">
-                            <label for="pref-brands" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">Eigenmarken bevorzugen</label>
+                            <label for="pref-brands" class="text-sm text-ac-brown-700 dark:text-ac-cream-300 cursor-pointer">Eigenmarken bevorzugen</label>
                         </div>
                     </div>
 
                     <button id="optimize-shopping-btn"
-                            class="px-6 py-3 bg-purple-500 dark:bg-purple-600 text-white rounded-lg hover:bg-purple-600 dark:hover:bg-purple-700 transition-colors flex items-center gap-2 font-medium ${this.isOptimizing ? 'opacity-50 cursor-not-allowed' : ''}"
+                            class="px-6 py-3 bg-ac-blue-400 dark:bg-ac-blue-500 text-white rounded-lg hover:bg-ac-blue-500 dark:hover:bg-ac-blue-600 transition-colors flex items-center gap-2 font-medium ${this.isOptimizing ? 'opacity-50 cursor-not-allowed' : ''}"
                             ${this.isOptimizing ? 'disabled' : ''}>
                         ${this.isOptimizing ? `
                             <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
@@ -7092,15 +7092,15 @@ const ShoppingListView = {
         const savings = result.originalEstimate - result.optimizedEstimate;
 
         return `
-            <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 transition-colors duration-200">
+            <div class="bg-gradient-to-r from-ac-leaf-100 to-ac-mint-100 dark:from-ac-leaf-700/20 dark:to-ac-mint-700/20 border border-ac-leaf-200 dark:border-ac-leaf-700 rounded-lg p-4 transition-colors duration-200">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-lg font-semibold text-green-800 dark:text-green-300 flex items-center gap-2">
+                    <h3 class="text-lg font-semibold text-green-800 dark:text-ac-leaf-300 flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         Optimierungsvorschläge
                     </h3>
-                    <button id="close-optimization-result" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <button id="close-optimization-result" class="text-ac-brown-500 hover:text-ac-brown-700 dark:text-ac-brown-400 dark:hover:text-gray-200">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -7108,31 +7108,31 @@ const ShoppingListView = {
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Originalkosten</p>
-                        <p class="text-xl font-bold text-gray-700 dark:text-gray-300">${result.originalEstimate?.toFixed(2) || '?'} €</p>
+                    <div class="bg-white dark:bg-ac-night-200 rounded-lg p-3 text-center">
+                        <p class="text-sm text-ac-brown-500 dark:text-ac-brown-400">Originalkosten</p>
+                        <p class="text-xl font-bold text-ac-brown-700 dark:text-ac-cream-300">${result.originalEstimate?.toFixed(2) || '?'} €</p>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Optimiert</p>
-                        <p class="text-xl font-bold text-green-600 dark:text-green-400">${result.optimizedEstimate?.toFixed(2) || '?'} €</p>
+                    <div class="bg-white dark:bg-ac-night-200 rounded-lg p-3 text-center">
+                        <p class="text-sm text-ac-brown-500 dark:text-ac-brown-400">Optimiert</p>
+                        <p class="text-xl font-bold text-ac-leaf-600 dark:text-ac-leaf-400">${result.optimizedEstimate?.toFixed(2) || '?'} €</p>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Ersparnis</p>
+                    <div class="bg-white dark:bg-ac-night-200 rounded-lg p-3 text-center">
+                        <p class="text-sm text-ac-brown-500 dark:text-ac-brown-400">Ersparnis</p>
                         <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400">${savings?.toFixed(2) || '?'} € (${result.savingsPercent || 0}%)</p>
                     </div>
                 </div>
 
                 ${result.substitutions && result.substitutions.length > 0 ? `
                     <div class="mb-4">
-                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ersatz-Vorschläge:</h4>
+                        <h4 class="text-sm font-semibold text-ac-brown-700 dark:text-ac-cream-300 mb-2">Ersatz-Vorschläge:</h4>
                         <div class="space-y-2">
                             ${result.substitutions.slice(0, 3).map(sub => `
-                                <div class="flex items-center justify-between bg-white dark:bg-gray-800 rounded p-2 text-sm">
-                                    <span class="text-gray-600 dark:text-gray-400">
+                                <div class="flex items-center justify-between bg-white dark:bg-ac-night-200 rounded p-2 text-sm">
+                                    <span class="text-ac-brown-600 dark:text-ac-brown-400">
                                         <span class="line-through">${escapeHtml(sub.original)}</span>
-                                        → <span class="text-green-600 dark:text-green-400 font-medium">${escapeHtml(sub.substitute)}</span>
+                                        → <span class="text-ac-leaf-600 dark:text-ac-leaf-400 font-medium">${escapeHtml(sub.substitute)}</span>
                                     </span>
-                                    <span class="text-green-600 dark:text-green-400 text-xs">-${sub.savingsPercent}%</span>
+                                    <span class="text-ac-leaf-600 dark:text-ac-leaf-400 text-xs">-${sub.savingsPercent}%</span>
                                 </div>
                             `).join('')}
                             ${result.substitutions.length > 3 ? `
@@ -7145,7 +7145,7 @@ const ShoppingListView = {
                 ` : ''}
 
                 ${result.generalTips && result.generalTips.length > 0 ? `
-                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                    <div class="text-sm text-ac-brown-600 dark:text-ac-brown-400">
                         <strong>Tipps:</strong> ${escapeHtml(result.generalTips[0])}
                     </div>
                 ` : ''}
@@ -7160,29 +7160,29 @@ const ShoppingListView = {
 
         return `
             <div id="optimization-modal" class="modal active">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Alle Optimierungsvorschläge</h3>
-                        <button id="close-optimization-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                        <h3 class="text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100">Alle Optimierungsvorschläge</h3>
+                        <button id="close-optimization-modal" class="text-ac-brown-500 dark:text-ac-brown-400 hover:text-ac-brown-700 dark:hover:text-gray-200 text-2xl">
                             ✕
                         </button>
                     </div>
 
                     ${result.substitutions && result.substitutions.length > 0 ? `
                         <div class="mb-6">
-                            <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Ersatz-Vorschläge</h4>
+                            <h4 class="text-lg font-semibold text-ac-brown-700 dark:text-ac-cream-300 mb-3">Ersatz-Vorschläge</h4>
                             <div class="space-y-3">
                                 ${result.substitutions.map(sub => `
-                                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                                    <div class="bg-ac-cream-50 dark:bg-ac-night-100 rounded-lg p-3">
                                         <div class="flex items-center justify-between mb-1">
-                                            <span class="font-medium text-gray-800 dark:text-white">
+                                            <span class="font-medium text-ac-brown-800 dark:text-ac-cream-100">
                                                 ${escapeHtml(sub.original)} → ${escapeHtml(sub.substitute)}
                                             </span>
-                                            <span class="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-2 py-1 rounded text-sm">
+                                            <span class="bg-ac-leaf-100 dark:bg-ac-leaf-700/40 text-green-800 dark:text-ac-leaf-300 px-2 py-1 rounded text-sm">
                                                 -${sub.savingsPercent}%
                                             </span>
                                         </div>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400">${escapeHtml(sub.reason)}</p>
+                                        <p class="text-sm text-ac-brown-600 dark:text-ac-brown-400">${escapeHtml(sub.reason)}</p>
                                         <button class="save-substitution-btn mt-2 text-sm text-purple-600 dark:text-purple-400 hover:underline"
                                                 data-original="${escapeHtml(sub.original)}"
                                                 data-substitute="${escapeHtml(sub.substitute)}"
@@ -7198,15 +7198,15 @@ const ShoppingListView = {
 
                     ${result.seasonalTips && result.seasonalTips.length > 0 ? `
                         <div class="mb-6">
-                            <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Saisonale Tipps</h4>
+                            <h4 class="text-lg font-semibold text-ac-brown-700 dark:text-ac-cream-300 mb-3">Saisonale Tipps</h4>
                             <div class="space-y-2">
                                 ${result.seasonalTips.map(tip => `
                                     <div class="flex items-center gap-2 text-sm">
-                                        <span class="${tip.isInSeason ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}">
+                                        <span class="${tip.isInSeason ? 'text-ac-leaf-600 dark:text-ac-leaf-400' : 'text-orange-600 dark:text-orange-400'}">
                                             ${tip.isInSeason ? '✓' : '⚠'}
                                         </span>
-                                        <span class="font-medium text-gray-700 dark:text-gray-300">${escapeHtml(tip.ingredient)}:</span>
-                                        <span class="text-gray-600 dark:text-gray-400">${escapeHtml(tip.tip)}</span>
+                                        <span class="font-medium text-ac-brown-700 dark:text-ac-cream-300">${escapeHtml(tip.ingredient)}:</span>
+                                        <span class="text-ac-brown-600 dark:text-ac-brown-400">${escapeHtml(tip.tip)}</span>
                                     </div>
                                 `).join('')}
                             </div>
@@ -7215,13 +7215,13 @@ const ShoppingListView = {
 
                     ${result.quantityTips && result.quantityTips.length > 0 ? `
                         <div class="mb-6">
-                            <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Mengen-Optimierung</h4>
+                            <h4 class="text-lg font-semibold text-ac-brown-700 dark:text-ac-cream-300 mb-3">Mengen-Optimierung</h4>
                             <div class="space-y-2">
                                 ${result.quantityTips.map(tip => `
-                                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded p-2 text-sm">
-                                        <span class="font-medium text-blue-800 dark:text-blue-300">${escapeHtml(tip.ingredient)}:</span>
-                                        <span class="text-blue-700 dark:text-blue-400">${escapeHtml(tip.tip)}</span>
-                                        ${tip.savingsPercent ? `<span class="text-green-600 dark:text-green-400 ml-2">(-${tip.savingsPercent}%)</span>` : ''}
+                                    <div class="bg-ac-mint-50 dark:bg-ac-mint-900/20 rounded p-2 text-sm">
+                                        <span class="font-medium text-ac-mint-700 dark:text-ac-mint-300">${escapeHtml(tip.ingredient)}:</span>
+                                        <span class="text-blue-700 dark:text-ac-mint-400">${escapeHtml(tip.tip)}</span>
+                                        ${tip.savingsPercent ? `<span class="text-ac-leaf-600 dark:text-ac-leaf-400 ml-2">(-${tip.savingsPercent}%)</span>` : ''}
                                     </div>
                                 `).join('')}
                             </div>
@@ -7230,8 +7230,8 @@ const ShoppingListView = {
 
                     ${result.generalTips && result.generalTips.length > 0 ? `
                         <div>
-                            <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Allgemeine Tipps</h4>
-                            <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                            <h4 class="text-lg font-semibold text-ac-brown-700 dark:text-ac-cream-300 mb-3">Allgemeine Tipps</h4>
+                            <ul class="list-disc list-inside space-y-1 text-sm text-ac-brown-600 dark:text-ac-brown-400">
                                 ${result.generalTips.map(tip => `<li>${escapeHtml(tip)}</li>`).join('')}
                             </ul>
                         </div>
@@ -7244,37 +7244,37 @@ const ShoppingListView = {
     renderAddManualItemModal() {
         return `
             <div id="add-manual-item-modal" class="modal">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg max-w-md w-full p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Artikel hinzufügen</h3>
-                        <button id="close-manual-item-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                        <h3 class="text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100">Artikel hinzufügen</h3>
+                        <button id="close-manual-item-modal" class="text-ac-brown-500 dark:text-ac-brown-400 hover:text-ac-brown-700 dark:hover:text-gray-200 text-2xl">
                             ✕
                         </button>
                     </div>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">
                                 Artikel *
                             </label>
                             <input type="text" id="manual-item-name"
-                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                                   class="w-full px-3 py-2 border dark:border-ac-night-100 rounded focus:ring-2 focus:ring-green-500 dark:bg-ac-night-100 dark:text-ac-cream-100"
                                    placeholder="z.B. Toilettenpapier, Snacks..."
                                    required>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">
                                 Menge
                             </label>
                             <input type="text" id="manual-item-amount"
-                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                                   class="w-full px-3 py-2 border dark:border-ac-night-100 rounded focus:ring-2 focus:ring-green-500 dark:bg-ac-night-100 dark:text-ac-cream-100"
                                    value="1">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-ac-brown-700 dark:text-ac-cream-300 mb-1">
                                 Kategorie
                             </label>
                             <select id="manual-item-category"
-                                    class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white">
+                                    class="w-full px-3 py-2 border dark:border-ac-night-100 rounded focus:ring-2 focus:ring-green-500 dark:bg-ac-night-100 dark:text-ac-cream-100">
                                 <option value="Obst & Gemüse">Obst & Gemüse</option>
                                 <option value="Milchprodukte">Milchprodukte</option>
                                 <option value="Fleisch & Fisch">Fleisch & Fisch</option>
@@ -7284,10 +7284,10 @@ const ShoppingListView = {
                             </select>
                         </div>
                         <div class="flex gap-2 justify-end">
-                            <button id="cancel-manual-item" class="px-4 py-2 border dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <button id="cancel-manual-item" class="px-4 py-2 border dark:border-ac-night-100 rounded text-ac-brown-700 dark:text-ac-cream-300 hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors">
                                 Abbrechen
                             </button>
-                            <button id="save-manual-item" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
+                            <button id="save-manual-item" class="px-4 py-2 bg-ac-leaf-500 text-white rounded hover:bg-ac-leaf-600 transition-colors">
                                 Hinzufügen
                             </button>
                         </div>
@@ -7322,16 +7322,16 @@ const ShoppingListView = {
             const checkedCount = items.filter(item => item.checked).length;
 
             return `
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 transition-colors duration-200 mb-4">
-                    <div class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark transition-colors duration-200 mb-4">
+                    <div class="flex items-center justify-between p-4 cursor-pointer hover:bg-ac-cream-50 dark:hover:bg-ac-night-100 transition-colors"
                          data-category="${category}">
                         <div class="flex items-center gap-3">
-                            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}"
+                            <svg class="w-5 h-5 text-ac-brown-500 dark:text-ac-brown-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}"
                                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">${category}</h3>
-                            <span class="text-sm text-gray-500 dark:text-gray-400">
+                            <h3 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100">${category}</h3>
+                            <span class="text-sm text-ac-brown-500 dark:text-ac-brown-400">
                                 (${checkedCount}/${items.length})
                             </span>
                         </div>
@@ -7339,7 +7339,7 @@ const ShoppingListView = {
 
                     <div class="divide-y dark:divide-gray-700 ${isCollapsed ? 'hidden' : ''}">
                         ${items.map(item => `
-                            <div class="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${item.checked ? 'bg-gray-50 dark:bg-gray-700/50' : ''} ${item.isManual ? 'border-l-4 border-green-500 dark:border-green-600' : ''}">
+                            <div class="p-3 sm:p-4 hover:bg-ac-cream-50 dark:hover:bg-ac-night-100 transition-colors ${item.checked ? 'bg-ac-cream-50 dark:bg-ac-night-100/50' : ''} ${item.isManual ? 'border-l-4 border-green-500 dark:border-green-600' : ''}">
                                 <div class="flex items-center gap-3 sm:gap-4">
                                     <!-- Large touch-friendly checkbox -->
                                     <label class="relative flex items-center justify-center cursor-pointer">
@@ -7349,12 +7349,12 @@ const ShoppingListView = {
                                     </label>
                                     <div class="flex-1 min-w-0 cursor-pointer py-1" data-item-index="${item.index}">
                                         <div class="flex items-start justify-between gap-2">
-                                            <p class="font-medium text-gray-800 dark:text-white text-sm sm:text-base ${item.checked ? 'line-through text-gray-500 dark:text-gray-400' : ''}">
+                                            <p class="font-medium text-ac-brown-800 dark:text-ac-cream-100 text-sm sm:text-base ${item.checked ? 'line-through text-ac-brown-500 dark:text-ac-brown-400' : ''}">
                                                 <span class="font-semibold">${item.amount}</span> ${item.unit} ${item.name}
-                                                ${item.isManual ? '<span class="ml-2 text-xs bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">Manuell</span>' : ''}
+                                                ${item.isManual ? '<span class="ml-2 text-xs bg-ac-leaf-100 dark:bg-ac-leaf-700/40 text-green-800 dark:text-ac-leaf-300 px-2 py-0.5 rounded">Manuell</span>' : ''}
                                             </p>
                                             ${item.isManual ? `
-                                                <button class="delete-manual-item-btn p-2 -mr-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                <button class="delete-manual-item-btn p-2 -mr-2 text-ac-peach-500 dark:text-ac-peach-400 hover:text-ac-peach-600 dark:hover:text-red-600 hover:bg-ac-peach-50 dark:hover:bg-ac-peach-500/20 rounded transition-colors"
                                                         data-item-id="${item.id}"
                                                         aria-label="Artikel löschen">
                                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -7364,7 +7364,7 @@ const ShoppingListView = {
                                             ` : ''}
                                         </div>
                                         ${item.recipeNames.length > 0 ? `
-                                            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
+                                            <p class="text-xs sm:text-sm text-ac-brown-500 dark:text-ac-brown-400 mt-1 truncate">
                                                 Für: ${item.recipeNames.join(', ')}
                                             </p>
                                         ` : ''}

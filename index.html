@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
-    <meta name="theme-color" content="#3B82F6" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#1F2937" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#5cecc8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0f1826" media="(prefers-color-scheme: dark)">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="description" content="Plane deine Mahlzeiten für die Woche, verwalte Rezepte und erstelle Einkaufslisten">
     <meta name="application-name" content="Food Planner">
     <meta name="apple-mobile-web-app-title" content="Food Planner">
-    <meta name="msapplication-TileColor" content="#3B82F6">
+    <meta name="msapplication-TileColor" content="#5cecc8">
     <meta name="msapplication-config" content="none">
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg">
@@ -21,6 +21,9 @@
     <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
     <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png">
     <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-128x128.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>Food Planner - Essenswochenplaner</title>
     <style>
         /* Critical CSS - Inline for fast initial render */
@@ -34,7 +37,7 @@
             scroll-behavior: smooth;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
                 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
             margin: 0;
             padding: 0;
@@ -58,7 +61,7 @@
             display: none;
             position: fixed;
             inset: 0;
-            background-color: rgba(0, 0, 0, 0.5);
+            background-color: rgba(116, 71, 55, 0.4);
             z-index: 50;
             overscroll-behavior: contain;
         }
@@ -86,7 +89,7 @@
             }
         }
         .dark .modal {
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(15, 24, 38, 0.8);
         }
 
         /* Animations */
@@ -453,13 +456,13 @@
             position: absolute;
             top: -40px;
             left: 0;
-            background: #3B82F6;
+            background: #2dd4ab;
             color: white;
             padding: 8px 16px;
             z-index: 10000;
             text-decoration: none;
             font-weight: 600;
-            border-radius: 0 0 8px 0;
+            border-radius: 0 0 16px 0;
             transition: top 0.2s ease;
         }
         .skip-link:focus {
@@ -468,11 +471,11 @@
 
         /* Accessibility: Focus visible styles */
         :focus-visible {
-            outline: 3px solid #3B82F6;
+            outline: 3px solid #2dd4ab;
             outline-offset: 2px;
         }
         .dark :focus-visible {
-            outline-color: #60A5FA;
+            outline-color: #5cecc8;
         }
 
         /* Remove default focus outline for mouse users */
@@ -504,14 +507,110 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+<body class="bg-ac-cream-50 dark:bg-ac-night-500 transition-colors duration-200">
     <!-- Accessibility: Skip to main content link -->
     <a href="#main-content" class="skip-link">Zum Hauptinhalt springen</a>
     <div id="app"></div>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
-        tailwind.config = { darkMode: 'class' }
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'ac-mint': {
+                            50: '#f0fdf9',
+                            100: '#ccfbef',
+                            200: '#99f6e0',
+                            300: '#5cecc8',
+                            400: '#2dd4ab',
+                            500: '#14b892',
+                            600: '#0d9373',
+                            700: '#0f7560',
+                            800: '#115e4e',
+                            900: '#124d42'
+                        },
+                        'ac-peach': {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            200: '#fed7aa',
+                            300: '#fdba74',
+                            400: '#fb923c',
+                            500: '#f97316',
+                            600: '#ea580c'
+                        },
+                        'ac-cream': {
+                            50: '#fefef8',
+                            100: '#fdfbf0',
+                            200: '#faf5e4',
+                            300: '#f5ecd3',
+                            400: '#ede0bc',
+                            500: '#e2d1a0'
+                        },
+                        'ac-brown': {
+                            400: '#d4a48a',
+                            500: '#c28463',
+                            600: '#a86a4a',
+                            700: '#8c553e',
+                            800: '#744737',
+                            900: '#603c30'
+                        },
+                        'ac-leaf': {
+                            100: '#ecfccb',
+                            200: '#d9f99d',
+                            300: '#bef264',
+                            400: '#a3e635',
+                            500: '#84cc16',
+                            600: '#65a30d',
+                            700: '#4d7c0f'
+                        },
+                        'ac-blue': {
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7'
+                        },
+                        'ac-yellow': {
+                            100: '#fef9c3',
+                            200: '#fef08a',
+                            300: '#fde047',
+                            400: '#facc15',
+                            500: '#eab308'
+                        },
+                        'ac-night': {
+                            50: '#2a3441',
+                            100: '#243040',
+                            200: '#1e2a3a',
+                            300: '#192433',
+                            400: '#141e2d',
+                            500: '#0f1826'
+                        }
+                    },
+                    borderRadius: {
+                        'ac-sm': '0.75rem',
+                        'ac': '1rem',
+                        'ac-lg': '1.5rem',
+                        'ac-xl': '2rem',
+                        'ac-pill': '9999px'
+                    },
+                    boxShadow: {
+                        'ac-sm': '0 2px 8px rgba(194, 132, 99, 0.08)',
+                        'ac': '0 4px 16px rgba(194, 132, 99, 0.12)',
+                        'ac-lg': '0 8px 32px rgba(194, 132, 99, 0.16)',
+                        'ac-glow': '0 0 20px rgba(92, 236, 200, 0.3)',
+                        'ac-dark-sm': '0 2px 8px rgba(0, 0, 0, 0.3)',
+                        'ac-dark': '0 4px 16px rgba(0, 0, 0, 0.4)',
+                        'ac-dark-lg': '0 8px 32px rgba(0, 0, 0, 0.5)'
+                    },
+                    fontFamily: {
+                        'ac': ['Nunito', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
     </script>
     <script src="app.js?v=20260106h"></script>
 </body>
