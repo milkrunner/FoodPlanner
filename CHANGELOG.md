@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/milkrunner/FoodPlanner/compare/v2.0.3...v2.1.0) (2026-01-31)
+
+
+### Features
+
+* Add meal prep support to recipes and week plans ([#137](https://github.com/milkrunner/FoodPlanner/issues/137)) ([f9bc042](https://github.com/milkrunner/FoodPlanner/commit/f9bc042b6c39b24ca0a60c44515110036908fb2b))
+
 ## [2.0.3](https://github.com/milkrunner/FoodPlanner/compare/v2.0.2...v2.0.3) (2026-01-10)
 
 
