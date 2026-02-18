@@ -10,6 +10,9 @@ COPY app.js /usr/share/nginx/html/
 COPY sw.js /usr/share/nginx/html/
 COPY manifest.json /usr/share/nginx/html/
 
+# Copy ES module files
+COPY js/ /usr/share/nginx/html/js/
+
 # Copy PWA icons
 COPY icons/ /usr/share/nginx/html/icons/
 
