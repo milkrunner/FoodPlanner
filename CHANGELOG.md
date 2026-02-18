@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/milkrunner/FoodPlanner/compare/v2.1.0...v2.1.1) (2026-02-18)
+
+
+### Performance Improvements
+
+* **recipes:** debounce search input and add virtual pagination ([#150](https://github.com/milkrunner/FoodPlanner/issues/150)) ([f2b90d8](https://github.com/milkrunner/FoodPlanner/commit/f2b90d88bf5eb3a266cd33f9c0e512862b9b4136)), closes [#117](https://github.com/milkrunner/FoodPlanner/issues/117)
+
 ## [2.1.0](https://github.com/milkrunner/FoodPlanner/compare/v2.0.3...v2.1.0) (2026-01-31)
 
 
