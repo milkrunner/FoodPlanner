@@ -1,17 +1,31 @@
 // Service Worker for Food Planner PWA
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const STATIC_CACHE = `foodplanner-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `foodplanner-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `foodplanner-api-${CACHE_VERSION}`;
 
 // Static assets to cache on install
+// Views are NOT listed here – they are cached on first access (stale-while-revalidate)
 const STATIC_ASSETS = [
     '/',
     '/index.html',
-    '/app.js',
     '/manifest.json',
     '/icons/icon-192x192.png',
-    '/icons/icon-512x512.png'
+    '/icons/icon-512x512.png',
+    '/js/main.js',
+    '/js/app.js',
+    '/js/config.js',
+    '/js/core/utils.js',
+    '/js/core/date-utils.js',
+    '/js/core/dark-mode.js',
+    '/js/core/offline-db.js',
+    '/js/core/toast.js',
+    '/js/core/action-history.js',
+    '/js/core/pwa.js',
+    '/js/core/storage-service.js',
+    '/js/core/app-state.js',
+    '/js/core/mobile-utils.js',
+    '/js/core/onboarding.js'
 ];
 
 // API endpoints to cache
