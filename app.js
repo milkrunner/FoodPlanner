@@ -686,6 +686,16 @@ const OnboardingManager = {
     }
 };
 
+// Returns a debounced version of fn that delays invoking until after `wait` ms
+// have elapsed since the last invocation.
+function debounce(fn, wait) {
+    let timer;
+    return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), wait);
+    };
+}
+
 // Date Utilities for Calendar View
 const DateUtils = {
     // Get Monday of the week containing the given date
@@ -3404,6 +3414,7 @@ const WeekPlannerView = {
 
 // Recipe Database View
 const RecipeDatabaseView = {
+    PAGE_SIZE: 24, // Number of recipe cards to render per batch
     editingRecipe: null,
     viewingRecipe: null, // For detail view (read-only)
     ingredients: [{ name: '', amount: '', unit: '', category: 'Sonstiges' }],
@@ -3417,6 +3428,7 @@ const RecipeDatabaseView = {
     seasonalData: null, // Cache for seasonal recipe data
     currentSeasonInfo: null, // Current season info
     selectedTags: [],
+    displayedCount: 24, // How many recipe cards are currently rendered
     categories: ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'],
     availableTags: ['vegetarisch', 'vegan', 'glutenfrei', 'laktosefrei', 'schnell', 'günstig', 'meal-prep', 'Frühling', 'Sommer', 'Herbst', 'Winter'],
     scalingRecipe: null,
@@ -3770,7 +3782,7 @@ const RecipeDatabaseView = {
                 ` : `
                     <!-- Responsive grid: 1 col on mobile, 2 on tablet, 3 on desktop -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                        ${filteredRecipes.map(recipe => {
+                        ${filteredRecipes.slice(0, this.displayedCount).map(recipe => {
                             const cookingStat = this.getCookingStatsForRecipe(recipe.id);
                             const lastCookedText = cookingStat ? this.formatLastCooked(cookingStat.last_cooked_at) : null;
                             return `
@@ -3871,6 +3883,15 @@ const RecipeDatabaseView = {
                             </div>
                         `;}).join('')}
                     </div>
+                    ${filteredRecipes.length > this.displayedCount ? `
+                        <!-- Sentinel element — Intersection Observer triggers load-more -->
+                        <div id="recipe-load-more-sentinel" class="flex justify-center py-4">
+                            <button id="recipe-load-more-btn"
+                                class="px-5 py-2.5 border border-ac-cream-300 dark:border-ac-night-50 text-ac-brown-600 dark:text-ac-cream-200 rounded-lg hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors text-sm font-medium">
+                                Mehr laden (${filteredRecipes.length - this.displayedCount} weitere)
+                            </button>
+                        </div>
+                    ` : ''}
                 `}
 
                 ${this.renderRecipeDetail()}
@@ -4322,16 +4343,19 @@ const RecipeDatabaseView = {
     },
 
     attachEventListeners() {
-        // Search input
+        // Search input — debounced to avoid re-rendering on every keystroke
         const searchInput = document.getElementById('recipe-search-input');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.searchQuery = e.target.value;
-                // Only re-render for classic search (instant filtering)
-                // For AI search, wait until user clicks search button
+            const debouncedRender = debounce(() => {
                 if (!this.aiSearchActive) {
+                    this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                     App.render();
                 }
+            }, 300);
+
+            searchInput.addEventListener('input', (e) => {
+                this.searchQuery = e.target.value;
+                debouncedRender();
             });
         }
 
@@ -4340,6 +4364,7 @@ const RecipeDatabaseView = {
         if (clearSearchBtn) {
             clearSearchBtn.addEventListener('click', () => {
                 this.searchQuery = '';
+                this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                 App.render();
             });
         }
@@ -4389,6 +4414,7 @@ const RecipeDatabaseView = {
             favoritesFilterBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.showFavoritesOnly = !this.showFavoritesOnly;
+                this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                 App.render();
             });
         }
@@ -4399,6 +4425,7 @@ const RecipeDatabaseView = {
             seasonalFilterBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.showSeasonalOnly = !this.showSeasonalOnly;
+                this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                 App.render();
             });
         }
@@ -4409,6 +4436,7 @@ const RecipeDatabaseView = {
             mealPrepFilterBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.showMealPrepOnly = !this.showMealPrepOnly;
+                this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                 App.render();
             });
         }
@@ -4419,6 +4447,7 @@ const RecipeDatabaseView = {
             timeFilter.addEventListener('change', (e) => {
                 const value = e.target.value;
                 this.maxTimeFilter = value ? parseInt(value) : null;
+                this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                 App.render();
             });
         }
@@ -4428,8 +4457,32 @@ const RecipeDatabaseView = {
         if (difficultyFilter) {
             difficultyFilter.addEventListener('change', (e) => {
                 this.difficultyFilter = e.target.value || null;
+                this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                 App.render();
             });
+        }
+
+        // Load-more button + Intersection Observer for infinite scroll
+        const sentinel = document.getElementById('recipe-load-more-sentinel');
+        if (sentinel) {
+            // Manual "Mehr laden" button
+            const loadMoreBtn = document.getElementById('recipe-load-more-btn');
+            if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', () => {
+                    this.displayedCount += RecipeDatabaseView.PAGE_SIZE;
+                    App.render();
+                });
+            }
+
+            // Auto-load when sentinel scrolls into view
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
+                    observer.disconnect();
+                    this.displayedCount += RecipeDatabaseView.PAGE_SIZE;
+                    App.render();
+                }
+            }, { rootMargin: '200px' });
+            observer.observe(sentinel);
         }
 
         // New recipe button
