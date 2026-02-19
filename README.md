@@ -93,6 +93,17 @@ FoodPlanner/
 - [docs/DATABASE.md](docs/DATABASE.md) - Schema, Migrationen und Datenflüsse
 - [docs/RELEASES.md](docs/RELEASES.md) - Versionen und Installation
 
+## Design
+
+Das UI basiert auf einem Animal Crossing-inspirierten Design System:
+
+- **Farbpalette:** Eigene `ac-*` Farb-Tokens (Mint, Peach, Cream, Brown, Leaf, Blue, Yellow, Night)
+- **Typografie:** Nunito Font (Google Fonts)
+- **Dark Mode:** Vollständig unterstützt mit dedizierter `ac-night` Farbpalette
+- **Styling:** Abgerundete Ecken (`rounded-ac-*`) und weiche Schatten (`shadow-ac-*`)
+
+Details zum Design System: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#frontend-design-system)
+
 ## Docker Images
 
 Die Images werden automatisch bei jedem Release in der GitHub Container Registry veröffentlicht:
