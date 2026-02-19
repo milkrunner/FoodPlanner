@@ -1603,6 +1603,7 @@ const App = {
     mobileMenuOpen: false,
 
     async init() {
+        Auth.init();
         DarkMode.init();
         await AppState.init();
         this.render();
@@ -1610,6 +1611,54 @@ const App = {
         this.setupMobileFeatures();
         // Initialize onboarding tour for new users
         OnboardingManager.init();
+    },
+
+    /** Update only the auth button in the header without a full re-render */
+    updateHeaderAuth() {
+        const el = document.getElementById('header-auth-btn');
+        if (el) el.outerHTML = this._renderAuthButton();
+        this._bindAuthButton();
+    },
+
+    _renderAuthButton() {
+        const user = Auth.getUser();
+        if (user) {
+            const initial = (user.name || user.email).charAt(0).toUpperCase();
+            return `<div id="header-auth-btn" class="relative">
+                <button id="user-menu-btn" class="w-7 h-7 rounded-full bg-ac-mint-500 text-white text-xs font-semibold flex items-center justify-center hover:bg-ac-mint-600 transition-colors" title="${escapeHtml(user.email)}" aria-label="Benutzermenu">${initial}</button>
+                <div id="user-dropdown" class="hidden absolute right-0 top-full mt-1 w-48 bg-white dark:bg-[#09090B] border border-black/[0.06] dark:border-white/[0.06] rounded-xl shadow-lg py-1 z-50">
+                    <div class="px-3 py-2 border-b border-black/[0.06] dark:border-white/[0.06]">
+                        <p class="text-xs font-medium text-ac-brown-900 dark:text-white truncate">${escapeHtml(user.name || '')}</p>
+                        <p class="text-[11px] text-ac-brown-400 dark:text-ac-cream-500 truncate">${escapeHtml(user.email)}</p>
+                    </div>
+                    <button id="user-logout-btn" class="w-full text-left px-3 py-2 text-xs text-ac-brown-700 dark:text-ac-cream-300 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors">Abmelden</button>
+                </div>
+            </div>`;
+        }
+        return `<button id="header-auth-btn" class="p-2 rounded-ac-lg text-ac-brown-400 dark:text-ac-cream-400 hover:text-ac-brown-700 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors" title="Anmelden" aria-label="Anmelden">
+            <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        </button>`;
+    },
+
+    _bindAuthButton() {
+        const loginBtn = document.getElementById('header-auth-btn');
+        if (loginBtn && !Auth.isAuthenticated()) {
+            loginBtn.addEventListener('click', () => AuthModal.show('login'));
+        }
+        const menuBtn = document.getElementById('user-menu-btn');
+        const dropdown = document.getElementById('user-dropdown');
+        if (menuBtn && dropdown) {
+            menuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('hidden');
+            });
+            document.addEventListener('click', () => dropdown.classList.add('hidden'), { once: true });
+        }
+        document.getElementById('user-logout-btn')?.addEventListener('click', async () => {
+            await Auth.logout();
+            this.updateHeaderAuth();
+            Toast.show('Abgemeldet', { type: 'default', duration: 2000 });
+        });
     },
 
     setupKeyboardShortcuts() {
@@ -1798,6 +1847,7 @@ const App = {
                                     <path class="${isDark ? '' : 'hidden'}" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
                                 </svg>
                             </button>
+                            ${this._renderAuthButton()}
                         </div>
                     </div>
                 </div>
@@ -1922,6 +1972,9 @@ const App = {
     },
 
     attachEventListeners() {
+        // Auth button
+        this._bindAuthButton();
+
         // Dark mode toggle
         const darkModeToggle = document.getElementById('dark-mode-toggle');
         if (darkModeToggle) {
