@@ -686,6 +686,16 @@ const OnboardingManager = {
     }
 };
 
+// Returns a debounced version of fn that delays invoking until after `wait` ms
+// have elapsed since the last invocation.
+function debounce(fn, wait) {
+    let timer;
+    return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), wait);
+    };
+}
+
 // Date Utilities for Calendar View
 const DateUtils = {
     // Get Monday of the week containing the given date
@@ -1310,6 +1320,62 @@ const StorageService = {
             console.error('Error generating meal-prep suggestions:', error);
             throw error;
         }
+    },
+
+    async getPantryItems() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/pantry`);
+            if (!response.ok) throw new Error('Failed to fetch pantry items');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching pantry items:', error);
+            return [];
+        }
+    },
+
+    async addPantryItem(item) {
+        const response = await fetch(`${API_BASE_URL}/pantry`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item)
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error || 'Failed to add pantry item');
+        }
+        return await response.json();
+    },
+
+    async updatePantryItem(item) {
+        const response = await fetch(`${API_BASE_URL}/pantry/${item.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item)
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error || 'Failed to update pantry item');
+        }
+        return await response.json();
+    },
+
+    async deletePantryItem(id) {
+        const response = await fetch(`${API_BASE_URL}/pantry/${id}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Failed to delete pantry item');
+        return await response.json();
+    },
+
+    async getExpiringPantryItems(days = 3) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/pantry/expiring?days=${days}`);
+            if (!response.ok) throw new Error('Failed to fetch expiring items');
+            return await response.json();
+        } catch (error) {
+            console.error('Error fetching expiring pantry items:', error);
+            return [];
+        }
     }
 };
 
@@ -1320,6 +1386,7 @@ const AppState = {
     weekPlan: null,
     currentWeekStart: null, // Track the current week being viewed
     weekPlansCache: {}, // Cache for multiple week plans
+    pantryItems: [],
     _saveTimeout: null,
 
     ensureMealPrepPlanStructure(weekPlan) {
@@ -1349,6 +1416,7 @@ const AppState = {
         this.currentWeekStart = DateUtils.getMonday(new Date());
         await this.loadWeekPlan(this.currentWeekStart);
         this.ensureMealPrepPlanStructure(this.weekPlan);
+        this.pantryItems = await StorageService.getPantryItems();
     },
 
     async loadWeekPlan(weekStart) {
@@ -1566,9 +1634,9 @@ const App = {
                 return;
             }
 
-            // Number keys 1-7 for view navigation (without modifiers)
+            // Number keys 1-8 for view navigation (without modifiers)
             if (!e.ctrlKey && !e.metaKey && !e.altKey) {
-                const views = ['planner', 'meal-prep', 'recipes', 'ai-recipes', 'parser', 'shopping', 'history'];
+                const views = ['planner', 'meal-prep', 'recipes', 'ai-recipes', 'parser', 'shopping', 'pantry', 'history'];
                 const keyNum = parseInt(e.key);
                 if (keyNum >= 1 && keyNum <= views.length) {
                     e.preventDefault();
@@ -1645,7 +1713,7 @@ const App = {
             ${this.renderHeader()}
             ${this.renderMobileNavigation()}
             ${this.renderNavigation()}
-            <main id="main-content" class="container mx-auto px-4 py-4 sm:py-6 pb-safe" role="main" aria-label="Hauptinhalt">
+            <main id="main-content" class="container mx-auto px-4 sm:px-6 py-5 sm:py-6 pb-safe" role="main" aria-label="Hauptinhalt">
                 ${this.renderCurrentView()}
             </main>
         `;
@@ -1654,9 +1722,9 @@ const App = {
 
     renderPullToRefresh() {
         return `
-            <div class="pull-to-refresh bg-ac-mint-400 dark:bg-ac-mint-500 text-white">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            <div class="pull-to-refresh bg-white/90 dark:bg-[#09090B]/90 backdrop-blur-sm border-b border-black/[0.06] dark:border-white/[0.06] text-ac-mint-500 dark:text-ac-mint-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
             </div>
         `;
@@ -1675,32 +1743,32 @@ const App = {
         const overflow = favorites.length - limitedFavorites.length;
 
         return `
-            <section class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-ac-peach-500 dark:text-red-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
-                        </svg>
-                        <h3 class="text-base font-semibold text-ac-brown-800 dark:text-ac-cream-100">Favoriten Schnellzugriff</h3>
-                    </div>
+            <section class="bg-white dark:bg-ac-night-200 rounded-ac-lg border border-ac-cream-300 dark:border-ac-night-50 overflow-hidden transition-colors duration-200">
+                <div class="flex items-center gap-2 px-4 py-3 border-b border-ac-cream-200 dark:border-ac-night-50">
+                    <svg class="w-4 h-4 text-ac-peach-400 dark:text-ac-peach-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                    </svg>
+                    <h3 class="text-sm font-medium text-ac-brown-700 dark:text-ac-cream-200">Favoriten</h3>
                 </div>
-                <div class="flex gap-3 overflow-x-auto favorite-quick-scroll pb-1">
-                    ${limitedFavorites.map(recipe => `
-                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-ac-peach-200 dark:border-ac-peach-500 bg-ac-peach-50 dark:bg-ac-peach-500/20 text-left transition-colors hover:bg-ac-peach-100 dark:hover:bg-ac-peach-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="font-medium text-red-700 dark:text-red-200 truncate">${recipe.name}</span>
-                                <svg class="w-4 h-4 text-red-400 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                    <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                                </svg>
+                <div class="p-3">
+                    <div class="flex gap-2 overflow-x-auto favorite-quick-scroll pb-1">
+                        ${limitedFavorites.map(recipe => `
+                            <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[140px] px-3 py-2.5 rounded-ac border border-ac-cream-300 dark:border-ac-night-50 bg-ac-cream-50 dark:bg-ac-night-100 text-left transition-colors hover:bg-ac-peach-50 dark:hover:bg-ac-peach-600/10 hover:border-ac-peach-200 dark:hover:border-ac-peach-600/30" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-sm font-medium text-ac-brown-800 dark:text-ac-cream-200 truncate">${recipe.name}</span>
+                                    <svg class="w-3.5 h-3.5 text-ac-brown-400 dark:text-ac-cream-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <p class="mt-0.5 text-xs text-ac-brown-400 dark:text-ac-cream-500 truncate">${recipe.category || 'Ohne Kategorie'}</p>
+                            </button>
+                        `).join('')}
+                        ${overflow > 0 ? `
+                            <div class="flex-shrink-0 min-w-[100px] px-3 py-2.5 rounded-ac border border-dashed border-ac-cream-400 dark:border-ac-night-50 text-ac-brown-400 dark:text-ac-cream-500 flex items-center justify-center text-xs">
+                                +${overflow} mehr
                             </div>
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-300 truncate">${recipe.category || 'Ohne Kategorie'}</p>
-                        </button>
-                    `).join('')}
-                    ${overflow > 0 ? `
-                        <div class="flex-shrink-0 min-w-[140px] px-4 py-3 rounded-lg border border-dashed border-ac-peach-200 dark:border-ac-peach-500 text-ac-peach-500 dark:text-red-300 flex items-center justify-center text-sm">
-                            +${overflow} weitere
-                        </div>
-                    ` : ''}
+                        ` : ''}
+                    </div>
                 </div>
             </section>
         `;
@@ -1708,35 +1776,36 @@ const App = {
 
     renderHeader() {
         const isDark = document.documentElement.classList.contains('dark');
-        const sunIconClass = isDark ? 'hidden' : '';
-        const moonIconClass = isDark ? '' : 'hidden';
 
         return `
-            <header class="bg-white dark:bg-ac-night-200 shadow-ac transition-colors duration-200 sticky top-0 z-30" role="banner">
-                <div class="container mx-auto px-4 py-3 sm:py-4">
-                    <div class="flex justify-between items-center">
+            <header class="bg-white/90 dark:bg-[#09090B]/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.06] transition-colors duration-200 sticky top-0 z-30" role="banner">
+                <div class="container mx-auto px-4 sm:px-6">
+                    <div class="flex justify-between items-center h-14">
                         <div class="flex items-center gap-3">
-                            <!-- Mobile menu button -->
-                            <button id="mobile-menu-toggle" class="sm:hidden p-2 -ml-2 rounded-lg hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors" aria-label="Menü öffnen">
-                                <svg class="w-6 h-6 text-ac-brown-700 dark:text-ac-cream-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            <button id="mobile-menu-toggle" class="sm:hidden -ml-1 p-2 rounded-ac-lg text-ac-brown-500 dark:text-ac-cream-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors" aria-label="Menü öffnen">
+                                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 6h16M4 12h16M4 18h16"></path>
                                 </svg>
                             </button>
-                            <div>
-                                <h1 class="text-xl sm:text-3xl font-bold text-ac-brown-800 dark:text-ac-cream-100">Food Planner</h1>
-                                <p class="text-xs sm:text-base text-ac-brown-600 dark:text-ac-cream-300 hidden sm:block">Dein persönlicher Essenswochenplaner</p>
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 rounded-ac-lg bg-ac-mint-500 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+                                    </svg>
+                                </div>
+                                <h1 class="text-sm font-semibold text-ac-brown-900 dark:text-white tracking-tight">Food Planner</h1>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <button id="restart-tour-btn" class="p-2 rounded-lg bg-ac-cream-200 dark:bg-ac-night-100 hover:bg-gray-300 dark:hover:bg-ac-night-50 transition-colors" title="Tour neu starten" aria-label="Einführungstour neu starten">
-                                <svg class="w-6 h-6 text-ac-brown-800 dark:text-ac-cream-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        <div class="flex items-center gap-0.5">
+                            <button id="restart-tour-btn" class="p-2 rounded-ac-lg text-ac-brown-400 dark:text-ac-cream-400 hover:text-ac-brown-700 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors" title="Tour neu starten" aria-label="Einführungstour neu starten">
+                                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                             </button>
-                            <button id="dark-mode-toggle" class="p-2 rounded-lg bg-ac-cream-200 dark:bg-ac-night-100 hover:bg-gray-300 dark:hover:bg-ac-night-50 transition-colors" title="Dark Mode umschalten">
-                                <svg class="w-6 h-6 text-ac-brown-800 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path class="${sunIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                                    <path class="${moonIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                            <button id="dark-mode-toggle" class="p-2 rounded-ac-lg text-ac-brown-400 dark:text-ac-cream-400 hover:text-ac-brown-700 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors" title="Dark Mode umschalten">
+                                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path class="${isDark ? 'hidden' : ''}" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                    <path class="${isDark ? '' : 'hidden'}" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
                                 </svg>
                             </button>
                         </div>
@@ -1754,6 +1823,7 @@ const App = {
             { id: 'ai-recipes', label: 'KI Rezepte', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
             { id: 'parser', label: 'Rezept Parser', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
             { id: 'shopping', label: 'Einkaufsliste', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
+            { id: 'pantry', label: 'Speisekammer', icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4' },
             { id: 'history', label: 'Kochverlauf', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }
         ];
 
@@ -1762,26 +1832,31 @@ const App = {
             <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
 
             <!-- Mobile navigation menu -->
-            <nav class="mobile-nav-menu bg-white dark:bg-ac-night-200">
-                <div class="p-4 border-b dark:border-ac-night-50">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-lg font-semibold text-ac-brown-800 dark:text-ac-cream-100">Menü</h2>
-                        <button id="close-mobile-menu" class="p-2 rounded-lg hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors">
-                            <svg class="w-6 h-6 text-ac-brown-500 dark:text-ac-brown-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            <nav class="mobile-nav-menu bg-white dark:bg-[#09090B] border-r border-black/[0.06] dark:border-white/[0.06]">
+                <div class="px-4 h-14 flex items-center justify-between border-b border-black/[0.06] dark:border-white/[0.06]">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-ac-lg bg-ac-mint-500 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 11l19-9-9 19-2-8-8-2z"/>
                             </svg>
-                        </button>
+                        </div>
+                        <span class="text-sm font-semibold text-ac-brown-900 dark:text-white tracking-tight">Food Planner</span>
                     </div>
+                    <button id="close-mobile-menu" class="p-2 rounded-ac-lg text-ac-brown-400 dark:text-ac-cream-400 hover:text-ac-brown-700 dark:hover:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors">
+                        <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 </div>
-                <div class="py-2">
+                <div class="py-2 px-2">
                     ${tabs.map(tab => `
-                        <button class="mobile-nav-btn w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                        <button class="mobile-nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-ac-lg text-left text-[13px] transition-colors ${
                             AppState.currentView === tab.id
-                                ? 'bg-ac-mint-50 dark:bg-ac-mint-900/30 text-ac-mint-600 dark:text-ac-mint-400 border-l-4 border-blue-600 dark:border-ac-mint-400'
-                                : 'text-ac-brown-700 dark:text-ac-cream-300 hover:bg-ac-cream-50 dark:hover:bg-ac-night-100'
+                                ? 'bg-ac-mint-500/[0.08] text-ac-mint-600 dark:text-ac-mint-400 font-medium'
+                                : 'text-ac-brown-600 dark:text-ac-cream-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-ac-brown-900 dark:hover:text-white'
                         }" data-view="${tab.id}">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${tab.icon}"></path>
+                            <svg class="w-4 h-4 flex-shrink-0 ${AppState.currentView === tab.id ? 'text-ac-mint-500 dark:text-ac-mint-400' : 'text-ac-brown-400 dark:text-ac-cream-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="${tab.icon}"></path>
                             </svg>
                             ${tab.label}
                         </button>
@@ -1799,20 +1874,21 @@ const App = {
             { id: 'ai-recipes', label: 'KI Rezepte', shortLabel: 'KI' },
             { id: 'parser', label: 'Rezept Parser', shortLabel: 'Parser' },
             { id: 'shopping', label: 'Einkaufsliste', shortLabel: 'Einkauf' },
+            { id: 'pantry', label: 'Speisekammer', shortLabel: 'Vorrat' },
             { id: 'history', label: 'Kochverlauf', shortLabel: 'Verlauf' }
         ];
 
         // Desktop navigation (hidden on mobile)
         return `
-            <nav class="hidden sm:block bg-white dark:bg-ac-night-200 border-b dark:border-ac-night-50 transition-colors duration-200 overflow-x-auto" role="navigation" aria-label="Hauptnavigation">
-                <div class="container mx-auto px-4">
-                    <div class="flex space-x-1 min-w-max" role="tablist" aria-label="Ansichten">
+            <nav class="hidden sm:block bg-white/90 dark:bg-[#09090B]/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.06] transition-colors duration-200 overflow-x-auto" role="navigation" aria-label="Hauptnavigation">
+                <div class="container mx-auto px-4 sm:px-6">
+                    <div class="flex min-w-max -mb-px" role="tablist" aria-label="Ansichten">
                         ${tabs.map((tab, index) => `
                             <button
-                                class="nav-btn px-3 md:px-6 py-3 font-medium transition-colors whitespace-nowrap text-sm md:text-base ${
+                                class="nav-btn px-3 md:px-4 py-3 text-[13px] font-medium transition-colors whitespace-nowrap border-b-[1.5px] ${
                                     AppState.currentView === tab.id
-                                        ? 'text-ac-mint-600 dark:text-ac-mint-400 border-b-2 border-blue-600 dark:border-ac-mint-400'
-                                        : 'text-ac-brown-600 dark:text-ac-cream-300 hover:text-ac-mint-600 dark:hover:text-blue-400'
+                                        ? 'text-ac-mint-500 dark:text-ac-mint-400 border-ac-mint-500 dark:border-ac-mint-400'
+                                        : 'text-ac-brown-500 dark:text-ac-cream-400 border-transparent hover:text-ac-brown-800 dark:hover:text-white'
                                 }"
                                 data-view="${tab.id}"
                                 data-nav="${tab.id}"
@@ -1846,6 +1922,8 @@ const App = {
                 return RecipeParserView.render();
             case 'shopping':
                 return ShoppingListView.render();
+            case 'pantry':
+                return PantryView.render();
             case 'history':
                 return CookingHistoryView.render();
             default:
@@ -1931,6 +2009,8 @@ const App = {
             RecipeParserView.attachEventListeners();
         } else if (AppState.currentView === 'shopping') {
             ShoppingListView.attachEventListeners();
+        } else if (AppState.currentView === 'pantry') {
+            PantryView.attachEventListeners();
         } else if (AppState.currentView === 'history') {
             CookingHistoryView.attachEventListeners();
         }
@@ -2244,16 +2324,13 @@ const WeekPlannerView = {
         const seasonIcon = this.getSeasonIcon(seasonKey);
 
         return `
-            <section class="bg-gradient-to-r from-ac-leaf-100 to-ac-mint-100 dark:from-ac-leaf-700/20 dark:to-ac-mint-700/20 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">${seasonIcon}</span>
-                        <h3 class="text-base font-semibold text-ac-brown-800 dark:text-ac-cream-100">Saisonale Empfehlungen (${season})</h3>
-                    </div>
-                    <span class="text-xs text-ac-leaf-600 dark:text-ac-leaf-400 bg-ac-leaf-100 dark:bg-ac-leaf-700/40 px-2 py-1 rounded-full">
-                        ${topSeasonalIngredients.slice(0, 3).join(', ')}...
-                    </span>
+            <section class="bg-white dark:bg-ac-night-200 rounded-ac-xl border border-ac-cream-200 dark:border-ac-night-50 overflow-hidden">
+                <div class="flex items-center gap-2 px-4 py-3 border-b border-ac-cream-200 dark:border-ac-night-50">
+                    <span class="text-base">${seasonIcon}</span>
+                    <h3 class="text-sm font-medium text-ac-brown-700 dark:text-ac-cream-200">Saisonal · ${season}</h3>
+                    <span class="ml-auto text-[11px] text-ac-brown-400 dark:text-ac-cream-500">${topSeasonalIngredients.slice(0, 3).join(', ')}</span>
                 </div>
+                <div class="p-3 sm:p-4">
                 <div class="flex gap-3 overflow-x-auto pb-1">
                     ${recommendations.map(recipe => `
                         <div class="seasonal-recipe-card flex-shrink-0 min-w-[180px] max-w-[200px] px-4 py-3 rounded-lg border border-ac-leaf-200 dark:border-ac-leaf-700 bg-white dark:bg-ac-night-200 text-left transition-colors hover:bg-ac-leaf-100 dark:hover:bg-ac-leaf-700/30 cursor-pointer" data-recipe-id="${recipe.id}">
@@ -2278,6 +2355,7 @@ const WeekPlannerView = {
                             ` : ''}
                         </div>
                     `).join('')}
+                </div>
                 </div>
             </section>
         `;
@@ -2312,10 +2390,10 @@ const WeekPlannerView = {
             <div class="space-y-4 sm:space-y-6">
                 <!-- Header with responsive buttons -->
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                    <h2 class="text-xl sm:text-2xl font-bold text-ac-brown-800 dark:text-ac-cream-100">Wochenplan</h2>
+                    <h2 class="text-lg font-semibold text-ac-brown-900 dark:text-white tracking-tight">Wochenplan</h2>
                     <div class="flex gap-2 flex-wrap">
-                        <button id="ai-generate-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-ac-blue-400 dark:bg-ac-blue-500 text-white rounded hover:bg-ac-blue-500 dark:hover:bg-ac-blue-600 transition-colors text-sm sm:text-base flex items-center justify-center gap-2" ${this.aiGenerating ? 'disabled' : ''}>
-                            <svg class="w-4 h-4 ${this.aiGenerating ? 'animate-spin' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button id="ai-generate-btn" class="flex-1 sm:flex-none px-3 py-2 border border-ac-cream-300 dark:border-ac-night-50 text-ac-brown-600 dark:text-ac-cream-300 rounded-ac-lg hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors text-sm flex items-center justify-center gap-1.5" ${this.aiGenerating ? 'disabled' : ''}>
+                            <svg class="w-3.5 h-3.5 ${this.aiGenerating ? 'animate-spin' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 ${this.aiGenerating
                                     ? '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>'
                                     : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>'
@@ -2324,15 +2402,15 @@ const WeekPlannerView = {
                             <span class="hidden sm:inline">${this.aiGenerating ? 'Generiere...' : 'KI-Vorschläge'}</span>
                             <span class="sm:hidden">${this.aiGenerating ? '...' : 'KI'}</span>
                         </button>
-                        <button id="save-template-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-ac-mint-400 dark:bg-ac-mint-500 text-white rounded hover:bg-ac-mint-500 dark:hover:bg-blue-700 transition-colors text-sm sm:text-base">
+                        <button id="save-template-btn" class="flex-1 sm:flex-none px-3 py-2 border border-ac-cream-300 dark:border-ac-night-50 text-ac-brown-600 dark:text-ac-cream-300 rounded-ac-lg hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors text-sm">
                             <span class="hidden sm:inline">Als Vorlage speichern</span>
                             <span class="sm:hidden">Speichern</span>
                         </button>
-                        <button id="load-template-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-ac-leaf-500 dark:bg-ac-leaf-600 text-white rounded hover:bg-ac-leaf-600 dark:hover:bg-ac-leaf-700 transition-colors text-sm sm:text-base">
+                        <button id="load-template-btn" class="flex-1 sm:flex-none px-3 py-2 border border-ac-cream-300 dark:border-ac-night-50 text-ac-brown-600 dark:text-ac-cream-300 rounded-ac-lg hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors text-sm">
                             <span class="hidden sm:inline">Aus Vorlage laden</span>
                             <span class="sm:hidden">Laden</span>
                         </button>
-                        <button id="reset-week-btn" class="px-3 sm:px-4 py-2 bg-ac-peach-400 dark:bg-ac-peach-500 text-white rounded hover:bg-ac-peach-500 dark:hover:bg-ac-peach-600 transition-colors text-sm sm:text-base">
+                        <button id="reset-week-btn" class="px-3 py-2 border border-ac-cream-300 dark:border-ac-night-50 text-ac-brown-500 dark:text-ac-cream-400 rounded-ac-lg hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors text-sm">
                             <span class="hidden sm:inline">Zurücksetzen</span>
                             <span class="sm:hidden">Reset</span>
                         </button>
@@ -2342,23 +2420,23 @@ const WeekPlannerView = {
                 ${this.renderSeasonalRecommendations()}
 
                 <!-- Week Navigation -->
-                <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200">
-                    <div class="flex items-center justify-between">
-                        <button id="prev-week-btn" class="p-3 sm:p-2 rounded-lg bg-ac-cream-100 dark:bg-ac-night-100 hover:bg-ac-cream-200 dark:hover:bg-ac-night-50 transition-colors active:scale-95" title="Vorherige Woche">
-                            <svg class="w-6 h-6 text-ac-brown-700 dark:text-ac-cream-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-white dark:bg-ac-night-200 rounded-ac-xl border border-ac-cream-200 dark:border-ac-night-50 overflow-hidden">
+                    <div class="flex items-center justify-between px-3 py-2">
+                        <button id="prev-week-btn" class="p-2 rounded-ac-lg text-ac-brown-400 dark:text-ac-cream-500 hover:text-ac-brown-700 dark:hover:text-white hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors" title="Vorherige Woche">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
                         </button>
-                        <div class="text-center flex-1 mx-2">
-                            <h3 class="text-base sm:text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100">${weekRange}</h3>
+                        <div class="text-center flex-1">
+                            <h3 class="text-sm font-semibold text-ac-brown-900 dark:text-white">${weekRange}</h3>
                             ${!isCurrentWeek ? `
-                                <button id="go-to-current-week-btn" class="mt-1 text-sm text-ac-mint-500 dark:text-ac-mint-400 hover:text-ac-mint-600 dark:hover:text-ac-mint-500 transition-colors">
+                                <button id="go-to-current-week-btn" class="mt-0.5 text-xs text-ac-mint-600 dark:text-ac-mint-400 hover:underline transition-colors">
                                     Zur aktuellen Woche
                                 </button>
-                            ` : '<span class="mt-1 text-sm text-ac-leaf-600 dark:text-ac-leaf-400 block">Aktuelle Woche</span>'}
+                            ` : '<span class="text-[11px] text-ac-brown-400 dark:text-ac-cream-500">Aktuelle Woche</span>'}
                         </div>
-                        <button id="next-week-btn" class="p-3 sm:p-2 rounded-lg bg-ac-cream-100 dark:bg-ac-night-100 hover:bg-ac-cream-200 dark:hover:bg-ac-night-50 transition-colors active:scale-95" title="Nächste Woche">
-                            <svg class="w-6 h-6 text-ac-brown-700 dark:text-ac-cream-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button id="next-week-btn" class="p-2 rounded-ac-lg text-ac-brown-400 dark:text-ac-cream-500 hover:text-ac-brown-700 dark:hover:text-white hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors" title="Nächste Woche">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
                         </button>
@@ -2426,14 +2504,16 @@ const WeekPlannerView = {
         const isPast = DateUtils.isPast(dayDate);
 
         return `
-            <div class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200 ${isToday ? 'ring-2 ring-ac-mint-500 dark:ring-ac-mint-400' : ''} ${isPast && !isMobileView ? 'opacity-75' : ''}">
-                <div class="flex items-center justify-between gap-2 mb-3">
+            <div class="bg-white dark:bg-ac-night-200 rounded-ac-xl border ${isToday ? 'border-ac-mint-500/25 dark:border-ac-mint-600/25' : 'border-ac-cream-200 dark:border-ac-night-50'} overflow-hidden transition-colors duration-200 ${isPast && !isMobileView ? 'opacity-60' : ''}">
+                <div class="flex items-center justify-between gap-2 px-4 py-2.5 border-b ${isToday ? 'border-ac-mint-500/15 dark:border-ac-mint-600/20 bg-ac-mint-500/[0.04] dark:bg-ac-mint-500/[0.06]' : 'border-ac-cream-200 dark:border-ac-night-50'}">
                     <div class="flex items-center gap-2">
-                        <h3 class="text-lg sm:text-xl font-semibold text-ac-brown-800 dark:text-ac-cream-100">${formattedDate}</h3>
-                        ${isToday ? '<span class="px-2 py-0.5 text-xs font-medium bg-ac-mint-100 dark:bg-ac-mint-900 text-ac-mint-700 dark:text-ac-mint-200 rounded-full">Heute</span>' : ''}
+                        ${isToday ? '<span class="w-1.5 h-1.5 rounded-full bg-ac-mint-500 flex-shrink-0"></span>' : ''}
+                        <h3 class="text-sm font-semibold text-ac-brown-900 dark:text-white">${formattedDate}</h3>
+                        ${isToday ? '<span class="text-[11px] font-medium text-ac-mint-600 dark:text-ac-mint-400">Heute</span>' : ''}
                     </div>
-                    ${isPast ? '<span class="text-xs text-ac-brown-400 dark:text-ac-brown-500">Vergangen</span>' : ''}
+                    ${isPast ? '<span class="text-[11px] text-ac-brown-400 dark:text-ac-cream-500">Vergangen</span>' : ''}
                 </div>
+                <div class="p-3 sm:p-4">
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     ${mealTypes.map(mealType => {
                         const meal = day.meals[mealType];
@@ -2478,6 +2558,7 @@ const WeekPlannerView = {
                             </div>
                         `;
                     }).join('')}
+                </div>
                 </div>
             </div>
         `;
@@ -3333,6 +3414,7 @@ const WeekPlannerView = {
 
 // Recipe Database View
 const RecipeDatabaseView = {
+    PAGE_SIZE: 24, // Number of recipe cards to render per batch
     editingRecipe: null,
     viewingRecipe: null, // For detail view (read-only)
     ingredients: [{ name: '', amount: '', unit: '', category: 'Sonstiges' }],
@@ -3346,6 +3428,7 @@ const RecipeDatabaseView = {
     seasonalData: null, // Cache for seasonal recipe data
     currentSeasonInfo: null, // Current season info
     selectedTags: [],
+    displayedCount: 24, // How many recipe cards are currently rendered
     categories: ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'],
     availableTags: ['vegetarisch', 'vegan', 'glutenfrei', 'laktosefrei', 'schnell', 'günstig', 'meal-prep', 'Frühling', 'Sommer', 'Herbst', 'Winter'],
     scalingRecipe: null,
@@ -3371,32 +3454,32 @@ const RecipeDatabaseView = {
         const overflow = favorites.length - limitedFavorites.length;
 
         return `
-            <section class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-ac-peach-500 dark:text-red-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
-                        </svg>
-                        <h3 class="text-base font-semibold text-ac-brown-800 dark:text-ac-cream-100">Favoriten Schnellzugriff</h3>
-                    </div>
+            <section class="bg-white dark:bg-ac-night-200 rounded-ac-lg border border-ac-cream-300 dark:border-ac-night-50 overflow-hidden transition-colors duration-200">
+                <div class="flex items-center gap-2 px-4 py-3 border-b border-ac-cream-200 dark:border-ac-night-50">
+                    <svg class="w-4 h-4 text-ac-peach-400 dark:text-ac-peach-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                    </svg>
+                    <h3 class="text-sm font-medium text-ac-brown-700 dark:text-ac-cream-200">Favoriten</h3>
                 </div>
-                <div class="flex gap-3 overflow-x-auto favorite-quick-scroll pb-1">
-                    ${limitedFavorites.map(recipe => `
-                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-ac-peach-200 dark:border-ac-peach-500 bg-ac-peach-50 dark:bg-ac-peach-500/20 text-left transition-colors hover:bg-ac-peach-100 dark:hover:bg-ac-peach-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="font-medium text-red-700 dark:text-red-200 truncate">${recipe.name}</span>
-                                <svg class="w-4 h-4 text-red-400 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                    <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                                </svg>
+                <div class="p-3">
+                    <div class="flex gap-2 overflow-x-auto favorite-quick-scroll pb-1">
+                        ${limitedFavorites.map(recipe => `
+                            <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[140px] px-3 py-2.5 rounded-ac border border-ac-cream-300 dark:border-ac-night-50 bg-ac-cream-50 dark:bg-ac-night-100 text-left transition-colors hover:bg-ac-peach-50 dark:hover:bg-ac-peach-600/10 hover:border-ac-peach-200 dark:hover:border-ac-peach-600/30" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-sm font-medium text-ac-brown-800 dark:text-ac-cream-200 truncate">${recipe.name}</span>
+                                    <svg class="w-3.5 h-3.5 text-ac-brown-400 dark:text-ac-cream-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <p class="mt-0.5 text-xs text-ac-brown-400 dark:text-ac-cream-500 truncate">${recipe.category || 'Ohne Kategorie'}</p>
+                            </button>
+                        `).join('')}
+                        ${overflow > 0 ? `
+                            <div class="flex-shrink-0 min-w-[100px] px-3 py-2.5 rounded-ac border border-dashed border-ac-cream-400 dark:border-ac-night-50 text-ac-brown-400 dark:text-ac-cream-500 flex items-center justify-center text-xs">
+                                +${overflow} mehr
                             </div>
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-300 truncate">${recipe.category || 'Ohne Kategorie'}</p>
-                        </button>
-                    `).join('')}
-                    ${overflow > 0 ? `
-                        <div class="flex-shrink-0 min-w-[140px] px-4 py-3 rounded-lg border border-dashed border-ac-peach-200 dark:border-ac-peach-500 text-ac-peach-500 dark:text-red-300 flex items-center justify-center text-sm">
-                            +${overflow} weitere
-                        </div>
-                    ` : ''}
+                        ` : ''}
+                    </div>
                 </div>
             </section>
         `;
@@ -3461,32 +3544,32 @@ const RecipeDatabaseView = {
         const overflow = favorites.length - limitedFavorites.length;
 
         return `
-            <section class="bg-white dark:bg-ac-night-200 rounded-lg shadow dark:shadow-ac-dark p-3 sm:p-4 transition-colors duration-200">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-ac-peach-500 dark:text-red-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
-                        </svg>
-                        <h3 class="text-base font-semibold text-ac-brown-800 dark:text-ac-cream-100">Favoriten Schnellzugriff</h3>
-                    </div>
+            <section class="bg-white dark:bg-ac-night-200 rounded-ac-lg border border-ac-cream-300 dark:border-ac-night-50 overflow-hidden transition-colors duration-200">
+                <div class="flex items-center gap-2 px-4 py-3 border-b border-ac-cream-200 dark:border-ac-night-50">
+                    <svg class="w-4 h-4 text-ac-peach-400 dark:text-ac-peach-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
+                    </svg>
+                    <h3 class="text-sm font-medium text-ac-brown-700 dark:text-ac-cream-200">Favoriten</h3>
                 </div>
-                <div class="flex gap-3 overflow-x-auto favorite-quick-scroll pb-1">
-                    ${limitedFavorites.map(recipe => `
-                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-ac-peach-200 dark:border-ac-peach-500 bg-ac-peach-50 dark:bg-ac-peach-500/20 text-left transition-colors hover:bg-ac-peach-100 dark:hover:bg-ac-peach-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="font-medium text-red-700 dark:text-red-200 truncate">${recipe.name}</span>
-                                <svg class="w-4 h-4 text-red-400 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                    <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                                </svg>
+                <div class="p-3">
+                    <div class="flex gap-2 overflow-x-auto favorite-quick-scroll pb-1">
+                        ${limitedFavorites.map(recipe => `
+                            <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[140px] px-3 py-2.5 rounded-ac border border-ac-cream-300 dark:border-ac-night-50 bg-ac-cream-50 dark:bg-ac-night-100 text-left transition-colors hover:bg-ac-peach-50 dark:hover:bg-ac-peach-600/10 hover:border-ac-peach-200 dark:hover:border-ac-peach-600/30" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-sm font-medium text-ac-brown-800 dark:text-ac-cream-200 truncate">${recipe.name}</span>
+                                    <svg class="w-3.5 h-3.5 text-ac-brown-400 dark:text-ac-cream-500 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <p class="mt-0.5 text-xs text-ac-brown-400 dark:text-ac-cream-500 truncate">${recipe.category || 'Ohne Kategorie'}</p>
+                            </button>
+                        `).join('')}
+                        ${overflow > 0 ? `
+                            <div class="flex-shrink-0 min-w-[100px] px-3 py-2.5 rounded-ac border border-dashed border-ac-cream-400 dark:border-ac-night-50 text-ac-brown-400 dark:text-ac-cream-500 flex items-center justify-center text-xs">
+                                +${overflow} mehr
                             </div>
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-300 truncate">${recipe.category || 'Ohne Kategorie'}</p>
-                        </button>
-                    `).join('')}
-                    ${overflow > 0 ? `
-                        <div class="flex-shrink-0 min-w-[140px] px-4 py-3 rounded-lg border border-dashed border-ac-peach-200 dark:border-ac-peach-500 text-ac-peach-500 dark:text-red-300 flex items-center justify-center text-sm">
-                            +${overflow} weitere
-                        </div>
-                    ` : ''}
+                        ` : ''}
+                    </div>
                 </div>
             </section>
         `;
@@ -3699,7 +3782,7 @@ const RecipeDatabaseView = {
                 ` : `
                     <!-- Responsive grid: 1 col on mobile, 2 on tablet, 3 on desktop -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                        ${filteredRecipes.map(recipe => {
+                        ${filteredRecipes.slice(0, this.displayedCount).map(recipe => {
                             const cookingStat = this.getCookingStatsForRecipe(recipe.id);
                             const lastCookedText = cookingStat ? this.formatLastCooked(cookingStat.last_cooked_at) : null;
                             return `
@@ -3800,6 +3883,15 @@ const RecipeDatabaseView = {
                             </div>
                         `;}).join('')}
                     </div>
+                    ${filteredRecipes.length > this.displayedCount ? `
+                        <!-- Sentinel element — Intersection Observer triggers load-more -->
+                        <div id="recipe-load-more-sentinel" class="flex justify-center py-4">
+                            <button id="recipe-load-more-btn"
+                                class="px-5 py-2.5 border border-ac-cream-300 dark:border-ac-night-50 text-ac-brown-600 dark:text-ac-cream-200 rounded-lg hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors text-sm font-medium">
+                                Mehr laden (${filteredRecipes.length - this.displayedCount} weitere)
+                            </button>
+                        </div>
+                    ` : ''}
                 `}
 
                 ${this.renderRecipeDetail()}
@@ -3888,51 +3980,50 @@ const RecipeDatabaseView = {
             <div id="recipe-detail-modal" class="modal active" data-backdrop="true" role="dialog" aria-modal="true" aria-labelledby="recipe-detail-title">
                 <div id="recipe-detail-content" class="bg-white dark:bg-ac-night-200 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-ac-lg flex flex-col">
                     <!-- Header -->
-                    <div class="p-4 sm:p-6 border-b dark:border-ac-night-50 bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0">
-                        <div class="flex justify-between items-start">
-                            <div class="flex-1">
-                                <h2 id="recipe-detail-title" class="text-xl sm:text-2xl font-bold text-white mb-2">${recipe.name}</h2>
-                                <div class="flex flex-wrap gap-2">
+                    <div class="px-4 sm:px-6 py-4 border-b border-ac-cream-200 dark:border-ac-night-50 flex-shrink-0">
+                        <div class="flex justify-between items-start gap-3">
+                            <div class="flex-1 min-w-0">
+                                <h2 id="recipe-detail-title" class="text-lg sm:text-xl font-semibold text-ac-brown-900 dark:text-white mb-2 tracking-tight">${recipe.name}</h2>
+                                <div class="flex flex-wrap gap-1.5">
                                     ${recipe.category ? `
-                                        <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full">
+                                        <span class="px-2.5 py-0.5 bg-ac-cream-100 dark:bg-ac-night-100 text-ac-brown-600 dark:text-ac-cream-300 text-xs rounded-ac-pill border border-ac-cream-300 dark:border-ac-night-50">
                                             ${recipe.category}
                                         </span>
                                     ` : ''}
                                     ${recipe.servings ? `
-                                        <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full">
+                                        <span class="px-2.5 py-0.5 bg-ac-cream-100 dark:bg-ac-night-100 text-ac-brown-600 dark:text-ac-cream-300 text-xs rounded-ac-pill border border-ac-cream-300 dark:border-ac-night-50">
                                             ${recipe.servings} Portionen
                                         </span>
                                     ` : ''}
                                     ${recipe.prep_time || recipe.cook_time ? `
-                                        <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full inline-flex items-center gap-1">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <span class="px-2.5 py-0.5 bg-ac-cream-100 dark:bg-ac-night-100 text-ac-brown-600 dark:text-ac-cream-300 text-xs rounded-ac-pill border border-ac-cream-300 dark:border-ac-night-50 inline-flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                             </svg>
                                             ${recipe.prep_time ? `${recipe.prep_time} Min. Vorbereitung` : ''}${recipe.prep_time && recipe.cook_time ? ' + ' : ''}${recipe.cook_time ? `${recipe.cook_time} Min. Kochen` : ''}
                                         </span>
                                     ` : ''}
                                     ${recipe.difficulty ? `
-                                        <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full inline-flex items-center gap-1">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                                            </svg>
+                                        <span class="px-2.5 py-0.5 bg-ac-cream-100 dark:bg-ac-night-100 text-ac-brown-600 dark:text-ac-cream-300 text-xs rounded-ac-pill border border-ac-cream-300 dark:border-ac-night-50">
                                             ${recipe.difficulty}
                                         </span>
                                     ` : ''}
                                     ${lastCookedText ? `
-                                        <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full">
+                                        <span class="px-2.5 py-0.5 bg-ac-cream-100 dark:bg-ac-night-100 text-ac-brown-500 dark:text-ac-cream-400 text-xs rounded-ac-pill border border-ac-cream-300 dark:border-ac-night-50">
                                             Zuletzt: ${lastCookedText}
                                         </span>
                                     ` : ''}
                                     ${cookingStat && cookingStat.times_cooked > 0 ? `
-                                        <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full">
-                                            ${cookingStat.times_cooked}x gekocht
+                                        <span class="px-2.5 py-0.5 bg-ac-mint-500/[0.08] text-ac-mint-600 dark:text-ac-mint-400 text-xs rounded-ac-pill border border-ac-mint-500/20">
+                                            ${cookingStat.times_cooked}× gekocht
                                         </span>
                                     ` : ''}
                                 </div>
                             </div>
-                            <button id="close-recipe-detail" class="text-white/80 hover:text-white text-2xl p-1">
-                                ✕
+                            <button id="close-recipe-detail" class="p-2 rounded-ac-lg text-ac-brown-400 dark:text-ac-cream-400 hover:text-ac-brown-700 dark:hover:text-white hover:bg-ac-cream-100 dark:hover:bg-ac-night-100 transition-colors flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
                             </button>
                         </div>
                     </div>
@@ -4252,16 +4343,19 @@ const RecipeDatabaseView = {
     },
 
     attachEventListeners() {
-        // Search input
+        // Search input — debounced to avoid re-rendering on every keystroke
         const searchInput = document.getElementById('recipe-search-input');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.searchQuery = e.target.value;
-                // Only re-render for classic search (instant filtering)
-                // For AI search, wait until user clicks search button
+            const debouncedRender = debounce(() => {
                 if (!this.aiSearchActive) {
+                    this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                     App.render();
                 }
+            }, 300);
+
+            searchInput.addEventListener('input', (e) => {
+                this.searchQuery = e.target.value;
+                debouncedRender();
             });
         }
 
@@ -4270,6 +4364,7 @@ const RecipeDatabaseView = {
         if (clearSearchBtn) {
             clearSearchBtn.addEventListener('click', () => {
                 this.searchQuery = '';
+                this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                 App.render();
             });
         }
@@ -4319,6 +4414,7 @@ const RecipeDatabaseView = {
             favoritesFilterBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.showFavoritesOnly = !this.showFavoritesOnly;
+                this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                 App.render();
             });
         }
@@ -4329,6 +4425,7 @@ const RecipeDatabaseView = {
             seasonalFilterBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.showSeasonalOnly = !this.showSeasonalOnly;
+                this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                 App.render();
             });
         }
@@ -4339,6 +4436,7 @@ const RecipeDatabaseView = {
             mealPrepFilterBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.showMealPrepOnly = !this.showMealPrepOnly;
+                this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                 App.render();
             });
         }
@@ -4349,6 +4447,7 @@ const RecipeDatabaseView = {
             timeFilter.addEventListener('change', (e) => {
                 const value = e.target.value;
                 this.maxTimeFilter = value ? parseInt(value) : null;
+                this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                 App.render();
             });
         }
@@ -4358,8 +4457,32 @@ const RecipeDatabaseView = {
         if (difficultyFilter) {
             difficultyFilter.addEventListener('change', (e) => {
                 this.difficultyFilter = e.target.value || null;
+                this.displayedCount = RecipeDatabaseView.PAGE_SIZE;
                 App.render();
             });
+        }
+
+        // Load-more button + Intersection Observer for infinite scroll
+        const sentinel = document.getElementById('recipe-load-more-sentinel');
+        if (sentinel) {
+            // Manual "Mehr laden" button
+            const loadMoreBtn = document.getElementById('recipe-load-more-btn');
+            if (loadMoreBtn) {
+                loadMoreBtn.addEventListener('click', () => {
+                    this.displayedCount += RecipeDatabaseView.PAGE_SIZE;
+                    App.render();
+                });
+            }
+
+            // Auto-load when sentinel scrolls into view
+            const observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
+                    observer.disconnect();
+                    this.displayedCount += RecipeDatabaseView.PAGE_SIZE;
+                    App.render();
+                }
+            }, { rootMargin: '200px' });
+            observer.observe(sentinel);
         }
 
         // New recipe button
@@ -7781,6 +7904,412 @@ const ShoppingListView = {
         } catch (error) {
             console.error('Load budget error:', error);
         }
+    }
+};
+
+// Pantry View
+const PantryView = {
+    editingItem: null, // item being edited, or null if adding new
+    showForm: false,
+    filterCategory: '',
+    filterLocation: '',
+
+    // Categories and locations used throughout
+    categories: [
+        'Gemüse', 'Obst', 'Fleisch & Fisch', 'Milchprodukte', 'Eier',
+        'Brot & Backwaren', 'Hülsenfrüchte', 'Getreide & Pasta', 'Konserven',
+        'Gewürze & Öle', 'Getränke', 'Süßes & Snacks', 'Tiefkühlkost', 'Sonstiges'
+    ],
+    locations: ['Kühlschrank', 'Tiefkühler', 'Vorratsschrank', 'Keller', 'Sonstiges'],
+
+    render() {
+        const items = AppState.pantryItems;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Apply filters
+        const filtered = items.filter(item => {
+            if (this.filterCategory && item.category !== this.filterCategory) return false;
+            if (this.filterLocation && item.location !== this.filterLocation) return false;
+            return true;
+        });
+
+        // Sort: expiring soon first (with date), then no date alphabetically
+        const withDate = filtered.filter(i => i.expiry_date).sort((a, b) => new Date(a.expiry_date) - new Date(b.expiry_date));
+        const withoutDate = filtered.filter(i => !i.expiry_date).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+        const sorted = [...withDate, ...withoutDate];
+
+        // Count expiring within 3 days
+        const expiringCount = items.filter(i => {
+            if (!i.expiry_date) return false;
+            const diff = (new Date(i.expiry_date) - today) / 86400000;
+            return diff <= 3 && diff >= 0;
+        }).length;
+
+        const expiredCount = items.filter(i => {
+            if (!i.expiry_date) return false;
+            return new Date(i.expiry_date) < today;
+        }).length;
+
+        return `
+            <div class="space-y-4">
+                <!-- Header -->
+                <div class="flex justify-between items-center flex-wrap gap-3">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Speisekammer</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Vorhandene Lebensmittel verwalten</p>
+                    </div>
+                    <button id="pantry-add-btn" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Hinzufügen
+                    </button>
+                </div>
+
+                ${(expiringCount > 0 || expiredCount > 0) ? `
+                    <div class="flex flex-wrap gap-2">
+                        ${expiredCount > 0 ? `
+                            <div class="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+                                </svg>
+                                ${expiredCount} abgelaufen
+                            </div>
+                        ` : ''}
+                        ${expiringCount > 0 ? `
+                            <div class="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-700 dark:text-amber-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                ${expiringCount} läuft bald ab
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ''}
+
+                <!-- Add / Edit Form -->
+                ${this.showForm ? this.renderForm() : ''}
+
+                <!-- Filters -->
+                ${items.length > 0 ? `
+                    <div class="flex flex-wrap gap-2">
+                        <select id="pantry-filter-category" class="px-3 py-1.5 text-sm border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                            <option value="">Alle Kategorien</option>
+                            ${this.categories.map(c => `<option value="${c}" ${this.filterCategory === c ? 'selected' : ''}>${c}</option>`).join('')}
+                        </select>
+                        <select id="pantry-filter-location" class="px-3 py-1.5 text-sm border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                            <option value="">Alle Orte</option>
+                            ${this.locations.map(l => `<option value="${l}" ${this.filterLocation === l ? 'selected' : ''}>${l}</option>`).join('')}
+                        </select>
+                        ${(this.filterCategory || this.filterLocation) ? `
+                            <button id="pantry-clear-filters" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                Filter zurücksetzen
+                            </button>
+                        ` : ''}
+                    </div>
+                ` : ''}
+
+                <!-- Item List -->
+                ${sorted.length === 0 && !this.showForm ? `
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-10 text-center">
+                        <svg class="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                        </svg>
+                        <p class="text-gray-500 dark:text-gray-400 font-medium">Keine Lebensmittel vorhanden</p>
+                        <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">Füge Lebensmittel hinzu, um deinen Vorrat zu verwalten.</p>
+                    </div>
+                ` : sorted.length > 0 ? `
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 divide-y dark:divide-gray-700">
+                        ${sorted.map(item => this.renderItem(item, today)).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    renderItem(item, today) {
+        let expiryClass = 'text-gray-500 dark:text-gray-400';
+        let expiryLabel = '';
+        let rowHighlight = '';
+
+        if (item.expiry_date) {
+            const expiryDate = new Date(item.expiry_date);
+            const diffDays = Math.round((expiryDate - today) / 86400000);
+            const dateStr = expiryDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+            if (diffDays < 0) {
+                expiryClass = 'text-red-600 dark:text-red-400 font-medium';
+                expiryLabel = `Abgelaufen (${dateStr})`;
+                rowHighlight = 'bg-red-50/50 dark:bg-red-900/10';
+            } else if (diffDays === 0) {
+                expiryClass = 'text-red-600 dark:text-red-400 font-medium';
+                expiryLabel = `Heute ablaufend`;
+                rowHighlight = 'bg-red-50/50 dark:bg-red-900/10';
+            } else if (diffDays <= 3) {
+                expiryClass = 'text-amber-600 dark:text-amber-400 font-medium';
+                expiryLabel = `Läuft ab in ${diffDays} Tag${diffDays === 1 ? '' : 'en'} (${dateStr})`;
+                rowHighlight = 'bg-amber-50/30 dark:bg-amber-900/10';
+            } else {
+                expiryLabel = `MHD: ${dateStr}`;
+            }
+        }
+
+        const quantityStr = item.quantity != null
+            ? `${parseFloat(item.quantity).toLocaleString('de-DE')}${item.unit ? ' ' + item.unit : ''}`
+            : item.unit || '';
+
+        return `
+            <div class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${rowHighlight}" data-id="${item.id}">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-medium text-gray-800 dark:text-white">${this.escapeHtml(item.name)}</span>
+                        ${item.category ? `<span class="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded">${this.escapeHtml(item.category)}</span>` : ''}
+                        ${item.location ? `<span class="text-xs px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded">${this.escapeHtml(item.location)}</span>` : ''}
+                    </div>
+                    <div class="flex items-center gap-3 mt-0.5 flex-wrap">
+                        ${quantityStr ? `<span class="text-sm text-gray-600 dark:text-gray-300">${this.escapeHtml(quantityStr)}</span>` : ''}
+                        ${expiryLabel ? `<span class="text-xs ${expiryClass}">${expiryLabel}</span>` : ''}
+                        ${item.notes ? `<span class="text-xs text-gray-400 dark:text-gray-500 truncate max-w-xs">${this.escapeHtml(item.notes)}</span>` : ''}
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                    <button class="pantry-edit-btn p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded transition-colors" data-id="${item.id}" title="Bearbeiten">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </button>
+                    <button class="pantry-delete-btn p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors" data-id="${item.id}" title="Löschen">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    renderForm() {
+        const item = this.editingItem || {};
+        const isEdit = !!item.id;
+        return `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-5">
+                <h3 class="font-semibold text-gray-800 dark:text-white mb-4">${isEdit ? 'Lebensmittel bearbeiten' : 'Neues Lebensmittel'}</h3>
+                <form id="pantry-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+                        <input type="text" id="pantry-name" value="${this.escapeHtml(item.name || '')}"
+                            class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="z.B. Karotten" required autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Menge</label>
+                        <input type="number" id="pantry-quantity" value="${item.quantity != null ? parseFloat(item.quantity) : ''}" min="0" step="any"
+                            class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="z.B. 500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Einheit</label>
+                        <input type="text" id="pantry-unit" value="${this.escapeHtml(item.unit || '')}"
+                            class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="z.B. g, ml, Stück" list="pantry-unit-list">
+                        <datalist id="pantry-unit-list">
+                            <option value="g"><option value="kg"><option value="ml"><option value="l">
+                            <option value="Stück"><option value="Packung"><option value="Dose"><option value="Flasche">
+                            <option value="Bund"><option value="EL"><option value="TL">
+                        </datalist>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategorie</label>
+                        <select id="pantry-category" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">-- Keine --</option>
+                            ${this.categories.map(c => `<option value="${c}" ${item.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lagerort</label>
+                        <select id="pantry-location" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">-- Keiner --</option>
+                            ${this.locations.map(l => `<option value="${l}" ${item.location === l ? 'selected' : ''}>${l}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kaufdatum</label>
+                        <input type="date" id="pantry-purchase-date" value="${item.purchase_date ? item.purchase_date.split('T')[0] : ''}"
+                            class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mindesthaltbarkeitsdatum</label>
+                        <input type="date" id="pantry-expiry-date" value="${item.expiry_date ? item.expiry_date.split('T')[0] : ''}"
+                            class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notizen</label>
+                        <input type="text" id="pantry-notes" value="${this.escapeHtml(item.notes || '')}"
+                            class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Optional">
+                    </div>
+                    <div class="sm:col-span-2 flex gap-2 justify-end">
+                        <button type="button" id="pantry-form-cancel" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
+                            Abbrechen
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm">
+                            ${isEdit ? 'Speichern' : 'Hinzufügen'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+    },
+
+    attachEventListeners() {
+        // Add button
+        const addBtn = document.getElementById('pantry-add-btn');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                this.editingItem = null;
+                this.showForm = true;
+                App.render();
+                // Scroll to and focus form
+                setTimeout(() => {
+                    const form = document.getElementById('pantry-form');
+                    if (form) {
+                        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        const nameInput = document.getElementById('pantry-name');
+                        if (nameInput) nameInput.focus();
+                    }
+                }, 50);
+            });
+        }
+
+        // Cancel form
+        const cancelBtn = document.getElementById('pantry-form-cancel');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                this.showForm = false;
+                this.editingItem = null;
+                App.render();
+            });
+        }
+
+        // Submit form
+        const form = document.getElementById('pantry-form');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.saveItem();
+            });
+        }
+
+        // Edit buttons
+        document.querySelectorAll('.pantry-edit-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = parseInt(btn.dataset.id);
+                this.editingItem = AppState.pantryItems.find(i => i.id === id) || null;
+                this.showForm = true;
+                App.render();
+                setTimeout(() => {
+                    const form = document.getElementById('pantry-form');
+                    if (form) {
+                        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        const nameInput = document.getElementById('pantry-name');
+                        if (nameInput) nameInput.focus();
+                    }
+                }, 50);
+            });
+        });
+
+        // Delete buttons
+        document.querySelectorAll('.pantry-delete-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = parseInt(btn.dataset.id);
+                const item = AppState.pantryItems.find(i => i.id === id);
+                if (!item) return;
+                if (!confirm(`"${item.name}" wirklich löschen?`)) return;
+                try {
+                    await StorageService.deletePantryItem(id);
+                    AppState.pantryItems = AppState.pantryItems.filter(i => i.id !== id);
+                    Toast.success('Lebensmittel gelöscht');
+                    App.render();
+                } catch (err) {
+                    Toast.error('Fehler beim Löschen');
+                }
+            });
+        });
+
+        // Category filter
+        const catFilter = document.getElementById('pantry-filter-category');
+        if (catFilter) {
+            catFilter.addEventListener('change', () => {
+                this.filterCategory = catFilter.value;
+                App.render();
+            });
+        }
+
+        // Location filter
+        const locFilter = document.getElementById('pantry-filter-location');
+        if (locFilter) {
+            locFilter.addEventListener('change', () => {
+                this.filterLocation = locFilter.value;
+                App.render();
+            });
+        }
+
+        // Clear filters
+        const clearBtn = document.getElementById('pantry-clear-filters');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                this.filterCategory = '';
+                this.filterLocation = '';
+                App.render();
+            });
+        }
+    },
+
+    async saveItem() {
+        const name = document.getElementById('pantry-name')?.value?.trim();
+        if (!name) {
+            Toast.error('Name ist erforderlich');
+            return;
+        }
+
+        const payload = {
+            name,
+            quantity: document.getElementById('pantry-quantity')?.value || null,
+            unit: document.getElementById('pantry-unit')?.value?.trim() || null,
+            category: document.getElementById('pantry-category')?.value || null,
+            location: document.getElementById('pantry-location')?.value || null,
+            purchase_date: document.getElementById('pantry-purchase-date')?.value || null,
+            expiry_date: document.getElementById('pantry-expiry-date')?.value || null,
+            notes: document.getElementById('pantry-notes')?.value?.trim() || null,
+        };
+
+        try {
+            if (this.editingItem?.id) {
+                payload.id = this.editingItem.id;
+                const updated = await StorageService.updatePantryItem(payload);
+                AppState.pantryItems = AppState.pantryItems.map(i => i.id === updated.id ? updated : i);
+                Toast.success('Lebensmittel aktualisiert');
+            } else {
+                const created = await StorageService.addPantryItem(payload);
+                AppState.pantryItems = [...AppState.pantryItems, created];
+                Toast.success('Lebensmittel hinzugefügt');
+            }
+            this.showForm = false;
+            this.editingItem = null;
+            App.render();
+        } catch (err) {
+            Toast.error(err.message || 'Fehler beim Speichern');
+        }
+    },
+
+    escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
     }
 };
 

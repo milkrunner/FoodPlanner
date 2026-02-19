@@ -1,37 +1,98 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3B82F6"/>
-      <stop offset="100%" style="stop-color:#2563EB"/>
+      <stop offset="0%" stop-color="#3DBEA8"/>
+      <stop offset="100%" stop-color="#2EAF9B"/>
     </linearGradient>
+    <linearGradient id="plateGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E8F6F3"/>
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7EC850"/>
+      <stop offset="100%" stop-color="#5EBA30"/>
+    </linearGradient>
+    <linearGradient id="tomatoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B6B"/>
+      <stop offset="100%" stop-color="#EE5A5A"/>
+    </linearGradient>
+    <linearGradient id="carrotGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFB347"/>
+      <stop offset="100%" stop-color="#FF8C4B"/>
+    </linearGradient>
+    <linearGradient id="eggGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFEF8"/>
+      <stop offset="100%" stop-color="#FFF8E7"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#1D7A6E" flood-opacity="0.3"/>
+    </filter>
   </defs>
+
   <!-- Background -->
-  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
-  <!-- Calendar/Planner icon -->
-  <rect x="96" y="128" width="320" height="280" rx="24" fill="white" opacity="0.95"/>
-  <!-- Calendar header -->
-  <rect x="96" y="128" width="320" height="64" rx="24" fill="white"/>
-  <rect x="96" y="168" width="320" height="24" fill="white"/>
-  <!-- Calendar dots/hooks -->
-  <circle cx="176" cy="112" r="16" fill="#3B82F6"/>
-  <circle cx="336" cy="112" r="16" fill="#3B82F6"/>
-  <rect x="168" y="96" width="16" height="48" rx="8" fill="#1E40AF"/>
-  <rect x="328" y="96" width="16" height="48" rx="8" fill="#1E40AF"/>
-  <!-- Grid lines -->
-  <line x1="96" y1="220" x2="416" y2="220" stroke="#E5E7EB" stroke-width="2"/>
-  <line x1="96" y1="280" x2="416" y2="280" stroke="#E5E7EB" stroke-width="2"/>
-  <line x1="96" y1="340" x2="416" y2="340" stroke="#E5E7EB" stroke-width="2"/>
-  <line x1="203" y1="192" x2="203" y2="408" stroke="#E5E7EB" stroke-width="2"/>
-  <line x1="309" y1="192" x2="309" y2="408" stroke="#E5E7EB" stroke-width="2"/>
-  <!-- Food items (simplified) -->
-  <!-- Apple -->
-  <circle cx="150" cy="250" r="20" fill="#EF4444"/>
-  <path d="M150 230 Q155 220 160 225" stroke="#22C55E" stroke-width="4" fill="none"/>
+  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+
+  <!-- Decorative sparkles -->
+  <circle cx="80" cy="80" r="12" fill="rgba(255,255,255,0.4)"/>
+  <circle cx="432" cy="432" r="12" fill="rgba(255,255,255,0.4)"/>
+  <circle cx="420" cy="100" r="8" fill="rgba(255,255,255,0.3)"/>
+  <circle cx="92" cy="420" r="8" fill="rgba(255,255,255,0.3)"/>
+  <circle cx="140" cy="140" r="6" fill="rgba(255,255,255,0.25)"/>
+  <circle cx="372" cy="372" r="6" fill="rgba(255,255,255,0.25)"/>
+
+  <!-- Main plate -->
+  <ellipse cx="256" cy="290" rx="160" ry="120" fill="url(#plateGrad)" filter="url(#shadow)"/>
+  <ellipse cx="256" cy="290" rx="130" ry="95" fill="none" stroke="#D1EFEA" stroke-width="4"/>
+  <ellipse cx="256" cy="290" rx="100" ry="70" fill="none" stroke="#E8F6F3" stroke-width="2"/>
+
+  <!-- Cute rice ball / onigiri -->
+  <path d="M256 200 L196 300 Q196 330 256 330 Q316 330 316 300 Z" fill="url(#eggGrad)"/>
+  <ellipse cx="256" cy="290" rx="50" ry="30" fill="#1F352F"/>
+  <!-- Rice ball face -->
+  <circle cx="236" cy="260" r="6" fill="#1F352F"/>
+  <circle cx="276" cy="260" r="6" fill="#1F352F"/>
+  <ellipse cx="256" cy="275" rx="8" ry="5" fill="#FF8C4B" opacity="0.6"/>
+
+  <!-- Tomato -->
+  <circle cx="340" cy="320" r="35" fill="url(#tomatoGrad)"/>
+  <ellipse cx="340" cy="295" rx="8" ry="4" fill="#22C55E"/>
+  <path d="M340 290 Q345 280 350 285" stroke="#22C55E" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <!-- Tomato shine -->
+  <circle cx="328" cy="308" r="8" fill="rgba(255,255,255,0.4)"/>
+
   <!-- Carrot -->
-  <ellipse cx="256" cy="310" rx="12" ry="24" fill="#F97316"/>
-  <path d="M256 286 L250 276 M256 286 L262 276 M256 286 L256 272" stroke="#22C55E" stroke-width="3"/>
-  <!-- Cheese -->
-  <path d="M340 360 L370 360 L355 330 Z" fill="#FCD34D"/>
-  <circle cx="352" cy="350" r="4" fill="#FBBF24"/>
-  <circle cx="360" cy="355" r="3" fill="#FBBF24"/>
+  <ellipse cx="175" cy="330" rx="20" ry="45" fill="url(#carrotGrad)" transform="rotate(-15, 175, 330)"/>
+  <path d="M175 280 L165 260 M175 280 L185 260 M175 280 L175 255" stroke="#5EBA30" stroke-width="6" stroke-linecap="round"/>
+  <!-- Carrot shine -->
+  <ellipse cx="168" cy="315" rx="5" ry="12" fill="rgba(255,255,255,0.3)" transform="rotate(-15, 168, 315)"/>
+
+  <!-- Big decorative leaf -->
+  <g transform="translate(350, 140)">
+    <path d="M0 60 Q-20 30 0 0 Q40 10 60 50 Q40 70 0 60" fill="url(#leafGrad)"/>
+    <path d="M5 55 Q10 35 25 30" stroke="#3A761E" stroke-width="3" fill="none"/>
+    <path d="M10 50 Q20 40 35 38" stroke="#3A761E" stroke-width="2" fill="none"/>
+  </g>
+
+  <!-- Fork (left side) -->
+  <g transform="translate(85, 180) rotate(-25)">
+    <rect x="0" y="0" width="20" height="110" rx="10" fill="#FFD93D"/>
+    <rect x="-6" y="-35" width="10" height="40" rx="4" fill="#FFD93D"/>
+    <rect x="5" y="-35" width="10" height="40" rx="4" fill="#FFD93D"/>
+    <rect x="16" y="-35" width="10" height="40" rx="4" fill="#FFD93D"/>
+    <!-- Fork shine -->
+    <rect x="3" y="10" width="4" height="60" rx="2" fill="rgba(255,255,255,0.4)"/>
+  </g>
+
+  <!-- Spoon (right side) -->
+  <g transform="translate(390, 200) rotate(25)">
+    <ellipse cx="12" cy="-20" rx="28" ry="35" fill="#FFD93D"/>
+    <rect x="2" y="10" width="20" height="100" rx="10" fill="#FFD93D"/>
+    <!-- Spoon shine -->
+    <ellipse cx="5" cy="-25" rx="10" ry="15" fill="rgba(255,255,255,0.35)"/>
+    <rect x="5" y="20" width="5" height="50" rx="2" fill="rgba(255,255,255,0.3)"/>
+  </g>
+
+  <!-- Small hearts decoration -->
+  <path d="M450 250 Q455 240 462 250 Q470 260 462 270 L450 285 L438 270 Q430 260 438 250 Q445 240 450 250" fill="#FF8C4B" opacity="0.7"/>
+  <path d="M70 300 Q73 294 78 300 Q84 306 78 312 L70 320 L62 312 Q56 306 62 300 Q67 294 70 300" fill="#FF8C4B" opacity="0.5"/>
 </svg>
