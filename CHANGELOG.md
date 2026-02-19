@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/milkrunner/FoodPlanner/compare/v2.1.1...v2.2.0) (2026-02-19)
+
+
+### Features
+
+* Redesign UI with Animal Crossing style ([#161](https://github.com/milkrunner/FoodPlanner/issues/161)) ([8ab4206](https://github.com/milkrunner/FoodPlanner/commit/8ab4206da61eb514c809aafcab2df98326648d38))
+
 ## [2.1.1](https://github.com/milkrunner/FoodPlanner/compare/v2.1.0...v2.1.1) (2026-02-18)
 
 
