@@ -299,6 +299,44 @@ exec(`yt-dlp -f best ${url}`)
 - Browser-Cache für statische Assets
 - Potenzial: Redis für KI-Responses
 
+## Frontend Design System
+
+Das Frontend verwendet ein Animal Crossing-inspiriertes Design System, konfiguriert über Tailwind CSS in `index.html`.
+
+### Farbpalette
+
+| Token | Verwendung |
+|-------|-----------|
+| `ac-mint` | Primärfarbe, Buttons, Akzente |
+| `ac-peach` | Sekundärfarbe, Warnungen, Call-to-Actions |
+| `ac-cream` | Hintergrundflächen (Light Mode) |
+| `ac-brown` | Text, Borders, Akzente |
+| `ac-leaf` | Erfolg, Tags, Kategorien |
+| `ac-blue` | Info, Links |
+| `ac-yellow` | Highlights, Sterne |
+| `ac-night` | Hintergrundflächen (Dark Mode) |
+
+Jede Farbe bietet abgestufte Varianten (50–900), definiert in der `tailwind.config` Sektion von `index.html`.
+
+### Typografie
+
+- **Font:** Nunito (Google Fonts), Fallback auf `system-ui, sans-serif`
+- **Konfiguration:** `fontFamily.ac` in Tailwind
+
+### Border Radius & Shadows
+
+Abgerundete Ecken und weiche Schatten erzeugen den charakteristischen Animal Crossing-Look:
+
+- `rounded-ac-sm` / `rounded-ac` / `rounded-ac-lg` / `rounded-ac-xl` / `rounded-ac-pill`
+- `shadow-ac-sm` / `shadow-ac` / `shadow-ac-lg` / `shadow-ac-glow`
+- Dark Mode-Varianten: `shadow-ac-dark-sm` / `shadow-ac-dark` / `shadow-ac-dark-lg`
+
+### Dark Mode
+
+- Aktiviert über `darkMode: 'class'` in Tailwind
+- Verwendet `ac-night`-Farbpalette für Hintergründe
+- Schatten wechseln zu `ac-dark-*` Varianten
+
 ## Erweiterbarkeit
 
 ### Neue API-Endpoints
