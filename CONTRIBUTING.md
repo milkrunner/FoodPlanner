@@ -254,6 +254,44 @@ ORDER BY times_cooked DESC;
 - Semantische HTML-Elemente
 - Konsistente Klassennamen-Reihenfolge
 
+## Design System
+
+Das Projekt nutzt ein Animal Crossing-inspiriertes Design System mit eigenen Tailwind-Farben.
+
+### Farben verwenden
+
+Verwende ausschließlich die `ac-*` Farbklassen statt der Standard-Tailwind-Farben:
+
+```html
+<!-- Richtig -->
+<button class="bg-ac-mint-500 text-white rounded-ac">Speichern</button>
+<div class="bg-ac-cream-100 dark:bg-ac-night-200">...</div>
+
+<!-- Falsch -->
+<button class="bg-green-500 text-white rounded-lg">Speichern</button>
+```
+
+### Verfügbare Farb-Tokens
+
+| Token | Zweck |
+|-------|-------|
+| `ac-mint` | Primärfarbe (Buttons, Links) |
+| `ac-peach` | Sekundärfarbe (CTAs, Warnungen) |
+| `ac-cream` | Hintergründe (Light Mode) |
+| `ac-night` | Hintergründe (Dark Mode) |
+| `ac-brown` | Text, Borders |
+| `ac-leaf` | Erfolg, Kategorien |
+| `ac-blue` | Info, Links |
+| `ac-yellow` | Highlights |
+
+### Border Radius
+
+Verwende `rounded-ac-*` Klassen statt der Standard-Tailwind-Klassen (`rounded-ac-sm`, `rounded-ac`, `rounded-ac-lg`, `rounded-ac-xl`, `rounded-ac-pill`).
+
+### Typografie
+
+Die Font-Familie `font-ac` (Nunito) ist für alle Textelemente vorgesehen.
+
 ## Testen
 
 ### Manuelles Testen
