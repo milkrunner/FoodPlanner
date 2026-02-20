@@ -1608,6 +1608,148 @@ const MobileUtils = {
     }
 };
 
+// ========== AUTH CLIENT ==========
+
+const Auth = {
+    _token: null,
+    _user: null,
+
+    init() {
+        this._token = localStorage.getItem('auth_token');
+        const stored = localStorage.getItem('auth_user');
+        if (stored) {
+            try { this._user = JSON.parse(stored); } catch { this._user = null; }
+        }
+    },
+
+    isAuthenticated() {
+        return !!this._token;
+    },
+
+    getUser() {
+        return this._user;
+    },
+
+    getToken() {
+        return this._token;
+    },
+
+    _save(token, user) {
+        this._token = token;
+        this._user = user;
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('auth_user', JSON.stringify(user));
+    },
+
+    _clear() {
+        this._token = null;
+        this._user = null;
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+    },
+
+    async login(email, password) {
+        const res = await fetch('/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Anmeldung fehlgeschlagen');
+        this._save(data.token, data.user);
+        return data.user;
+    },
+
+    async register(email, password, name) {
+        const res = await fetch('/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, name })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Registrierung fehlgeschlagen');
+        this._save(data.token, data.user);
+        return data.user;
+    },
+
+    async logout() {
+        try {
+            await fetch('/auth/logout', {
+                method: 'POST',
+                headers: this._token ? { 'Authorization': `Bearer ${this._token}` } : {}
+            });
+        } catch { /* ignore */ }
+        this._clear();
+    }
+};
+
+const AuthModal = {
+    _overlay: null,
+
+    show(mode = 'login') {
+        this.close();
+        const isLogin = mode === 'login';
+        const overlay = document.createElement('div');
+        overlay.id = 'auth-modal-overlay';
+        overlay.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black/50';
+        overlay.innerHTML = `
+            <div class="bg-white dark:bg-[#09090B] rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 relative">
+                <button id="auth-modal-close" class="absolute top-3 right-3 text-ac-brown-400 dark:text-ac-cream-400 hover:text-ac-brown-700 dark:hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                <h2 class="text-lg font-semibold text-ac-brown-900 dark:text-white mb-4">${isLogin ? 'Anmelden' : 'Registrieren'}</h2>
+                <form id="auth-modal-form" class="space-y-3">
+                    ${!isLogin ? '<input id="auth-name" type="text" placeholder="Name (optional)" class="w-full px-3 py-2 rounded-xl border border-black/10 dark:border-white/10 bg-transparent text-sm text-ac-brown-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ac-mint-500"/>' : ''}
+                    <input id="auth-email" type="email" placeholder="E-Mail" required class="w-full px-3 py-2 rounded-xl border border-black/10 dark:border-white/10 bg-transparent text-sm text-ac-brown-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ac-mint-500"/>
+                    <input id="auth-password" type="password" placeholder="Passwort" required minlength="8" class="w-full px-3 py-2 rounded-xl border border-black/10 dark:border-white/10 bg-transparent text-sm text-ac-brown-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ac-mint-500"/>
+                    <div id="auth-error" class="text-xs text-red-500 hidden"></div>
+                    <button type="submit" class="w-full py-2 rounded-xl bg-ac-mint-500 text-white text-sm font-medium hover:bg-ac-mint-600 transition-colors">${isLogin ? 'Anmelden' : 'Registrieren'}</button>
+                </form>
+                <p class="text-xs text-center text-ac-brown-400 dark:text-ac-cream-500 mt-3">
+                    ${isLogin ? 'Noch kein Konto?' : 'Bereits registriert?'}
+                    <button id="auth-toggle-mode" class="text-ac-mint-600 dark:text-ac-mint-400 hover:underline ml-1">${isLogin ? 'Registrieren' : 'Anmelden'}</button>
+                </p>
+            </div>`;
+        document.body.appendChild(overlay);
+        this._overlay = overlay;
+
+        overlay.querySelector('#auth-modal-close').addEventListener('click', () => this.close());
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) this.close(); });
+        overlay.querySelector('#auth-toggle-mode').addEventListener('click', () => this.show(isLogin ? 'register' : 'login'));
+
+        overlay.querySelector('#auth-modal-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = overlay.querySelector('#auth-email').value;
+            const password = overlay.querySelector('#auth-password').value;
+            const errEl = overlay.querySelector('#auth-error');
+            errEl.classList.add('hidden');
+            try {
+                if (isLogin) {
+                    await Auth.login(email, password);
+                } else {
+                    const name = overlay.querySelector('#auth-name')?.value || '';
+                    await Auth.register(email, password, name);
+                }
+                this.close();
+                App.updateHeaderAuth();
+                Toast.show(isLogin ? 'Willkommen zurück!' : 'Erfolgreich registriert!', { type: 'success', duration: 2000 });
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            }
+        });
+
+        overlay.querySelector('#auth-email').focus();
+    },
+
+    close() {
+        if (this._overlay) {
+            this._overlay.remove();
+            this._overlay = null;
+        }
+    }
+};
+
 // Main App
 const App = {
     mobileMenuOpen: false,
