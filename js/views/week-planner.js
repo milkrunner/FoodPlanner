@@ -3,6 +3,7 @@ import { StorageService } from '../core/storage-service.js';
 import { Toast } from '../core/toast.js';
 import { DateUtils } from '../core/date-utils.js';
 import { ActionHistory } from '../core/action-history.js';
+import { MobileUtils } from '../core/mobile-utils.js';
 import { escapeHtml } from '../core/utils.js';
 import { App } from '../app.js';
 

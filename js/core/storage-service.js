@@ -298,7 +298,13 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/cooking-history?page=${page}&limit=${limit}`);
             if (!response.ok) throw new Error('Failed to fetch cooking history');
-            return await response.json();
+            const data = await response.json();
+            return {
+                history: data.entries || [],
+                total: data.total || 0,
+                page,
+                totalPages: Math.ceil((data.total || 0) / limit)
+            };
         } catch (error) {
             console.error('Error fetching cooking history:', error);
             return { history: [], total: 0, page: 1, totalPages: 0 };
