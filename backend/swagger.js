@@ -37,6 +37,7 @@ CORS_ORIGINS=https://foodplanner.example.com,https://app.example.com
             { name: 'Templates', description: 'Wochenplan-Vorlagen' },
             { name: 'Shopping', description: 'Einkaufsliste und Budget' },
             { name: 'Cooking History', description: 'Kochverlauf' },
+            { name: 'Pantry', description: 'Vorratsverwaltung / Ingredient Inventory' },
             { name: 'AI', description: 'KI-gestützte Features' },
             { name: 'System', description: 'System-Endpoints' }
         ],
@@ -424,6 +425,71 @@ CORS_ORIGINS=https://foodplanner.example.com,https://app.example.com
                             type: 'string',
                             description: 'Kategorie des Gerichts',
                             example: 'Hauptgericht'
+                        }
+                    }
+                },
+                PantryItem: {
+                    type: 'object',
+                    required: ['id', 'name'],
+                    properties: {
+                        id: {
+                            type: 'integer',
+                            description: 'Eindeutige Pantry-Item-ID',
+                            example: 1
+                        },
+                        name: {
+                            type: 'string',
+                            description: 'Name des Vorratsartikels',
+                            example: 'Mehl'
+                        },
+                        quantity: {
+                            type: 'number',
+                            nullable: true,
+                            description: 'Menge',
+                            example: 500
+                        },
+                        unit: {
+                            type: 'string',
+                            nullable: true,
+                            description: 'Einheit',
+                            example: 'g'
+                        },
+                        category: {
+                            type: 'string',
+                            nullable: true,
+                            description: 'Kategorie des Artikels',
+                            example: 'Trockenwaren'
+                        },
+                        location: {
+                            type: 'string',
+                            nullable: true,
+                            description: 'Lagerort',
+                            example: 'Vorratsschrank'
+                        },
+                        purchase_date: {
+                            type: 'string',
+                            format: 'date',
+                            nullable: true,
+                            description: 'Kaufdatum'
+                        },
+                        expiry_date: {
+                            type: 'string',
+                            format: 'date',
+                            nullable: true,
+                            description: 'Ablaufdatum'
+                        },
+                        notes: {
+                            type: 'string',
+                            nullable: true,
+                            description: 'Notizen'
+                        },
+                        created_at: {
+                            type: 'string',
+                            format: 'date-time'
+                        },
+                        updated_at: {
+                            type: 'string',
+                            format: 'date-time'
                         }
                     }
                 },

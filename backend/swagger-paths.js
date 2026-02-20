@@ -1734,6 +1734,241 @@
  *         description: Eine oder mehrere Komponenten sind nicht verfügbar
  */
 
+/**
+ * @swagger
+ * /pantry:
+ *   get:
+ *     summary: Alle Vorratsartikel abrufen
+ *     description: Gibt alle Pantry-Items zurück, sortiert nach Ablaufdatum (aufsteigend, NULL zuletzt) und Name.
+ *     tags: [Pantry]
+ *     responses:
+ *       200:
+ *         description: Liste aller Vorratsartikel
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/PantryItem'
+ *       500:
+ *         description: Serverfehler
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *
+ *   post:
+ *     summary: Neuen Vorratsartikel anlegen
+ *     tags: [Pantry]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name des Artikels
+ *                 example: Mehl
+ *               quantity:
+ *                 type: number
+ *                 nullable: true
+ *                 example: 500
+ *               unit:
+ *                 type: string
+ *                 nullable: true
+ *                 example: g
+ *               category:
+ *                 type: string
+ *                 nullable: true
+ *                 example: Trockenwaren
+ *               location:
+ *                 type: string
+ *                 nullable: true
+ *                 example: Vorratsschrank
+ *               purchase_date:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *               expiry_date:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *               notes:
+ *                 type: string
+ *                 nullable: true
+ *     responses:
+ *       201:
+ *         description: Vorratsartikel erfolgreich angelegt
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PantryItem'
+ *       400:
+ *         description: Name ist erforderlich
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Serverfehler
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+/**
+ * @swagger
+ * /pantry/expiring:
+ *   get:
+ *     summary: Bald ablaufende Vorratsartikel abrufen
+ *     description: Gibt Pantry-Items zurück, deren Ablaufdatum innerhalb der angegebenen Tage liegt.
+ *     tags: [Pantry]
+ *     parameters:
+ *       - in: query
+ *         name: days
+ *         schema:
+ *           type: integer
+ *           default: 3
+ *           minimum: 1
+ *         description: Anzahl Tage bis zum Ablauf (Standard 3)
+ *     responses:
+ *       200:
+ *         description: Liste der bald ablaufenden Artikel
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/PantryItem'
+ *       500:
+ *         description: Serverfehler
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
+/**
+ * @swagger
+ * /pantry/{id}:
+ *   put:
+ *     summary: Vorratsartikel aktualisieren
+ *     tags: [Pantry]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID des Pantry-Items
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: Mehl
+ *               quantity:
+ *                 type: number
+ *                 nullable: true
+ *                 example: 1000
+ *               unit:
+ *                 type: string
+ *                 nullable: true
+ *                 example: g
+ *               category:
+ *                 type: string
+ *                 nullable: true
+ *                 example: Trockenwaren
+ *               location:
+ *                 type: string
+ *                 nullable: true
+ *                 example: Vorratsschrank
+ *               purchase_date:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *               expiry_date:
+ *                 type: string
+ *                 format: date
+ *                 nullable: true
+ *               notes:
+ *                 type: string
+ *                 nullable: true
+ *     responses:
+ *       200:
+ *         description: Aktualisierter Vorratsartikel
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PantryItem'
+ *       400:
+ *         description: Name ist erforderlich
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Pantry-Item nicht gefunden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Serverfehler
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *
+ *   delete:
+ *     summary: Vorratsartikel löschen
+ *     tags: [Pantry]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID des Pantry-Items
+ *     responses:
+ *       200:
+ *         description: Erfolgreich gelöscht
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 id:
+ *                   type: integer
+ *                   example: 1
+ *       404:
+ *         description: Pantry-Item nicht gefunden
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Serverfehler
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+
 // Diese Datei enthält nur JSDoc-Kommentare für swagger-jsdoc
 // Sie wird von swagger.js referenziert
 module.exports = {};
