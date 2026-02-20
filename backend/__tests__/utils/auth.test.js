@@ -11,7 +11,7 @@ const assert = require('node:assert');
 
 function validateEmail(email) {
     if (!email || typeof email !== 'string') return false;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@.]+\.[^\s@]+$/;
     return emailRegex.test(email.trim());
 }
 
@@ -76,6 +76,18 @@ describe('validateEmail', () => {
 
     it('should trim whitespace before validating', () => {
         assert.strictEqual(validateEmail('  user@example.com  '), true);
+    });
+
+    it('should reject domain without TLD', () => {
+        assert.strictEqual(validateEmail('user@localhost'), false);
+    });
+
+    it('should not hang on ReDoS payload', () => {
+        const start = Date.now();
+        const malicious = '!@' + '!.'.repeat(1000);
+        validateEmail(malicious);
+        const elapsed = Date.now() - start;
+        assert.ok(elapsed < 100, `Took ${elapsed}ms — possible ReDoS`);
     });
 });
 
