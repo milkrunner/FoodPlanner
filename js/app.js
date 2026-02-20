@@ -4,6 +4,9 @@ import { Toast } from './core/toast.js';
 import { ActionHistory } from './core/action-history.js';
 import { MobileUtils } from './core/mobile-utils.js';
 import { OnboardingManager } from './core/onboarding.js';
+import { Auth } from './core/auth.js';
+import { AuthModal } from './core/auth-modal.js';
+import { escapeHtml } from './core/utils.js';
 
 // View module registry for lazy loading
 const VIEW_MODULES = {
@@ -34,6 +37,7 @@ export const App = {
     _viewCache: {},
 
     async init() {
+        Auth.init();
         DarkMode.init();
         await AppState.init();
         // Wire up render callback to break circular dependency with AppState
@@ -257,6 +261,47 @@ export const App = {
         `;
     },
 
+    _renderAuthButton() {
+        const user = Auth.getUser();
+        if (user) {
+            const initial = (user.name || user.email).charAt(0).toUpperCase();
+            return `<div id="header-auth-btn" class="relative">
+                <button id="user-menu-btn" class="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-semibold flex items-center justify-center hover:bg-blue-700 transition-colors" title="${escapeHtml(user.email)}" aria-label="Benutzermenü">${initial}</button>
+                <div id="user-dropdown" class="hidden absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50">
+                    <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                        <p class="text-xs font-medium text-gray-900 dark:text-white truncate">${escapeHtml(user.name || '')}</p>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 truncate">${escapeHtml(user.email)}</p>
+                    </div>
+                    <button id="user-logout-btn" class="w-full text-left px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Abmelden</button>
+                </div>
+            </div>`;
+        }
+        return `<button id="header-auth-btn" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Anmelden" aria-label="Anmelden">
+            <svg class="w-6 h-6 text-gray-800 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        </button>`;
+    },
+
+    _bindAuthButton() {
+        const loginBtn = document.getElementById('header-auth-btn');
+        if (loginBtn && !Auth.isAuthenticated()) {
+            loginBtn.addEventListener('click', () => AuthModal.show('login', () => App.render()));
+        }
+        const menuBtn = document.getElementById('user-menu-btn');
+        const dropdown = document.getElementById('user-dropdown');
+        if (menuBtn && dropdown) {
+            menuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle('hidden');
+            });
+            document.addEventListener('click', () => dropdown.classList.add('hidden'), { once: true });
+        }
+        document.getElementById('user-logout-btn')?.addEventListener('click', async () => {
+            await Auth.logout();
+            App.render();
+            Toast.show('Abgemeldet', { type: 'default', duration: 2000 });
+        });
+    },
+
     renderHeader() {
         const isDark = document.documentElement.classList.contains('dark');
         const sunIconClass = isDark ? 'hidden' : '';
@@ -290,6 +335,7 @@ export const App = {
                                     <path class="${moonIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
                                 </svg>
                             </button>
+                            ${this._renderAuthButton()}
                         </div>
                     </div>
                 </div>
@@ -386,6 +432,9 @@ export const App = {
     },
 
     attachEventListeners() {
+        // Auth button
+        this._bindAuthButton();
+
         // Dark mode toggle
         const darkModeToggle = document.getElementById('dark-mode-toggle');
         if (darkModeToggle) {
