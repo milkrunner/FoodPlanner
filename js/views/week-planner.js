@@ -5,6 +5,7 @@ import { DateUtils } from '../core/date-utils.js';
 import { ActionHistory } from '../core/action-history.js';
 import { MobileUtils } from '../core/mobile-utils.js';
 import { escapeHtml } from '../core/utils.js';
+import { API_BASE_URL } from '../config.js';
 import { App } from '../app.js';
 
 export const WeekPlannerView = {
