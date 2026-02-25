@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "bcryptjs": "^2.4.3",
     "body-parser": "^2.2.2",
+    "jsonwebtoken": "^9.0.2",
     "cheerio": "^1.2.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",

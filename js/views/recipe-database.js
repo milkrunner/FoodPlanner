@@ -1038,7 +1038,7 @@ export const RecipeDatabaseView = {
         // New recipe button
         const newBtn = document.getElementById('new-recipe-btn');
         if (newBtn) {
-            newBtn.addEventListener('click', () => this.showRecipeForm());
+            newBtn.addEventListener('click', async () => await this.showRecipeForm());
         }
 
         // Recipe card click - open detail view
@@ -1602,7 +1602,7 @@ export const RecipeDatabaseView = {
         `;
     },
 
-    showRecipeForm(recipe = null) {
+    async showRecipeForm(recipe = null) {
         this.editingRecipe = recipe;
 
         if (recipe) {
@@ -1615,7 +1615,7 @@ export const RecipeDatabaseView = {
             this.tags = [];
         }
 
-        App.render();
+        await App.render();
 
         // Populate form
         if (recipe) {
@@ -1761,7 +1761,7 @@ export const RecipeDatabaseView = {
         const recipe = await StorageService.getRecipeById(recipeId);
         if (recipe) {
             this.viewingRecipe = null; // Close detail view if open
-            this.showRecipeForm(recipe);
+            await this.showRecipeForm(recipe);
         }
     },
 
@@ -1824,7 +1824,7 @@ export const RecipeDatabaseView = {
         await AppState.reloadData();
 
         // Open the duplicated recipe in edit mode
-        this.showRecipeForm(duplicatedRecipe);
+        await this.showRecipeForm(duplicatedRecipe);
     },
 
     async markRecipeAsCooked(recipeId, recipeName) {

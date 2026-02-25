@@ -1,4 +1,2 @@
-// API Configuration
-export const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3000'
-    : '/api';
+// API Configuration — always use same origin (proxied via nginx)
+export const API_BASE_URL = '';
