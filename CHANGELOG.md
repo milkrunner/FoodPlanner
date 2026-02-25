@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/milkrunner/FoodPlanner/compare/v2.2.0...v2.3.0) (2026-02-25)
+
+
+### Features
+
+* User-Authentifizierung ([#52](https://github.com/milkrunner/FoodPlanner/issues/52)) ([#165](https://github.com/milkrunner/FoodPlanner/issues/165)) ([7c55ca5](https://github.com/milkrunner/FoodPlanner/commit/7c55ca509193befae5b6892a1eb56999d8eddcca))
+
 ## [2.2.0](https://github.com/milkrunner/FoodPlanner/compare/v2.1.1...v2.2.0) (2026-02-19)
 
 
