@@ -4,7 +4,7 @@ import { Toast } from '../core/toast.js';
 import { DateUtils } from '../core/date-utils.js';
 import { ActionHistory } from '../core/action-history.js';
 import { MobileUtils } from '../core/mobile-utils.js';
-import { escapeHtml } from '../core/utils.js';
+import { escapeHtml, trapFocus } from '../core/utils.js';
 import { API_BASE_URL } from '../config.js';
 import { App } from '../app.js';
 
@@ -726,12 +726,21 @@ export const WeekPlannerView = {
         }
     },
 
+    _releaseFocusTrap: null,
+
     showRecipeSelector() {
         const modal = document.getElementById('recipe-selector-modal');
-        if (modal) modal.classList.add('active');
+        if (modal) {
+            modal.classList.add('active');
+            this._releaseFocusTrap = trapFocus(modal);
+        }
     },
 
     hideRecipeSelector() {
+        if (this._releaseFocusTrap) {
+            this._releaseFocusTrap();
+            this._releaseFocusTrap = null;
+        }
         const modal = document.getElementById('recipe-selector-modal');
         if (modal) modal.classList.remove('active');
     },

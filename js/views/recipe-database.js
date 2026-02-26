@@ -2,12 +2,13 @@ import { AppState } from '../core/app-state.js';
 import { StorageService } from '../core/storage-service.js';
 import { Toast } from '../core/toast.js';
 import { ActionHistory } from '../core/action-history.js';
-import { escapeHtml } from '../core/utils.js';
+import { escapeHtml, trapFocus } from '../core/utils.js';
 import { App } from '../app.js';
 
 export const RecipeDatabaseView = {
     editingRecipe: null,
     viewingRecipe: null, // For detail view (read-only)
+    _releaseFocusTrap: null,
     ingredients: [{ name: '', amount: '', unit: '', category: 'Sonstiges' }],
     tags: [],
     searchQuery: '',
@@ -1674,10 +1675,17 @@ export const RecipeDatabaseView = {
         this.attachTagEventListeners();
 
         const modal = document.getElementById('recipe-form-modal');
-        if (modal) modal.classList.add('active');
+        if (modal) {
+            modal.classList.add('active');
+            this._releaseFocusTrap = trapFocus(modal);
+        }
     },
 
     hideRecipeForm() {
+        if (this._releaseFocusTrap) {
+            this._releaseFocusTrap();
+            this._releaseFocusTrap = null;
+        }
         const modal = document.getElementById('recipe-form-modal');
         if (modal) modal.classList.remove('active');
         this.editingRecipe = null;

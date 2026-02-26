@@ -2,7 +2,7 @@ import { AppState } from '../core/app-state.js';
 import { StorageService } from '../core/storage-service.js';
 import { Toast } from '../core/toast.js';
 import { DateUtils } from '../core/date-utils.js';
-import { escapeHtml } from '../core/utils.js';
+import { escapeHtml, trapFocus } from '../core/utils.js';
 import { App } from '../app.js';
 import { API_BASE_URL } from '../config.js';
 
@@ -680,12 +680,21 @@ export const ShoppingListView = {
         });
     },
 
+    _releaseFocusTrap: null,
+
     showAddManualItemModal() {
         const modal = document.getElementById('add-manual-item-modal');
-        if (modal) modal.classList.add('active');
+        if (modal) {
+            modal.classList.add('active');
+            this._releaseFocusTrap = trapFocus(modal);
+        }
     },
 
     hideAddManualItemModal() {
+        if (this._releaseFocusTrap) {
+            this._releaseFocusTrap();
+            this._releaseFocusTrap = null;
+        }
         const modal = document.getElementById('add-manual-item-modal');
         if (modal) modal.classList.remove('active');
         // Clear inputs
