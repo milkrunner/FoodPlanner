@@ -4,6 +4,7 @@ import { Toast } from '../core/toast.js';
 import { ActionHistory } from '../core/action-history.js';
 import { escapeHtml, trapFocus } from '../core/utils.js';
 import { App } from '../app.js';
+import { API_BASE_URL } from '../config.js';
 
 export const RecipeDatabaseView = {
     editingRecipe: null,
@@ -2260,7 +2261,7 @@ export const RecipeDatabaseView = {
         App.render();
 
         try {
-            const response = await fetch('http://localhost:3000/ai/scale-portions', {
+            const response = await fetch(`${API_BASE_URL}/ai/scale-portions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -2302,7 +2303,7 @@ export const RecipeDatabaseView = {
         }
 
         try {
-            const response = await fetch('http://localhost:3000/ai/categorize-ingredient', {
+            const response = await fetch(`${API_BASE_URL}/ai/categorize-ingredient`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

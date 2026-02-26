@@ -1,5 +1,5 @@
 // Service Worker for Food Planner PWA
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = `foodplanner-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `foodplanner-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `foodplanner-api-${CACHE_VERSION}`;

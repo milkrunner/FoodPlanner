@@ -566,7 +566,7 @@ export const WeekPlannerView = {
 
         // Setup swipe gestures for mobile day view
         const mobileDayView = document.getElementById('mobile-day-view');
-        if (mobileDayView && MobileUtils.isTouchDevice()) {
+        if (mobileDayView && typeof MobileUtils !== 'undefined' && MobileUtils.isTouchDevice()) {
             MobileUtils.setupSwipeGestures(mobileDayView, {
                 onSwipeLeft: () => {
                     if (this.mobileViewDay < 6) {

@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const rateLimit = require('express-rate-limit');
 const cheerio = require('cheerio');
@@ -12,6 +13,7 @@ const { resolveFavoriteFlagFromBody, resolveToggleTarget } = require('./utils/fa
 const { validateEmail, validatePassword, hashPassword, verifyPassword, generateToken } = require('./utils/auth');
 const { authenticateRequired } = require('./middleware/authenticate');
 const { buildRecipeQuery } = require('./utils/recipe-queries');
+const crypto = require('node:crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,6 +23,19 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
 // Middleware
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "blob:"],
+            connectSrc: ["'self'"]
+        }
+    },
+    crossOriginEmbedderPolicy: false // Allow loading Swagger UI resources
+}));
 app.use(cors()); // Allow all origins
 app.use(express.json({ limit: '10mb' }));
 app.use(requestLogger);
@@ -331,8 +346,10 @@ app.get('/recipes', async (req, res) => {
 // NOTE: This route must be defined BEFORE /recipes/:id to avoid "seasonal" being matched as an ID
 app.get('/recipes/seasonal', async (req, res) => {
     try {
-        const { season, minScore } = req.query;
+        const { season, minScore, limit, offset } = req.query;
         const minimumScore = parseInt(minScore) || 30;
+        const pageLimit = Math.min(parseInt(limit) || 50, 100);
+        const pageOffset = Math.max(parseInt(offset) || 0, 0);
         const currentSeason = getCurrentSeason();
         const seasonKey = season || currentSeason.key;
 
@@ -361,13 +378,17 @@ app.get('/recipes/seasonal', async (req, res) => {
             .filter(recipe => recipe.seasonalScore >= minimumScore)
             .sort((a, b) => b.seasonalScore - a.seasonalScore);
 
+        const paginatedRecipes = seasonalRecipes.slice(pageOffset, pageOffset + pageLimit);
+
         res.json({
             season: SEASONAL_CALENDAR[seasonKey].name,
             seasonKey,
             minimumScore,
             totalRecipes: rows.length,
             seasonalRecipes: seasonalRecipes.length,
-            recipes: seasonalRecipes
+            limit: pageLimit,
+            offset: pageOffset,
+            recipes: paginatedRecipes
         });
     } catch (error) {
         logger.error('Error fetching seasonal recipes', { error: error.message, requestId: req.requestId, component: 'seasons' });
@@ -455,7 +476,6 @@ app.get('/recipes/:id', async (req, res) => {
 // Create recipe
 app.post('/recipes', async (req, res) => {
     const {
-        id,
         name,
         category,
         servings,
@@ -471,6 +491,7 @@ app.post('/recipes', async (req, res) => {
         meal_prep_reheat_tips,
         meal_prep_batch_notes
     } = req.body;
+    const id = crypto.randomUUID();
     const favoriteValue = resolveFavoriteFlagFromBody(req.body, false);
     const mealPrepSuitable = parseBooleanFlag(is_meal_prep_suitable ?? req.body?.isMealPrepSuitable, false);
     const mealPrepFridgeDays = parseNullableInt(meal_prep_fridge_days ?? req.body?.mealPrepFridgeDays);
@@ -520,24 +541,34 @@ app.post('/recipes', async (req, res) => {
                 ]
             );
 
-            // Insert ingredients
+            // Batch insert ingredients
             if (ingredients && ingredients.length > 0) {
-                for (const ing of ingredients) {
-                    await client.query(
-                        'INSERT INTO ingredients (recipe_id, name, amount, unit, category) VALUES ($1, $2, $3, $4, $5)',
-                        [id, ing.name, ing.amount, ing.unit, ing.category || 'Sonstiges']
-                    );
-                }
+                const ingValues = [];
+                const ingParams = [];
+                ingredients.forEach((ing, i) => {
+                    const offset = i * 5;
+                    ingValues.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`);
+                    ingParams.push(id, ing.name, ing.amount, ing.unit, ing.category || 'Sonstiges');
+                });
+                await client.query(
+                    `INSERT INTO ingredients (recipe_id, name, amount, unit, category) VALUES ${ingValues.join(', ')}`,
+                    ingParams
+                );
             }
 
-            // Insert tags
+            // Batch insert tags
             if (tags && tags.length > 0) {
-                for (const tag of tags) {
-                    await client.query(
-                        'INSERT INTO recipe_tags (recipe_id, tag) VALUES ($1, $2)',
-                        [id, tag]
-                    );
-                }
+                const tagValues = [];
+                const tagParams = [];
+                tags.forEach((tag, i) => {
+                    const offset = i * 2;
+                    tagValues.push(`($${offset + 1}, $${offset + 2})`);
+                    tagParams.push(id, tag);
+                });
+                await client.query(
+                    `INSERT INTO recipe_tags (recipe_id, tag) VALUES ${tagValues.join(', ')}`,
+                    tagParams
+                );
             }
         });
 
@@ -619,24 +650,34 @@ app.put('/recipes/:id', async (req, res) => {
             await client.query('DELETE FROM ingredients WHERE recipe_id = $1', [req.params.id]);
 
             if (ingredients && ingredients.length > 0) {
-                for (const ing of ingredients) {
-                    await client.query(
-                        'INSERT INTO ingredients (recipe_id, name, amount, unit, category) VALUES ($1, $2, $3, $4, $5)',
-                        [req.params.id, ing.name, ing.amount, ing.unit, ing.category || 'Sonstiges']
-                    );
-                }
+                const ingValues = [];
+                const ingParams = [];
+                ingredients.forEach((ing, i) => {
+                    const offset = i * 5;
+                    ingValues.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`);
+                    ingParams.push(req.params.id, ing.name, ing.amount, ing.unit, ing.category || 'Sonstiges');
+                });
+                await client.query(
+                    `INSERT INTO ingredients (recipe_id, name, amount, unit, category) VALUES ${ingValues.join(', ')}`,
+                    ingParams
+                );
             }
 
             // Delete old tags and insert new ones
             await client.query('DELETE FROM recipe_tags WHERE recipe_id = $1', [req.params.id]);
 
             if (tags && tags.length > 0) {
-                for (const tag of tags) {
-                    await client.query(
-                        'INSERT INTO recipe_tags (recipe_id, tag) VALUES ($1, $2)',
-                        [req.params.id, tag]
-                    );
-                }
+                const tagValues = [];
+                const tagParams = [];
+                tags.forEach((tag, i) => {
+                    const offset = i * 2;
+                    tagValues.push(`($${offset + 1}, $${offset + 2})`);
+                    tagParams.push(req.params.id, tag);
+                });
+                await client.query(
+                    `INSERT INTO recipe_tags (recipe_id, tag) VALUES ${tagValues.join(', ')}`,
+                    tagParams
+                );
             }
         });
 
@@ -717,39 +758,36 @@ app.get('/weekplan', async (req, res) => {
 
         const weekPlan = weekPlans[0];
 
-        const { rows: days } = await db.query(
-            'SELECT * FROM days WHERE week_plan_id = $1 ORDER BY id',
+        const { rows: daysWithMealsRows } = await db.query(
+            `SELECT d.id AS day_id, d.date, d.day_name,
+                    m.id AS meal_id, m.recipe_id, m.recipe_name, m.meal_type
+             FROM days d
+             LEFT JOIN meals m ON m.day_id = d.id
+             WHERE d.week_plan_id = $1
+             ORDER BY d.id`,
             [weekPlan.id]
         );
 
-        const daysWithMeals = await Promise.all(days.map(async (day) => {
-            const { rows: meals } = await db.query(
-                'SELECT * FROM meals WHERE day_id = $1',
-                [day.id]
-            );
-
-            const mealsObj = {};
-            meals.forEach(meal => {
-                mealsObj[meal.meal_type] = {
-                    id: meal.id,
-                    recipeId: meal.recipe_id,
-                    recipeName: meal.recipe_name,
-                    mealType: meal.meal_type
+        const daysMap = new Map();
+        for (const row of daysWithMealsRows) {
+            if (!daysMap.has(row.day_id)) {
+                daysMap.set(row.day_id, { date: row.date, dayName: row.day_name, meals: {} });
+            }
+            if (row.meal_type) {
+                daysMap.get(row.day_id).meals[row.meal_type] = {
+                    id: row.meal_id,
+                    recipeId: row.recipe_id,
+                    recipeName: row.recipe_name,
+                    mealType: row.meal_type
                 };
-            });
-
-            return { ...day, meals: mealsObj };
-        }));
+            }
+        }
 
         res.json({
             id: weekPlan.id,
             startDate: weekPlan.start_date,
             mealPrepPlan: weekPlan.meal_prep_plan || {},
-            days: daysWithMeals.map(d => ({
-                date: d.date,
-                dayName: d.day_name,
-                meals: d.meals
-            }))
+            days: Array.from(daysMap.values())
         });
     } catch (error) {
         logger.error('Error fetching week plan', { error: error.message, requestId: req.requestId, component: 'weekplan' });
@@ -837,39 +875,36 @@ app.get('/weekplan/by-date/:date', async (req, res) => {
 
         const weekPlan = weekPlans[0];
 
-        const { rows: days } = await db.query(
-            'SELECT * FROM days WHERE week_plan_id = $1 ORDER BY id',
+        const { rows: daysWithMealsRows } = await db.query(
+            `SELECT d.id AS day_id, d.date, d.day_name,
+                    m.id AS meal_id, m.recipe_id, m.recipe_name, m.meal_type
+             FROM days d
+             LEFT JOIN meals m ON m.day_id = d.id
+             WHERE d.week_plan_id = $1
+             ORDER BY d.id`,
             [weekPlan.id]
         );
 
-        const daysWithMeals = await Promise.all(days.map(async (day) => {
-            const { rows: meals } = await db.query(
-                'SELECT * FROM meals WHERE day_id = $1',
-                [day.id]
-            );
-
-            const mealsObj = {};
-            meals.forEach(meal => {
-                mealsObj[meal.meal_type] = {
-                    id: meal.id,
-                    recipeId: meal.recipe_id,
-                    recipeName: meal.recipe_name,
-                    mealType: meal.meal_type
+        const daysMap = new Map();
+        for (const row of daysWithMealsRows) {
+            if (!daysMap.has(row.day_id)) {
+                daysMap.set(row.day_id, { date: row.date, dayName: row.day_name, meals: {} });
+            }
+            if (row.meal_type) {
+                daysMap.get(row.day_id).meals[row.meal_type] = {
+                    id: row.meal_id,
+                    recipeId: row.recipe_id,
+                    recipeName: row.recipe_name,
+                    mealType: row.meal_type
                 };
-            });
-
-            return { ...day, meals: mealsObj };
-        }));
+            }
+        }
 
         res.json({
             id: weekPlan.id,
             startDate: weekPlan.start_date,
             mealPrepPlan: weekPlan.meal_prep_plan || {},
-            days: daysWithMeals.map(d => ({
-                date: d.date,
-                dayName: d.day_name,
-                meals: d.meals
-            }))
+            days: Array.from(daysMap.values())
         });
     } catch (error) {
         logger.error('Error fetching week plan by date', { error: error.message, date: req.params.date, requestId: req.requestId, component: 'weekplan' });
@@ -1273,7 +1308,7 @@ app.get('/pantry', async (req, res) => {
         );
         res.json(result.rows);
     } catch (error) {
-        console.error('Error fetching pantry items:', error);
+        logger.error('Error fetching pantry items', { error: error.message, requestId: req.requestId, component: 'pantry' });
         res.status(500).json({ error: 'Failed to fetch pantry items' });
     }
 });
@@ -1290,7 +1325,7 @@ app.get('/pantry/expiring', async (req, res) => {
         );
         res.json(result.rows);
     } catch (error) {
-        console.error('Error fetching expiring pantry items:', error);
+        logger.error('Error fetching expiring pantry items', { error: error.message, requestId: req.requestId, component: 'pantry' });
         res.status(500).json({ error: 'Failed to fetch expiring pantry items' });
     }
 });
@@ -1318,7 +1353,7 @@ app.post('/pantry', async (req, res) => {
         );
         res.status(201).json(result.rows[0]);
     } catch (error) {
-        console.error('Error creating pantry item:', error);
+        logger.error('Error creating pantry item', { error: error.message, requestId: req.requestId, component: 'pantry' });
         res.status(500).json({ error: 'Failed to create pantry item' });
     }
 });
@@ -1353,7 +1388,7 @@ app.put('/pantry/:id', async (req, res) => {
         }
         res.json(result.rows[0]);
     } catch (error) {
-        console.error('Error updating pantry item:', error);
+        logger.error('Error updating pantry item', { error: error.message, requestId: req.requestId, component: 'pantry' });
         res.status(500).json({ error: 'Failed to update pantry item' });
     }
 });
@@ -1370,7 +1405,7 @@ app.delete('/pantry/:id', async (req, res) => {
         }
         res.json({ success: true, id: result.rows[0].id });
     } catch (error) {
-        console.error('Error deleting pantry item:', error);
+        logger.error('Error deleting pantry item', { error: error.message, requestId: req.requestId, component: 'pantry' });
         res.status(500).json({ error: 'Failed to delete pantry item' });
     }
 });
@@ -1715,7 +1750,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
 });
 
 // AI-based ingredient categorization
-app.post('/ai/categorize-ingredient', async (req, res) => {
+app.post('/ai/categorize-ingredient', aiLimiter, async (req, res) => {
     try {
         const { ingredientName } = req.body;
 
