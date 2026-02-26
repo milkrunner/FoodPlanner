@@ -1,4 +1,13 @@
-# Backend Dockerfile - Node.js API
+# Backend Dockerfile - Node.js API (multi-stage build)
+
+# Stage 1: Install dependencies
+FROM node:20-alpine AS deps
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm config set strict-ssl false && npm ci --omit=dev && npm config set strict-ssl true
+
+# Stage 2: Production image
 FROM node:20-alpine
 
 # Install system dependencies for video processing
@@ -10,14 +19,12 @@ RUN apk add --no-cache \
     && update-ca-certificates \
     && pip3 install --break-system-packages yt-dlp
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
-COPY package*.json ./
-RUN npm config set strict-ssl false && npm ci --omit=dev && npm config set strict-ssl true
+# Copy dependencies from build stage
+COPY --from=deps /app/node_modules ./node_modules
 
-# Copy all application files including custom overrides
+# Copy application files
 COPY . .
 
 # Expose port

@@ -14,6 +14,11 @@ services:
       - ./backend/db/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
       - ./backend/db/migrations/002_cooking_history.sql:/docker-entrypoint-initdb.d/002_cooking_history.sql:ro
       - ./backend/db/migrations/003_shopping_budget.sql:/docker-entrypoint-initdb.d/003_shopping_budget.sql:ro
+      - ./backend/db/migrations/004_recipe_favorites.sql:/docker-entrypoint-initdb.d/004_recipe_favorites.sql:ro
+      - ./backend/db/migrations/005_recipe_time_difficulty.sql:/docker-entrypoint-initdb.d/005_recipe_time_difficulty.sql:ro
+      - ./backend/db/migrations/006_meal_prep_support.sql:/docker-entrypoint-initdb.d/006_meal_prep_support.sql:ro
+      - ./backend/db/migrations/007_pantry_inventory.sql:/docker-entrypoint-initdb.d/007_pantry_inventory.sql:ro
+      - ./backend/db/migrations/008_users.sql:/docker-entrypoint-initdb.d/008_users.sql:ro
     ports:
       - "5432:5432"
     healthcheck:
