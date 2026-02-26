@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.1](https://github.com/milkrunner/FoodPlanner/compare/v2.3.0...v2.3.1) (2026-02-26)
+
+
+### Bug Fixes
+
+* resolve all LOW priority issues ([#188](https://github.com/milkrunner/FoodPlanner/issues/188)-[#195](https://github.com/milkrunner/FoodPlanner/issues/195)) ([#196](https://github.com/milkrunner/FoodPlanner/issues/196)) ([027592b](https://github.com/milkrunner/FoodPlanner/commit/027592b453fdb92db97a8f80f5e9c2d73c0fd69a))
+
 ## [2.3.0](https://github.com/milkrunner/FoodPlanner/compare/v2.2.0...v2.3.0) (2026-02-25)
 
 
