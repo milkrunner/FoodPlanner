@@ -168,7 +168,7 @@ export const App = {
             ${this.renderMobileNavigation()}
             ${this.renderNavigation()}
             <main id="main-content" class="container mx-auto px-4 py-4 sm:py-6 pb-safe" role="main" aria-label="Hauptinhalt">
-                <div id="view-container">${this._renderLoadingPlaceholder()}</div>
+                <div id="view-container" aria-live="polite">${this._renderLoadingPlaceholder()}</div>
             </main>
         `;
         this.attachEventListeners();

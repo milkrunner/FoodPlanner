@@ -8,7 +8,7 @@
 #   GEMINI_API_KEY=your_api_key_here
 #
 # Optional .env variables:
-#   DB_PASSWORD=your_secure_password (default: foodplanner_secret)
+#   DB_PASSWORD=your_secure_password (required)
 #   VERSION=1.0.0 (default: latest)
 #   PORT=5173 (default: 5173)
 
@@ -19,7 +19,7 @@ services:
     environment:
       POSTGRES_DB: foodplanner
       POSTGRES_USER: foodplanner
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-foodplanner_secret}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -35,17 +35,24 @@ services:
     environment:
       NODE_ENV: production
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      DATABASE_URL: postgresql://foodplanner:${DB_PASSWORD:-foodplanner_secret}@postgres:5432/foodplanner
+      DATABASE_URL: postgresql://foodplanner:${DB_PASSWORD:?DB_PASSWORD must be set in .env}@postgres:5432/foodplanner
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   frontend:
     image: ghcr.io/milkrunner/foodplanner/frontend:${VERSION:-latest}
     container_name: foodplanner-frontend
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "${PORT:-5173}:80"
     restart: unless-stopped

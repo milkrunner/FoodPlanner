@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const rateLimit = require('express-rate-limit');
 const cheerio = require('cheerio');
@@ -12,6 +11,7 @@ const { logger, requestLogger } = require('./utils/logger');
 const { resolveFavoriteFlagFromBody, resolveToggleTarget } = require('./utils/favorites');
 const { validateEmail, validatePassword, hashPassword, verifyPassword, generateToken } = require('./utils/auth');
 const { authenticateRequired } = require('./middleware/authenticate');
+const { buildRecipeQuery } = require('./utils/recipe-queries');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,7 +22,7 @@ const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
 // Middleware
 app.use(cors()); // Allow all origins
-app.use(bodyParser.json({ limit: '10mb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(requestLogger);
 
 // Swagger API Documentation
@@ -285,45 +285,9 @@ app.get('/recipes', async (req, res) => {
         const totalItems = parseInt(countResult[0].count);
 
         // Single query with JSON aggregation - replaces N+1 queries
-        const query = `
-            SELECT
-                r.id,
-                r.name,
-                r.category,
-                r.servings,
-                r.instructions,
-                r.is_favorite,
-                r.prep_time,
-                r.cook_time,
-                r.difficulty,
-                r.is_meal_prep_suitable,
-                r.meal_prep_fridge_days,
-                r.meal_prep_freezer_days,
-                r.meal_prep_reheat_tips,
-                r.meal_prep_batch_notes,
-                r.created_at,
-                r.updated_at,
-                COALESCE(
-                    json_agg(DISTINCT jsonb_build_object(
-                        'name', i.name,
-                        'amount', i.amount,
-                        'unit', i.unit,
-                        'category', i.category
-                    )) FILTER (WHERE i.name IS NOT NULL),
-                    '[]'::json
-                ) as ingredients,
-                COALESCE(
-                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
-                    '[]'::json
-                ) as tags
-            FROM recipes r
-            LEFT JOIN ingredients i ON r.id = i.recipe_id
-            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
-            ${favoritesOnly ? 'WHERE r.is_favorite = TRUE' : ''}
-            GROUP BY r.id, r.name, r.category, r.servings, r.instructions, r.is_favorite, r.prep_time, r.cook_time, r.difficulty, r.created_at, r.updated_at
-            ORDER BY r.created_at DESC
-            ${returnAll ? '' : 'LIMIT $1 OFFSET $2'}
-        `;
+        const query = buildRecipeQuery({
+            where: favoritesOnly ? 'r.is_favorite = TRUE' : undefined,
+        }) + (returnAll ? '' : ' LIMIT $1 OFFSET $2');
 
         const { rows } = returnAll
             ? await db.query(query)
@@ -372,34 +336,7 @@ app.get('/recipes/seasonal', async (req, res) => {
         const currentSeason = getCurrentSeason();
         const seasonKey = season || currentSeason.key;
 
-        const { rows } = await db.query(`
-            SELECT
-                r.id,
-                r.name,
-                r.category,
-                r.servings,
-                r.instructions,
-                r.is_favorite,
-                r.created_at,
-                COALESCE(
-                    json_agg(DISTINCT jsonb_build_object(
-                        'name', i.name,
-                        'amount', i.amount,
-                        'unit', i.unit,
-                        'category', i.category
-                    )) FILTER (WHERE i.name IS NOT NULL),
-                    '[]'::json
-                ) as ingredients,
-                COALESCE(
-                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
-                    '[]'::json
-                ) as tags
-            FROM recipes r
-            LEFT JOIN ingredients i ON r.id = i.recipe_id
-            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
-            GROUP BY r.id
-            ORDER BY r.created_at DESC
-        `);
+        const { rows } = await db.query(buildRecipeQuery({ columns: 'summary' }));
 
         const seasonalRecipes = rows
             .map(recipe => {
@@ -445,32 +382,7 @@ app.get('/recipes/seasonal/recommendations', async (req, res) => {
         const maxResults = Math.min(parseInt(limit) || 6, 20);
         const currentSeason = getCurrentSeason();
 
-        const { rows } = await db.query(`
-            SELECT
-                r.id,
-                r.name,
-                r.category,
-                r.servings,
-                r.is_favorite,
-                COALESCE(
-                    json_agg(DISTINCT jsonb_build_object(
-                        'name', i.name,
-                        'amount', i.amount,
-                        'unit', i.unit,
-                        'category', i.category
-                    )) FILTER (WHERE i.name IS NOT NULL),
-                    '[]'::json
-                ) as ingredients,
-                COALESCE(
-                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
-                    '[]'::json
-                ) as tags
-            FROM recipes r
-            LEFT JOIN ingredients i ON r.id = i.recipe_id
-            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
-            GROUP BY r.id
-            ORDER BY r.created_at DESC
-        `);
+        const { rows } = await db.query(buildRecipeQuery({ columns: 'summary' }));
 
         const recommendations = rows
             .map(recipe => {
@@ -513,43 +425,7 @@ app.get('/recipes/:id', async (req, res) => {
         const startTime = Date.now();
 
         // Single query with JSON aggregation - replaces 3 separate queries
-        const { rows } = await db.query(`
-            SELECT
-                r.id,
-                r.name,
-                r.category,
-                r.servings,
-                r.instructions,
-                r.is_favorite,
-                r.prep_time,
-                r.cook_time,
-                r.difficulty,
-                r.is_meal_prep_suitable,
-                r.meal_prep_fridge_days,
-                r.meal_prep_freezer_days,
-                r.meal_prep_reheat_tips,
-                r.meal_prep_batch_notes,
-                r.created_at,
-                r.updated_at,
-                COALESCE(
-                    json_agg(DISTINCT jsonb_build_object(
-                        'name', i.name,
-                        'amount', i.amount,
-                        'unit', i.unit,
-                        'category', i.category
-                    )) FILTER (WHERE i.name IS NOT NULL),
-                    '[]'::json
-                ) as ingredients,
-                COALESCE(
-                    json_agg(DISTINCT t.tag) FILTER (WHERE t.tag IS NOT NULL),
-                    '[]'::json
-                ) as tags
-            FROM recipes r
-            LEFT JOIN ingredients i ON r.id = i.recipe_id
-            LEFT JOIN recipe_tags t ON r.id = t.recipe_id
-            WHERE r.id = $1
-            GROUP BY r.id, r.name, r.category, r.servings, r.instructions, r.is_favorite, r.prep_time, r.cook_time, r.difficulty, r.created_at, r.updated_at
-        `, [req.params.id]);
+        const { rows } = await db.query(buildRecipeQuery({ where: 'r.id = $1' }), [req.params.id]);
 
         const queryTime = Date.now() - startTime;
 
@@ -923,14 +799,18 @@ app.post('/weekplan', async (req, res) => {
     }
 });
 
-// Delete week plan
-app.delete('/weekplan', async (req, res) => {
+// Delete week plan by ID
+app.delete('/weekplan/:id', async (req, res) => {
     try {
-        await db.query('DELETE FROM week_plans');
+        const { id } = req.params;
+        const { rowCount } = await db.query('DELETE FROM week_plans WHERE id = $1', [id]);
+        if (rowCount === 0) {
+            return res.status(404).json({ error: 'Week plan not found' });
+        }
         res.json({ message: 'Week plan deleted successfully' });
     } catch (error) {
         logger.error('Error deleting week plan', { error: error.message, requestId: req.requestId, component: 'weekplan' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Failed to delete week plan' });
     }
 });
 
@@ -2068,6 +1948,7 @@ function getSeasonalInfo(ingredients) {
 
 // Get current season info and calendar
 app.get('/seasons', (req, res) => {
+    res.set('Cache-Control', 'public, max-age=3600');
     const currentSeason = getCurrentSeason();
 
     res.json({
@@ -2422,6 +2303,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zu
 
 // Get available variant types
 app.get('/ai/variant-types', (req, res) => {
+    res.set('Cache-Control', 'public, max-age=86400');
     res.json({
         variantTypes: [
             { id: 'vegetarisch', name: 'Vegetarisch', icon: '🥬', description: 'Ohne Fleisch und Fisch' },
@@ -3181,6 +3063,7 @@ Regeln:
 
 // Get supported video platforms
 app.get('/ai/video-platforms', (req, res) => {
+    res.set('Cache-Control', 'public, max-age=86400');
     res.json({
         platforms: Object.keys(VIDEO_PLATFORMS),
         disclaimer: 'Dieses Feature ist nur für Videos gedacht, zu deren Nutzung du berechtigt bist. Die Originalvideos werden nicht gespeichert. Bitte respektiere die Urheberrechte der Content-Creator.'
