@@ -27,14 +27,14 @@ router.post('/register', authLimiter, async (req, res) => {
 
         const passwordHash = await hashPassword(password);
         const result = await db.query(
-            'INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name, created_at',
+            'INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name, role, created_at',
             [email.trim().toLowerCase(), passwordHash, name ? name.trim() : null]
         );
 
         const user = result.rows[0];
         const token = generateToken(user);
         logger.info('User registered', { userId: user.id, component: 'auth' });
-        res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name } });
+        res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
         logger.error('Registration error', { error: error.message, component: 'auth' });
         res.status(500).json({ error: 'Registrierung fehlgeschlagen' });
@@ -51,7 +51,7 @@ router.post('/login', authLimiter, async (req, res) => {
         }
 
         const result = await db.query(
-            'SELECT id, email, name, password_hash FROM users WHERE email = $1',
+            'SELECT id, email, name, password_hash, role, is_active FROM users WHERE email = $1',
             [email.trim().toLowerCase()]
         );
 
@@ -60,14 +60,22 @@ router.post('/login', authLimiter, async (req, res) => {
         }
 
         const user = result.rows[0];
+
+        if (!user.is_active) {
+            return res.status(403).json({ error: 'Konto ist deaktiviert. Bitte kontaktiere einen Administrator.' });
+        }
+
         const valid = await verifyPassword(password, user.password_hash);
         if (!valid) {
             return res.status(401).json({ error: 'Ungültige E-Mail oder Passwort' });
         }
 
+        // Update last_login_at
+        await db.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
+
         const token = generateToken(user);
         logger.info('User logged in', { userId: user.id, component: 'auth' });
-        res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
+        res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
         logger.error('Login error', { error: error.message, component: 'auth' });
         res.status(500).json({ error: 'Anmeldung fehlgeschlagen' });
@@ -78,7 +86,7 @@ router.post('/login', authLimiter, async (req, res) => {
 router.get('/me', authenticateRequired, async (req, res) => {
     try {
         const result = await db.query(
-            'SELECT id, email, name, created_at FROM users WHERE id = $1',
+            'SELECT id, email, name, role, created_at FROM users WHERE id = $1',
             [req.user.id]
         );
         if (result.rows.length === 0) {

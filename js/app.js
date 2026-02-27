@@ -18,6 +18,7 @@ const VIEW_MODULES = {
     'shopping':   () => import('./views/shopping-list.js'),
     'pantry':     () => import('./views/pantry.js'),
     'history':    () => import('./views/cooking-history.js'),
+    'admin':      () => import('./views/admin-users.js'),
 };
 
 const VIEW_EXPORT_NAMES = {
@@ -29,6 +30,7 @@ const VIEW_EXPORT_NAMES = {
     'shopping':   'ShoppingListView',
     'pantry':     'PantryView',
     'history':    'CookingHistoryView',
+    'admin':      'AdminUsersView',
 };
 
 // Main App
@@ -376,7 +378,7 @@ export const App = {
                 <button id="user-menu-btn" class="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-semibold flex items-center justify-center hover:bg-blue-700 transition-colors" title="${escapeHtml(user.email)}" aria-label="Benutzermenü">${initial}</button>
                 <div id="user-dropdown" class="hidden absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50">
                     <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                        <p class="text-xs font-medium text-gray-900 dark:text-white truncate">${escapeHtml(user.name || '')}</p>
+                        <p class="text-xs font-medium text-gray-900 dark:text-white truncate">${escapeHtml(user.name || '')}${user.role === 'admin' ? ' <span class="ml-1 px-1.5 py-0.5 text-[10px] rounded bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">Admin</span>' : ''}</p>
                         <p class="text-[11px] text-gray-400 dark:text-gray-500 truncate">${escapeHtml(user.email)}</p>
                     </div>
                     <button id="user-logout-btn" class="w-full text-left px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Abmelden</button>
@@ -466,6 +468,10 @@ export const App = {
             { id: 'history', label: 'Kochverlauf', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }
         ];
 
+        if (Auth.getUser()?.role === 'admin') {
+            tabs.push({ id: 'admin', label: 'Benutzerverwaltung', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' });
+        }
+
         return `
             <!-- Mobile navigation overlay -->
             <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
@@ -511,6 +517,10 @@ export const App = {
             { id: 'pantry', label: 'Speisekammer', shortLabel: 'Vorrat' },
             { id: 'history', label: 'Kochverlauf', shortLabel: 'Verlauf' }
         ];
+
+        if (Auth.getUser()?.role === 'admin') {
+            tabs.push({ id: 'admin', label: 'Benutzer', shortLabel: 'Admin' });
+        }
 
         // Desktop navigation (hidden on mobile)
         return `

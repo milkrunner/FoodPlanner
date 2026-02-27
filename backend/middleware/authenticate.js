@@ -18,7 +18,7 @@ function authenticateRequired(req, res, next) {
         return res.status(401).json({ error: 'Ungültiger oder abgelaufener Token' });
     }
 
-    req.user = { id: payload.sub, email: payload.email, name: payload.name };
+    req.user = { id: payload.sub, email: payload.email, name: payload.name, role: payload.role || 'user' };
     next();
 }
 
@@ -30,10 +30,20 @@ function authenticateOptional(req, res, next) {
     if (token) {
         const payload = verifyToken(token);
         if (payload) {
-            req.user = { id: payload.sub, email: payload.email, name: payload.name };
+            req.user = { id: payload.sub, email: payload.email, name: payload.name, role: payload.role || 'user' };
         }
     }
     next();
 }
 
-module.exports = { authenticateRequired, authenticateOptional };
+/**
+ * Middleware: requires admin role. Must be used after authenticateRequired.
+ */
+function requireAdmin(req, res, next) {
+    if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Administratorrechte erforderlich' });
+    }
+    next();
+}
+
+module.exports = { authenticateRequired, authenticateOptional, requireAdmin };

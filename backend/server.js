@@ -18,6 +18,7 @@ const healthRoutes = require('./routes/health');
 const cookingHistoryRoutes = require('./routes/cooking-history');
 const aiRoutes = require('./routes/ai');
 const seasonsRoutes = require('./routes/seasons');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -81,6 +82,7 @@ app.use('/health', healthRoutes);
 app.use('/cooking-history', cookingHistoryRoutes);
 app.use('/ai', aiRoutes);
 app.use('/seasons', seasonsRoutes);
+app.use('/admin', adminRoutes);
 
 // Start server with migrations
 const startServer = async () => {
