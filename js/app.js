@@ -381,6 +381,14 @@ export const App = {
                         <p class="text-xs font-medium text-gray-900 dark:text-white truncate">${escapeHtml(user.name || '')}${user.role === 'admin' ? ' <span class="ml-1 px-1.5 py-0.5 text-[10px] rounded bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">Admin</span>' : ''}</p>
                         <p class="text-[11px] text-gray-400 dark:text-gray-500 truncate">${escapeHtml(user.email)}</p>
                     </div>
+                    ${user.role === 'admin' ? `
+                    <div class="border-b border-gray-200 dark:border-gray-700">
+                        <button id="user-admin-btn" class="w-full text-left px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                            Benutzerverwaltung
+                        </button>
+                    </div>
+                    ` : ''}
                     <button id="user-logout-btn" class="w-full text-left px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Abmelden</button>
                 </div>
             </div>`;
@@ -402,6 +410,10 @@ export const App = {
             });
             document.addEventListener('click', () => dropdown.classList.add('hidden'), { once: true });
         }
+        document.getElementById('user-admin-btn')?.addEventListener('click', () => {
+            dropdown?.classList.add('hidden');
+            AppState.setView('admin');
+        });
         document.getElementById('user-logout-btn')?.addEventListener('click', async () => {
             await Auth.logout();
             // Reset app state
@@ -468,10 +480,6 @@ export const App = {
             { id: 'history', label: 'Kochverlauf', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }
         ];
 
-        if (Auth.getUser()?.role === 'admin') {
-            tabs.push({ id: 'admin', label: 'Benutzerverwaltung', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' });
-        }
-
         return `
             <!-- Mobile navigation overlay -->
             <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
@@ -517,10 +525,6 @@ export const App = {
             { id: 'pantry', label: 'Speisekammer', shortLabel: 'Vorrat' },
             { id: 'history', label: 'Kochverlauf', shortLabel: 'Verlauf' }
         ];
-
-        if (Auth.getUser()?.role === 'admin') {
-            tabs.push({ id: 'admin', label: 'Benutzer', shortLabel: 'Admin' });
-        }
 
         // Desktop navigation (hidden on mobile)
         return `
