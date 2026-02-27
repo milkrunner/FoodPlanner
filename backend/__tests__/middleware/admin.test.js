@@ -174,3 +174,36 @@ describe('createUserPayload with role', () => {
         assert.strictEqual(payload.role, 'user');
     });
 });
+
+describe('generateTempPassword', () => {
+    // Replicate the logic inline
+    function generateTempPassword() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        let password = '';
+        const bytes = require('crypto').randomBytes(8);
+        for (let i = 0; i < 8; i++) {
+            password += chars[bytes[i] % chars.length];
+        }
+        return password;
+    }
+
+    it('should generate an 8-character password', () => {
+        const pw = generateTempPassword();
+        assert.strictEqual(pw.length, 8);
+    });
+
+    it('should only contain allowed characters (no ambiguous chars)', () => {
+        for (let i = 0; i < 20; i++) {
+            const pw = generateTempPassword();
+            assert.ok(/^[A-HJ-NP-Za-hj-kmnp-z2-9]+$/.test(pw), `Password "${pw}" contains disallowed chars`);
+        }
+    });
+
+    it('should generate different passwords', () => {
+        const passwords = new Set();
+        for (let i = 0; i < 10; i++) {
+            passwords.add(generateTempPassword());
+        }
+        assert.ok(passwords.size > 1, 'All passwords are identical');
+    });
+});

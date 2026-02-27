@@ -176,6 +176,12 @@ export const App = {
             return;
         }
 
+        if (Auth.mustChangePassword()) {
+            appElement.innerHTML = this._renderChangePasswordScreen();
+            this._bindChangePasswordScreen();
+            return;
+        }
+
         // Render shell immediately (synchronous) with loading placeholder for view
         appElement.innerHTML = `
             ${this.renderPullToRefresh()}
@@ -287,6 +293,10 @@ export const App = {
             try {
                 if (mode === 'login') {
                     await Auth.login(email, password);
+                    if (Auth.mustChangePassword()) {
+                        this.render();
+                        return;
+                    }
                 } else {
                     const name = document.getElementById('auth-screen-name')?.value || '';
                     await Auth.register(email, password, name);
@@ -305,6 +315,76 @@ export const App = {
         });
 
         document.getElementById('auth-screen-email')?.focus();
+    },
+
+    _renderChangePasswordScreen() {
+        return `
+            <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4">
+                <div class="w-full max-w-md">
+                    <div class="text-center mb-8">
+                        <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-2">Food Planner</h1>
+                        <p class="text-gray-600 dark:text-gray-400">Passwort muss geändert werden</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                        <div class="flex items-center gap-3 mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                            <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <p class="text-sm text-yellow-700 dark:text-yellow-300">Du verwendest ein temporäres Passwort. Bitte vergib ein neues eigenes Passwort.</p>
+                        </div>
+                        <form id="change-pw-form" class="space-y-4">
+                            <input id="change-pw-current" type="password" placeholder="Temporäres Passwort" required
+                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                            <input id="change-pw-new" type="password" placeholder="Neues Passwort (min. 8 Zeichen)" required minlength="8"
+                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                            <input id="change-pw-confirm" type="password" placeholder="Neues Passwort bestätigen" required minlength="8"
+                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                            <div id="change-pw-error" class="text-sm text-red-500 hidden"></div>
+                            <button type="submit" class="w-full py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">
+                                Passwort ändern
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    _bindChangePasswordScreen() {
+        const form = document.getElementById('change-pw-form');
+        const errEl = document.getElementById('change-pw-error');
+
+        form?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errEl.classList.add('hidden');
+
+            const currentPassword = document.getElementById('change-pw-current').value;
+            const newPassword = document.getElementById('change-pw-new').value;
+            const confirmPassword = document.getElementById('change-pw-confirm').value;
+
+            if (newPassword !== confirmPassword) {
+                errEl.textContent = 'Die Passwörter stimmen nicht überein';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                errEl.textContent = 'Neues Passwort muss mindestens 8 Zeichen lang sein';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                await Auth.changePassword(currentPassword, newPassword);
+                await this._initAuthenticated();
+                Toast.show('Passwort erfolgreich geändert!', { type: 'success', duration: 3000 });
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('change-pw-current')?.focus();
     },
 
     _renderLoadingPlaceholder() {

@@ -51,7 +51,7 @@ router.post('/login', authLimiter, async (req, res) => {
         }
 
         const result = await db.query(
-            'SELECT id, email, name, password_hash, role, is_active FROM users WHERE email = $1',
+            'SELECT id, email, name, password_hash, role, is_active, must_change_password FROM users WHERE email = $1',
             [email.trim().toLowerCase()]
         );
 
@@ -75,10 +75,56 @@ router.post('/login', authLimiter, async (req, res) => {
 
         const token = generateToken(user);
         logger.info('User logged in', { userId: user.id, component: 'auth' });
-        res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+        res.json({
+            token,
+            user: { id: user.id, email: user.email, name: user.name, role: user.role },
+            mustChangePassword: user.must_change_password
+        });
     } catch (error) {
         logger.error('Login error', { error: error.message, component: 'auth' });
         res.status(500).json({ error: 'Anmeldung fehlgeschlagen' });
+    }
+});
+
+// POST /auth/change-password — for forced password change after temp password login
+router.post('/change-password', authenticateRequired, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: 'Aktuelles und neues Passwort erforderlich' });
+        }
+
+        const pwCheck = validatePassword(newPassword);
+        if (!pwCheck.valid) {
+            return res.status(400).json({ error: pwCheck.error });
+        }
+
+        const result = await db.query(
+            'SELECT password_hash FROM users WHERE id = $1',
+            [req.user.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Benutzer nicht gefunden' });
+        }
+
+        const valid = await verifyPassword(currentPassword, result.rows[0].password_hash);
+        if (!valid) {
+            return res.status(401).json({ error: 'Aktuelles Passwort ist falsch' });
+        }
+
+        const newHash = await hashPassword(newPassword);
+        await db.query(
+            'UPDATE users SET password_hash = $1, must_change_password = false WHERE id = $2',
+            [newHash, req.user.id]
+        );
+
+        logger.info('User changed password', { userId: req.user.id, component: 'auth' });
+        res.json({ message: 'Passwort erfolgreich geändert' });
+    } catch (error) {
+        logger.error('Change password error', { error: error.message, component: 'auth' });
+        res.status(500).json({ error: 'Fehler beim Ändern des Passworts' });
     }
 });
 

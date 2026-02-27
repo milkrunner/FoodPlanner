@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { logger } = require('../utils/logger');
-const { hashPassword, validatePassword } = require('../utils/auth');
+const { validateEmail, hashPassword, generateTempPassword } = require('../utils/auth');
 const { authenticateRequired, requireAdmin } = require('../middleware/authenticate');
 
 // All admin routes require authentication + admin role
@@ -19,7 +19,7 @@ router.get('/users', async (req, res) => {
         const total = parseInt(countResult.rows[0].count);
 
         const result = await db.query(
-            'SELECT id, email, name, role, is_active, created_at, last_login_at FROM users ORDER BY created_at ASC LIMIT $1 OFFSET $2',
+            'SELECT id, email, name, role, is_active, must_change_password, created_at, last_login_at FROM users ORDER BY created_at ASC LIMIT $1 OFFSET $2',
             [limit, offset]
         );
 
@@ -30,6 +30,41 @@ router.get('/users', async (req, res) => {
     } catch (error) {
         logger.error('Admin list users error', { error: error.message, component: 'admin' });
         res.status(500).json({ error: 'Fehler beim Laden der Benutzer' });
+    }
+});
+
+// POST /admin/users — create a new user with temporary password
+router.post('/users', async (req, res) => {
+    try {
+        const { email, name, role } = req.body;
+
+        if (!validateEmail(email)) {
+            return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' });
+        }
+
+        if (role && !['user', 'admin'].includes(role)) {
+            return res.status(400).json({ error: 'Ungültige Rolle. Erlaubt: user, admin' });
+        }
+
+        const existing = await db.query('SELECT id FROM users WHERE email = $1', [email.trim().toLowerCase()]);
+        if (existing.rows.length > 0) {
+            return res.status(409).json({ error: 'E-Mail-Adresse bereits registriert' });
+        }
+
+        const tempPassword = generateTempPassword();
+        const passwordHash = await hashPassword(tempPassword);
+
+        const result = await db.query(
+            'INSERT INTO users (email, password_hash, name, role, must_change_password) VALUES ($1, $2, $3, $4, true) RETURNING id, email, name, role, is_active, created_at',
+            [email.trim().toLowerCase(), passwordHash, name ? name.trim() : null, role || 'user']
+        );
+
+        const user = result.rows[0];
+        logger.info('Admin created user', { targetUserId: user.id, adminId: req.user.id, component: 'admin' });
+        res.status(201).json({ user, tempPassword });
+    } catch (error) {
+        logger.error('Admin create user error', { error: error.message, component: 'admin' });
+        res.status(500).json({ error: 'Fehler beim Anlegen des Benutzers' });
     }
 });
 
@@ -95,20 +130,16 @@ router.put('/users/:id/status', async (req, res) => {
     }
 });
 
-// PUT /admin/users/:id/reset-password — reset user password
+// PUT /admin/users/:id/reset-password — generate a new temporary password
 router.put('/users/:id/reset-password', async (req, res) => {
     try {
         const { id } = req.params;
-        const { password } = req.body;
 
-        const pwCheck = validatePassword(password);
-        if (!pwCheck.valid) {
-            return res.status(400).json({ error: pwCheck.error });
-        }
+        const tempPassword = generateTempPassword();
+        const passwordHash = await hashPassword(tempPassword);
 
-        const passwordHash = await hashPassword(password);
         const result = await db.query(
-            'UPDATE users SET password_hash = $1 WHERE id = $2 RETURNING id, email, name',
+            'UPDATE users SET password_hash = $1, must_change_password = true WHERE id = $2 RETURNING id, email, name',
             [passwordHash, id]
         );
 
@@ -117,7 +148,7 @@ router.put('/users/:id/reset-password', async (req, res) => {
         }
 
         logger.info('Admin reset user password', { targetUserId: id, adminId: req.user.id, component: 'admin' });
-        res.json({ message: 'Passwort erfolgreich zurückgesetzt' });
+        res.json({ message: 'Passwort erfolgreich zurückgesetzt', tempPassword });
     } catch (error) {
         logger.error('Admin reset password error', { error: error.message, component: 'admin' });
         res.status(500).json({ error: 'Fehler beim Zurücksetzen des Passworts' });

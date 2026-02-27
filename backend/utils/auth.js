@@ -116,6 +116,20 @@ function extractBearerToken(authHeader) {
     return parts[1] || null;
 }
 
+/**
+ * Generate a random 8-character temporary password (letters + digits)
+ * @returns {string}
+ */
+function generateTempPassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let password = '';
+    const bytes = require('crypto').randomBytes(8);
+    for (let i = 0; i < 8; i++) {
+        password += chars[bytes[i] % chars.length];
+    }
+    return password;
+}
+
 module.exports = {
     validateEmail,
     validatePassword,
@@ -124,5 +138,6 @@ module.exports = {
     createUserPayload,
     generateToken,
     verifyToken,
-    extractBearerToken
+    extractBearerToken,
+    generateTempPassword
 };

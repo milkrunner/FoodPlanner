@@ -17,17 +17,23 @@ export const AdminUsersView = {
 
         return `
             <div class="space-y-4">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between flex-wrap gap-2">
                     <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Benutzerverwaltung</h2>
-                    <button id="admin-refresh-btn" class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                        Aktualisieren
-                    </button>
+                    <div class="flex gap-2">
+                        <button id="admin-create-user-btn" class="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                            + Benutzer anlegen
+                        </button>
+                        <button id="admin-refresh-btn" class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            Aktualisieren
+                        </button>
+                    </div>
                 </div>
                 <div id="admin-users-container">
                     ${this.loading ? this._renderLoading() : this._renderTable()}
                 </div>
             </div>
-            ${this._renderPasswordModal()}
+            ${this._renderCreateUserModal()}
+            ${this._renderTempPasswordModal()}
         `;
     },
 
@@ -95,13 +101,16 @@ export const AdminUsersView = {
         const roleBadge = user.role === 'admin'
             ? '<span class="px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">Admin</span>'
             : '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">User</span>';
+        const mustChangeBadge = user.must_change_password
+            ? ' <span class="px-1.5 py-0.5 text-[10px] rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">Temp-PW</span>'
+            : '';
 
         const formatDate = (d) => d ? new Date(d).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
         return `
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-750 ${isSelf ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}">
                 <td class="px-4 py-3 text-gray-900 dark:text-white">${escapeHtml(user.name || '—')}${isSelf ? ' <span class="text-xs text-blue-500">(Du)</span>' : ''}</td>
-                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">${escapeHtml(user.email)}</td>
+                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">${escapeHtml(user.email)}${mustChangeBadge}</td>
                 <td class="px-4 py-3">${roleBadge}</td>
                 <td class="px-4 py-3">${statusBadge}</td>
                 <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">${formatDate(user.created_at)}</td>
@@ -128,17 +137,48 @@ export const AdminUsersView = {
         `;
     },
 
-    _renderPasswordModal() {
+    _renderCreateUserModal() {
         return `
-            <div id="admin-pw-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div id="admin-create-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm mx-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Passwort zurücksetzen</h3>
-                    <p id="admin-pw-modal-email" class="text-sm text-gray-500 dark:text-gray-400 mb-4"></p>
-                    <input id="admin-pw-input" type="password" placeholder="Neues Passwort (min. 8 Zeichen)" minlength="8"
-                        class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4" />
-                    <div class="flex gap-2 justify-end">
-                        <button id="admin-pw-cancel" class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">Abbrechen</button>
-                        <button id="admin-pw-submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Zurücksetzen</button>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Neuen Benutzer anlegen</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Es wird ein temporäres Passwort generiert. Der Benutzer muss es beim ersten Login ändern.</p>
+                    <form id="admin-create-form" class="space-y-3">
+                        <input id="admin-create-email" type="email" placeholder="E-Mail-Adresse" required
+                            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input id="admin-create-name" type="text" placeholder="Name (optional)"
+                            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <select id="admin-create-role"
+                            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <div id="admin-create-error" class="text-sm text-red-500 hidden"></div>
+                        <div class="flex gap-2 justify-end pt-2">
+                            <button type="button" id="admin-create-cancel" class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">Abbrechen</button>
+                            <button type="submit" class="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">Anlegen</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+    },
+
+    _renderTempPasswordModal() {
+        return `
+            <div id="admin-temppw-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm mx-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Temporäres Passwort</h3>
+                    <p id="admin-temppw-email" class="text-sm text-gray-500 dark:text-gray-400 mb-4"></p>
+                    <div class="flex items-center gap-2 mb-4">
+                        <code id="admin-temppw-value" class="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-lg font-mono text-center text-gray-900 dark:text-white tracking-wider select-all"></code>
+                        <button id="admin-temppw-copy" class="px-3 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" title="Kopieren">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
+                    <p class="text-xs text-yellow-600 dark:text-yellow-400 mb-4">Der Benutzer muss dieses Passwort beim ersten Login ändern. Notiere es jetzt — es wird nicht erneut angezeigt.</p>
+                    <div class="flex justify-end">
+                        <button id="admin-temppw-close" class="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Schließen</button>
                     </div>
                 </div>
             </div>
@@ -151,6 +191,72 @@ export const AdminUsersView = {
         this._loadUsers();
 
         document.getElementById('admin-refresh-btn')?.addEventListener('click', () => this._loadUsers());
+        document.getElementById('admin-create-user-btn')?.addEventListener('click', () => this._showCreateModal());
+
+        // Create user modal
+        document.getElementById('admin-create-cancel')?.addEventListener('click', () => {
+            document.getElementById('admin-create-modal').classList.add('hidden');
+        });
+        document.getElementById('admin-create-modal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'admin-create-modal') e.target.classList.add('hidden');
+        });
+        document.getElementById('admin-create-form')?.addEventListener('submit', (e) => this._handleCreateUser(e));
+
+        // Temp password modal
+        document.getElementById('admin-temppw-close')?.addEventListener('click', () => {
+            document.getElementById('admin-temppw-modal').classList.add('hidden');
+        });
+        document.getElementById('admin-temppw-modal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'admin-temppw-modal') e.target.classList.add('hidden');
+        });
+        document.getElementById('admin-temppw-copy')?.addEventListener('click', () => {
+            const pw = document.getElementById('admin-temppw-value').textContent;
+            navigator.clipboard.writeText(pw).then(() => Toast.show('Kopiert!', { type: 'success', duration: 1500 }));
+        });
+    },
+
+    _showCreateModal() {
+        const modal = document.getElementById('admin-create-modal');
+        document.getElementById('admin-create-email').value = '';
+        document.getElementById('admin-create-name').value = '';
+        document.getElementById('admin-create-role').value = 'user';
+        document.getElementById('admin-create-error').classList.add('hidden');
+        modal.classList.remove('hidden');
+        document.getElementById('admin-create-email').focus();
+    },
+
+    _showTempPassword(email, tempPassword) {
+        const modal = document.getElementById('admin-temppw-modal');
+        document.getElementById('admin-temppw-email').textContent = email;
+        document.getElementById('admin-temppw-value').textContent = tempPassword;
+        modal.classList.remove('hidden');
+    },
+
+    async _handleCreateUser(e) {
+        e.preventDefault();
+        const errEl = document.getElementById('admin-create-error');
+        errEl.classList.add('hidden');
+
+        const email = document.getElementById('admin-create-email').value.trim();
+        const name = document.getElementById('admin-create-name').value.trim();
+        const role = document.getElementById('admin-create-role').value;
+
+        try {
+            const res = await fetch('/admin/users', {
+                method: 'POST',
+                headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ email, name: name || undefined, role })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Fehler');
+
+            document.getElementById('admin-create-modal').classList.add('hidden');
+            this._showTempPassword(email, data.tempPassword);
+            await this._loadUsers();
+        } catch (err) {
+            errEl.textContent = err.message;
+            errEl.classList.remove('hidden');
+        }
     },
 
     _bindTableListeners() {
@@ -192,38 +298,22 @@ export const AdminUsersView = {
 
         // Reset password
         document.querySelectorAll('.admin-reset-pw').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const modal = document.getElementById('admin-pw-modal');
-                document.getElementById('admin-pw-modal-email').textContent = btn.dataset.email;
-                document.getElementById('admin-pw-input').value = '';
-                modal.classList.remove('hidden');
-                modal.dataset.userId = btn.dataset.id;
-                document.getElementById('admin-pw-input').focus();
+            btn.addEventListener('click', async () => {
+                const email = btn.dataset.email;
+                if (!confirm(`Passwort für "${email}" wirklich zurücksetzen? Ein neues temporäres Passwort wird generiert.`)) return;
+                try {
+                    const res = await fetch(`/admin/users/${btn.dataset.id}/reset-password`, {
+                        method: 'PUT',
+                        headers: Auth.authHeaders({ 'Content-Type': 'application/json' })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Fehler');
+                    this._showTempPassword(email, data.tempPassword);
+                    await this._loadUsers();
+                } catch (err) {
+                    Toast.show(err.message, { type: 'error' });
+                }
             });
-        });
-
-        // Password modal
-        document.getElementById('admin-pw-cancel')?.addEventListener('click', () => {
-            document.getElementById('admin-pw-modal').classList.add('hidden');
-        });
-
-        document.getElementById('admin-pw-submit')?.addEventListener('click', async () => {
-            const modal = document.getElementById('admin-pw-modal');
-            const password = document.getElementById('admin-pw-input').value;
-            if (!password || password.length < 8) {
-                Toast.show('Passwort muss mindestens 8 Zeichen lang sein', { type: 'error' });
-                return;
-            }
-            const id = modal.dataset.userId;
-            modal.classList.add('hidden');
-            await this._apiCall(`/admin/users/${id}/reset-password`, 'PUT', { password });
-        });
-
-        // Close modal on backdrop click
-        document.getElementById('admin-pw-modal')?.addEventListener('click', (e) => {
-            if (e.target.id === 'admin-pw-modal') {
-                e.target.classList.add('hidden');
-            }
         });
 
         // Delete user
