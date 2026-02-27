@@ -18,6 +18,7 @@ const healthRoutes = require('./routes/health');
 const cookingHistoryRoutes = require('./routes/cooking-history');
 const aiRoutes = require('./routes/ai');
 const seasonsRoutes = require('./routes/seasons');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,9 +40,19 @@ app.use(helmet({
     },
     crossOriginEmbedderPolicy: false // Allow loading Swagger UI resources
 }));
+// Validate CORS origin against strict URL pattern
+const CORS_ORIGIN = (() => {
+    const env = process.env.CORS_ORIGIN;
+    if (!env) return 'http://localhost:5173';
+    try {
+        const url = new URL(env);
+        if (url.protocol === 'http:' || url.protocol === 'https:') return url.origin;
+    } catch { /* invalid URL */ }
+    return 'http://localhost:5173';
+})();
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
-    credentials: !!process.env.CORS_ORIGIN
+    origin: CORS_ORIGIN,
+    credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(requestLogger);
@@ -81,6 +92,7 @@ app.use('/health', healthRoutes);
 app.use('/cooking-history', cookingHistoryRoutes);
 app.use('/ai', aiRoutes);
 app.use('/seasons', seasonsRoutes);
+app.use('/admin', adminRoutes);
 
 // Start server with migrations
 const startServer = async () => {

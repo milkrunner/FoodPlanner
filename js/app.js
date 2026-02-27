@@ -18,6 +18,7 @@ const VIEW_MODULES = {
     'shopping':   () => import('./views/shopping-list.js'),
     'pantry':     () => import('./views/pantry.js'),
     'history':    () => import('./views/cooking-history.js'),
+    'admin':      () => import('./views/admin-users.js'),
 };
 
 const VIEW_EXPORT_NAMES = {
@@ -29,6 +30,7 @@ const VIEW_EXPORT_NAMES = {
     'shopping':   'ShoppingListView',
     'pantry':     'PantryView',
     'history':    'CookingHistoryView',
+    'admin':      'AdminUsersView',
 };
 
 // Main App
@@ -174,6 +176,12 @@ export const App = {
             return;
         }
 
+        if (Auth.mustChangePassword()) {
+            appElement.innerHTML = this._renderChangePasswordScreen();
+            this._bindChangePasswordScreen();
+            return;
+        }
+
         // Render shell immediately (synchronous) with loading placeholder for view
         appElement.innerHTML = `
             ${this.renderPullToRefresh()}
@@ -232,7 +240,7 @@ export const App = {
                             </div>
                             <input id="auth-screen-email" type="email" placeholder="E-Mail" required
                                 class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-                            <input id="auth-screen-password" type="password" placeholder="Passwort (min. 8 Zeichen)" required minlength="8"
+                            <input id="auth-screen-password" type="password" placeholder="Passwort (Groß-/Kleinbuchstaben + Zahl)" required minlength="8"
                                 class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
                             <div id="auth-screen-error" class="text-sm text-red-500 hidden"></div>
                             <button type="submit" id="auth-screen-submit"
@@ -285,6 +293,10 @@ export const App = {
             try {
                 if (mode === 'login') {
                     await Auth.login(email, password);
+                    if (Auth.mustChangePassword()) {
+                        this.render();
+                        return;
+                    }
                 } else {
                     const name = document.getElementById('auth-screen-name')?.value || '';
                     await Auth.register(email, password, name);
@@ -303,6 +315,76 @@ export const App = {
         });
 
         document.getElementById('auth-screen-email')?.focus();
+    },
+
+    _renderChangePasswordScreen() {
+        return `
+            <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4">
+                <div class="w-full max-w-md">
+                    <div class="text-center mb-8">
+                        <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-2">Food Planner</h1>
+                        <p class="text-gray-600 dark:text-gray-400">Passwort muss geändert werden</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                        <div class="flex items-center gap-3 mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                            <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <p class="text-sm text-yellow-700 dark:text-yellow-300">Du verwendest ein temporäres Passwort. Bitte vergib ein neues eigenes Passwort.</p>
+                        </div>
+                        <form id="change-pw-form" class="space-y-4">
+                            <input id="change-pw-current" type="password" placeholder="Temporäres Passwort" required
+                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                            <input id="change-pw-new" type="password" placeholder="Neues Passwort (Groß-/Kleinbuchstaben + Zahl)" required minlength="8"
+                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                            <input id="change-pw-confirm" type="password" placeholder="Neues Passwort bestätigen" required minlength="8"
+                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                            <div id="change-pw-error" class="text-sm text-red-500 hidden"></div>
+                            <button type="submit" class="w-full py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">
+                                Passwort ändern
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    _bindChangePasswordScreen() {
+        const form = document.getElementById('change-pw-form');
+        const errEl = document.getElementById('change-pw-error');
+
+        form?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errEl.classList.add('hidden');
+
+            const currentPassword = document.getElementById('change-pw-current').value;
+            const newPassword = document.getElementById('change-pw-new').value;
+            const confirmPassword = document.getElementById('change-pw-confirm').value;
+
+            if (newPassword !== confirmPassword) {
+                errEl.textContent = 'Die Passwörter stimmen nicht überein';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                errEl.textContent = 'Neues Passwort muss mindestens 8 Zeichen lang sein';
+                errEl.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                await Auth.changePassword(currentPassword, newPassword);
+                await this._initAuthenticated();
+                Toast.show('Passwort erfolgreich geändert!', { type: 'success', duration: 3000 });
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('change-pw-current')?.focus();
     },
 
     _renderLoadingPlaceholder() {
@@ -376,9 +458,17 @@ export const App = {
                 <button id="user-menu-btn" class="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-semibold flex items-center justify-center hover:bg-blue-700 transition-colors" title="${escapeHtml(user.email)}" aria-label="Benutzermenü">${initial}</button>
                 <div id="user-dropdown" class="hidden absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50">
                     <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                        <p class="text-xs font-medium text-gray-900 dark:text-white truncate">${escapeHtml(user.name || '')}</p>
+                        <p class="text-xs font-medium text-gray-900 dark:text-white truncate">${escapeHtml(user.name || '')}${user.role === 'admin' ? ' <span class="ml-1 px-1.5 py-0.5 text-[10px] rounded bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">Admin</span>' : ''}</p>
                         <p class="text-[11px] text-gray-400 dark:text-gray-500 truncate">${escapeHtml(user.email)}</p>
                     </div>
+                    ${user.role === 'admin' ? `
+                    <div class="border-b border-gray-200 dark:border-gray-700">
+                        <button id="user-admin-btn" class="w-full text-left px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                            Benutzerverwaltung
+                        </button>
+                    </div>
+                    ` : ''}
                     <button id="user-logout-btn" class="w-full text-left px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Abmelden</button>
                 </div>
             </div>`;
@@ -400,6 +490,10 @@ export const App = {
             });
             document.addEventListener('click', () => dropdown.classList.add('hidden'), { once: true });
         }
+        document.getElementById('user-admin-btn')?.addEventListener('click', () => {
+            dropdown?.classList.add('hidden');
+            AppState.setView('admin');
+        });
         document.getElementById('user-logout-btn')?.addEventListener('click', async () => {
             await Auth.logout();
             // Reset app state
