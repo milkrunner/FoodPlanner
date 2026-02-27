@@ -58,9 +58,9 @@ describe('URL Validation', () => {
             assert.strictEqual(validateUrl(url), url);
         });
 
-        it('should handle URLs with fragments', () => {
+        it('should handle URLs with fragments (fragments are stripped as they are not sent to server)', () => {
             const url = 'https://www.chefkoch.de/rezepte/12345#ingredients';
-            assert.strictEqual(validateUrl(url), url);
+            assert.strictEqual(validateUrl(url), 'https://www.chefkoch.de/rezepte/12345');
         });
     });
 
