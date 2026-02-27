@@ -9,27 +9,17 @@ export const PWA = {
     swRegistration: null,
 
     async init() {
-        // Register Service Worker
+        // Unregister any existing Service Worker to prevent stale cache issues
         if ('serviceWorker' in navigator) {
-            try {
-                this.swRegistration = await navigator.serviceWorker.register('/sw.js');
-                console.log('[PWA] Service Worker registered');
-
-                // Check for updates
-                this.swRegistration.addEventListener('updatefound', () => {
-                    const newWorker = this.swRegistration.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            Toast.show('Neue Version verfügbar. Seite neu laden für Updates.', {
-                                type: 'default',
-                                duration: 10000
-                            });
-                        }
-                    });
-                });
-            } catch (error) {
-                console.error('[PWA] Service Worker registration failed:', error);
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const reg of registrations) {
+                await reg.unregister();
+                console.log('[PWA] Service Worker unregistered');
             }
+            // Clear all caches
+            const keys = await caches.keys();
+            await Promise.all(keys.map((key) => caches.delete(key)));
+            if (keys.length > 0) console.log('[PWA] Caches cleared');
         }
 
         // Listen for online/offline events
