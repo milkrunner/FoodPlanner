@@ -40,8 +40,18 @@ app.use(helmet({
     },
     crossOriginEmbedderPolicy: false // Allow loading Swagger UI resources
 }));
+// Validate CORS origin against strict URL pattern
+const CORS_ORIGIN = (() => {
+    const env = process.env.CORS_ORIGIN;
+    if (!env) return 'http://localhost:5173';
+    try {
+        const url = new URL(env);
+        if (url.protocol === 'http:' || url.protocol === 'https:') return url.origin;
+    } catch { /* invalid URL */ }
+    return 'http://localhost:5173';
+})();
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: CORS_ORIGIN,
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
