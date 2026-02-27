@@ -39,15 +39,22 @@ export const App = {
     async init() {
         Auth.init();
         DarkMode.init();
-        await AppState.init();
-        // Wire up render callback to break circular dependency with AppState
         setRenderCallback(() => App.render());
-        // Pre-load the default view
+
+        if (!Auth.isAuthenticated()) {
+            this.render();
+            return;
+        }
+
+        await this._initAuthenticated();
+    },
+
+    async _initAuthenticated() {
+        await AppState.init();
         this._loadView('planner');
         this.render();
         this.setupKeyboardShortcuts();
         this.setupMobileFeatures();
-        // Initialize onboarding tour for new users
         OnboardingManager.init();
     },
 
@@ -161,6 +168,12 @@ export const App = {
         const appElement = document.getElementById('app');
         if (!appElement) return;
 
+        if (!Auth.isAuthenticated()) {
+            appElement.innerHTML = this._renderAuthScreen();
+            this._bindAuthScreen();
+            return;
+        }
+
         // Render shell immediately (synchronous) with loading placeholder for view
         appElement.innerHTML = `
             ${this.renderPullToRefresh()}
@@ -196,6 +209,100 @@ export const App = {
                     </div>`;
             }
         }
+    },
+
+    _renderAuthScreen() {
+        const isDark = document.documentElement.classList.contains('dark');
+        return `
+            <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4">
+                <div class="w-full max-w-md">
+                    <div class="text-center mb-8">
+                        <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-2">Food Planner</h1>
+                        <p class="text-gray-600 dark:text-gray-400">Dein persönlicher Essenswochenplaner</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+                        <div id="auth-screen-tabs" class="flex mb-6 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                            <button class="auth-tab flex-1 py-2 text-sm font-medium rounded-md transition-colors active" data-mode="login">Anmelden</button>
+                            <button class="auth-tab flex-1 py-2 text-sm font-medium rounded-md transition-colors" data-mode="register">Registrieren</button>
+                        </div>
+                        <form id="auth-screen-form" class="space-y-4">
+                            <div id="auth-name-field" class="hidden">
+                                <input id="auth-screen-name" type="text" placeholder="Name (optional)"
+                                    class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                            </div>
+                            <input id="auth-screen-email" type="email" placeholder="E-Mail" required
+                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                            <input id="auth-screen-password" type="password" placeholder="Passwort (min. 8 Zeichen)" required minlength="8"
+                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                            <div id="auth-screen-error" class="text-sm text-red-500 hidden"></div>
+                            <button type="submit" id="auth-screen-submit"
+                                class="w-full py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">
+                                Anmelden
+                            </button>
+                        </form>
+                    </div>
+                    <div class="flex justify-center mt-4">
+                        <button id="auth-dark-toggle" class="p-2 rounded-lg bg-white/50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-600 transition-colors" title="Dark Mode">
+                            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path class="${isDark ? 'hidden' : ''}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                <path class="${isDark ? '' : 'hidden'}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    _bindAuthScreen() {
+        let mode = 'login';
+        const tabs = document.querySelectorAll('.auth-tab');
+        const nameField = document.getElementById('auth-name-field');
+        const submitBtn = document.getElementById('auth-screen-submit');
+        const form = document.getElementById('auth-screen-form');
+        const errEl = document.getElementById('auth-screen-error');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                mode = tab.dataset.mode;
+                tabs.forEach(t => t.classList.toggle('active', t === tab));
+                nameField.classList.toggle('hidden', mode === 'login');
+                submitBtn.textContent = mode === 'login' ? 'Anmelden' : 'Registrieren';
+                errEl.classList.add('hidden');
+            });
+        });
+
+        // Style active tab
+        const style = document.createElement('style');
+        style.textContent = '.auth-tab.active { background: white; color: #1d4ed8; box-shadow: 0 1px 2px rgba(0,0,0,0.1); } .dark .auth-tab.active { background: #374151; color: #60a5fa; }';
+        document.head.appendChild(style);
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errEl.classList.add('hidden');
+            const email = document.getElementById('auth-screen-email').value;
+            const password = document.getElementById('auth-screen-password').value;
+            try {
+                if (mode === 'login') {
+                    await Auth.login(email, password);
+                } else {
+                    const name = document.getElementById('auth-screen-name')?.value || '';
+                    await Auth.register(email, password, name);
+                }
+                await this._initAuthenticated();
+                Toast.show(mode === 'login' ? 'Willkommen zurück!' : 'Erfolgreich registriert!', { type: 'success', duration: 2000 });
+            } catch (err) {
+                errEl.textContent = err.message;
+                errEl.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('auth-dark-toggle')?.addEventListener('click', () => {
+            DarkMode.toggle();
+            this.render();
+        });
+
+        document.getElementById('auth-screen-email')?.focus();
     },
 
     _renderLoadingPlaceholder() {
@@ -276,9 +383,7 @@ export const App = {
                 </div>
             </div>`;
         }
-        return `<button id="header-auth-btn" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Anmelden" aria-label="Anmelden">
-            <svg class="w-6 h-6 text-gray-800 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-        </button>`;
+        return '';
     },
 
     _bindAuthButton() {
@@ -297,6 +402,12 @@ export const App = {
         }
         document.getElementById('user-logout-btn')?.addEventListener('click', async () => {
             await Auth.logout();
+            // Reset app state
+            AppState.recipes = [];
+            AppState.weekPlan = null;
+            AppState.weekPlansCache = {};
+            AppState.pantryItems = [];
+            this._viewCache = {};
             App.render();
             Toast.show('Abgemeldet', { type: 'default', duration: 2000 });
         });
