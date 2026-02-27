@@ -155,11 +155,17 @@ function extractBearerToken(authHeader) {
  * @returns {string}
  */
 function generateTempPassword() {
+    const crypto = require('crypto');
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    const len = chars.length;
+    // Use rejection sampling to avoid modulo bias
+    const maxValid = 256 - (256 % len); // largest multiple of len that fits in a byte
     let password = '';
-    const bytes = require('crypto').randomBytes(8);
-    for (let i = 0; i < 8; i++) {
-        password += chars[bytes[i] % chars.length];
+    while (password.length < 8) {
+        const byte = crypto.randomBytes(1)[0];
+        if (byte < maxValid) {
+            password += chars[byte % len];
+        }
     }
     return password;
 }

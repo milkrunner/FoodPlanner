@@ -178,11 +178,16 @@ describe('createUserPayload with role', () => {
 describe('generateTempPassword', () => {
     // Replicate the logic inline
     function generateTempPassword() {
+        const crypto = require('crypto');
         const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+        const len = chars.length;
+        const maxValid = 256 - (256 % len);
         let password = '';
-        const bytes = require('crypto').randomBytes(8);
-        for (let i = 0; i < 8; i++) {
-            password += chars[bytes[i] % chars.length];
+        while (password.length < 8) {
+            const byte = crypto.randomBytes(1)[0];
+            if (byte < maxValid) {
+                password += chars[byte % len];
+            }
         }
         return password;
     }
