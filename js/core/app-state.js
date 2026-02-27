@@ -91,7 +91,7 @@ export const AppState = {
             })
         };
 
-        await StorageService.saveWeekPlan(this.weekPlan);
+        // Don't save empty plan immediately - it will be persisted on first change
     },
 
     async persistWeekPlan() {

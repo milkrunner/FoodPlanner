@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { logger } = require('../utils/logger');
+const { authenticateRequired } = require('../middleware/authenticate');
 
 // Get cooking history (paginated)
 router.get('/', async (req, res) => {
@@ -29,7 +30,7 @@ router.get('/', async (req, res) => {
         });
     } catch (error) {
         logger.error('Error fetching cooking history', { error: error.message, requestId: req.requestId, component: 'cooking-history' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
@@ -51,7 +52,7 @@ router.get('/stats', async (req, res) => {
         res.json(rows);
     } catch (error) {
         logger.error('Error fetching cooking stats', { error: error.message, requestId: req.requestId, component: 'cooking-history' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
@@ -68,12 +69,12 @@ router.get('/recipe/:recipeId', async (req, res) => {
         res.json(rows);
     } catch (error) {
         logger.error('Error fetching recipe cooking history', { error: error.message, recipeId: req.params.recipeId, requestId: req.requestId, component: 'cooking-history' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Mark recipe as cooked
-router.post('/', async (req, res) => {
+router.post('/', authenticateRequired, async (req, res) => {
     const { recipeId, servings, notes } = req.body;
 
     if (!recipeId) {
@@ -103,12 +104,12 @@ router.post('/', async (req, res) => {
         });
     } catch (error) {
         logger.error('Error marking recipe as cooked', { error: error.message, recipeId: req.body.recipeId, requestId: req.requestId, component: 'cooking-history' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Delete cooking history entry
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateRequired, async (req, res) => {
     try {
         const { rowCount } = await db.query(
             'DELETE FROM cooking_history WHERE id = $1',
@@ -122,7 +123,7 @@ router.delete('/:id', async (req, res) => {
         res.json({ message: 'Entry deleted successfully' });
     } catch (error) {
         logger.error('Error deleting cooking history entry', { error: error.message, entryId: req.params.id, requestId: req.requestId, component: 'cooking-history' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
@@ -146,7 +147,7 @@ router.get('/not-cooked-recently', async (req, res) => {
         res.json(rows);
     } catch (error) {
         logger.error('Error fetching not recently cooked recipes', { error: error.message, days: req.query.days, requestId: req.requestId, component: 'cooking-history' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 

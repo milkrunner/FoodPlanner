@@ -4,6 +4,7 @@ const db = require('../db');
 const { logger } = require('../utils/logger');
 const { genAI } = require('../utils/gemini');
 const { aiLimiter } = require('../middleware/rate-limiters');
+const { authenticateRequired } = require('../middleware/authenticate');
 
 // ========== MANUAL SHOPPING ITEMS ==========
 
@@ -16,12 +17,12 @@ router.get('/manual', async (req, res) => {
         res.json(rows);
     } catch (error) {
         logger.error('Error fetching manual shopping items', { error: error.message, requestId: req.requestId, component: 'shopping' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Add manual shopping item
-router.post('/manual', async (req, res) => {
+router.post('/manual', authenticateRequired, async (req, res) => {
     const { id, name, amount, unit, category } = req.body;
 
     if (!name || !amount || !unit) {
@@ -40,12 +41,12 @@ router.post('/manual', async (req, res) => {
         });
     } catch (error) {
         logger.error('Error adding manual shopping item', { error: error.message, requestId: req.requestId, component: 'shopping' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Delete manual shopping item
-router.delete('/manual/:id', async (req, res) => {
+router.delete('/manual/:id', authenticateRequired, async (req, res) => {
     try {
         const { rowCount } = await db.query(
             'DELETE FROM manual_shopping_items WHERE id = $1',
@@ -59,18 +60,18 @@ router.delete('/manual/:id', async (req, res) => {
         res.json({ message: 'Manual shopping item deleted successfully' });
     } catch (error) {
         logger.error('Error deleting manual shopping item', { error: error.message, itemId: req.params.id, requestId: req.requestId, component: 'shopping' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Delete all manual shopping items
-router.delete('/manual', async (req, res) => {
+router.delete('/manual', authenticateRequired, async (req, res) => {
     try {
         await db.query('DELETE FROM manual_shopping_items');
         res.json({ message: 'All manual shopping items deleted successfully' });
     } catch (error) {
         logger.error('Error deleting all manual shopping items', { error: error.message, requestId: req.requestId, component: 'shopping' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
@@ -92,12 +93,12 @@ router.get('/budget/:weekStart', async (req, res) => {
         res.json(rows[0]);
     } catch (error) {
         logger.error('Error fetching budget', { error: error.message, weekStart: req.params.weekStart, requestId: req.requestId, component: 'budget' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Set/update budget for a week
-router.post('/budget', async (req, res) => {
+router.post('/budget', authenticateRequired, async (req, res) => {
     const { weekStart, budgetAmount, currency = 'EUR' } = req.body;
 
     if (!weekStart || budgetAmount === undefined) {
@@ -116,7 +117,7 @@ router.post('/budget', async (req, res) => {
         res.json(rows[0]);
     } catch (error) {
         logger.error('Error saving budget', { error: error.message, requestId: req.requestId, component: 'budget' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
@@ -131,12 +132,12 @@ router.get('/substitutions', async (req, res) => {
         res.json(rows);
     } catch (error) {
         logger.error('Error fetching substitutions', { error: error.message, requestId: req.requestId, component: 'substitutions' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Save a substitution preference
-router.post('/substitutions', async (req, res) => {
+router.post('/substitutions', authenticateRequired, async (req, res) => {
     const { originalIngredient, substituteIngredient, reason, savingsPercent } = req.body;
 
     if (!originalIngredient || !substituteIngredient) {
@@ -155,12 +156,12 @@ router.post('/substitutions', async (req, res) => {
         res.status(201).json(rows[0]);
     } catch (error) {
         logger.error('Error saving substitution', { error: error.message, requestId: req.requestId, component: 'substitutions' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Delete/deactivate a substitution preference
-router.delete('/substitutions/:id', async (req, res) => {
+router.delete('/substitutions/:id', authenticateRequired, async (req, res) => {
     try {
         await db.query(
             'UPDATE substitution_preferences SET is_active = false WHERE id = $1',
@@ -169,14 +170,14 @@ router.delete('/substitutions/:id', async (req, res) => {
         res.json({ message: 'Substitution preference deactivated' });
     } catch (error) {
         logger.error('Error deactivating substitution', { error: error.message, substitutionId: req.params.id, requestId: req.requestId, component: 'substitutions' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // ========== AI OPTIMIZATION ==========
 
 // AI-powered shopping list optimization
-router.post('/optimize', aiLimiter, async (req, res) => {
+router.post('/optimize', authenticateRequired, aiLimiter, async (req, res) => {
     if (!genAI) {
         return res.status(503).json({
             error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
@@ -271,7 +272,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format:
         logger.error('Shopping optimization error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
             error: 'Failed to optimize shopping list',
-            details: error.message
+            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
         });
     }
 });

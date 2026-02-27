@@ -241,14 +241,14 @@ export const App = {
                 </div>
                 <div class="flex gap-3 overflow-x-auto favorite-quick-scroll pb-1">
                     ${limitedFavorites.map(recipe => `
-                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-red-100 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-left transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
+                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-red-100 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-left transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${escapeHtml(recipe.name)} anzeigen">
                             <div class="flex items-center justify-between gap-3">
-                                <span class="font-medium text-red-700 dark:text-red-200 truncate">${recipe.name}</span>
+                                <span class="font-medium text-red-700 dark:text-red-200 truncate">${escapeHtml(recipe.name)}</span>
                                 <svg class="w-4 h-4 text-red-400 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                     <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
                                 </svg>
                             </div>
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-300 truncate">${recipe.category || 'Ohne Kategorie'}</p>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-300 truncate">${escapeHtml(recipe.category || 'Ohne Kategorie')}</p>
                         </button>
                     `).join('')}
                     ${overflow > 0 ? `

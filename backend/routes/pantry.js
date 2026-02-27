@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { logger } = require('../utils/logger');
+const { authenticateRequired } = require('../middleware/authenticate');
 
 router.get('/', async (req, res) => {
     try {
@@ -32,7 +33,7 @@ router.get('/expiring', async (req, res) => {
     }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', authenticateRequired, async (req, res) => {
     const { name, quantity, unit, category, location, purchase_date, expiry_date, notes } = req.body;
     if (!name || !name.trim()) {
         return res.status(400).json({ error: 'Name ist erforderlich' });
@@ -60,7 +61,7 @@ router.post('/', async (req, res) => {
     }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateRequired, async (req, res) => {
     const { id } = req.params;
     const { name, quantity, unit, category, location, purchase_date, expiry_date, notes } = req.body;
     if (!name || !name.trim()) {
@@ -95,7 +96,7 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateRequired, async (req, res) => {
     const { id } = req.params;
     try {
         const result = await db.query(
