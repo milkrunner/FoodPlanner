@@ -68,7 +68,13 @@ function validateUrl(urlString) {
         );
     }
 
-    return url.href;
+    // Reconstruct URL from validated components to break taint propagation.
+    // hostname is from ALLOWED_RECIPE_DOMAINS; pathname/search are re-encoded.
+    const allowedHostname = ALLOWED_RECIPE_DOMAINS.find(d => d === hostname);
+    const safeUrl = new URL(`${url.protocol}//${allowedHostname}`);
+    safeUrl.pathname = url.pathname;
+    safeUrl.search = url.search;
+    return safeUrl.href;
 }
 
 // Supported video platforms with strict URL patterns
