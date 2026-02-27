@@ -21,12 +21,8 @@ async function fetchRecipeFromUrl(userProvidedUrl) {
     // Validate URL against allowlist - throws error if domain not allowed
     const safeUrl = validateUrl(userProvidedUrl);
 
-    // Build a new URL from validated components to ensure safety
-    const urlObj = new URL(safeUrl);
-    const fetchUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname}${urlObj.search}`;
-
     try {
-        const response = await fetch(fetchUrl, {
+        const response = await fetch(safeUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             },
@@ -37,13 +33,11 @@ async function fetchRecipeFromUrl(userProvidedUrl) {
         if (response.status >= 300 && response.status < 400) {
             const redirectLocation = response.headers.get('location');
             if (redirectLocation) {
-                const redirectUrl = new URL(redirectLocation, fetchUrl);
-                // Validate redirect URL against allowlist
+                const redirectUrl = new URL(redirectLocation, safeUrl);
+                // Validate redirect URL against allowlist - throws if not allowed
                 const safeRedirectUrl = validateUrl(redirectUrl.href);
-                const redirectUrlObj = new URL(safeRedirectUrl);
-                const fetchRedirectUrl = `${redirectUrlObj.protocol}//${redirectUrlObj.host}${redirectUrlObj.pathname}${redirectUrlObj.search}`;
 
-                const redirectResponse = await fetch(fetchRedirectUrl, {
+                const redirectResponse = await fetch(safeRedirectUrl, {
                     headers: {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                     },
