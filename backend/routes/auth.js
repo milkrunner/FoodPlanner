@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { logger } = require('../utils/logger');
-const { validateEmail, validatePassword, hashPassword, verifyPassword, generateToken } = require('../utils/auth');
+const { validateEmail, validatePassword, hashPassword, verifyPassword, generateToken, generateRefreshToken, verifyRefreshToken } = require('../utils/auth');
 const { authenticateRequired } = require('../middleware/authenticate');
 const { authLimiter } = require('../middleware/rate-limiters');
 
@@ -33,8 +33,9 @@ router.post('/register', authLimiter, async (req, res) => {
 
         const user = result.rows[0];
         const token = generateToken(user);
+        const refreshToken = generateRefreshToken(user);
         logger.info('User registered', { userId: user.id, component: 'auth' });
-        res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+        res.status(201).json({ token, refreshToken, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
         logger.error('Registration error', { error: error.message, component: 'auth' });
         res.status(500).json({ error: 'Registrierung fehlgeschlagen' });
@@ -74,9 +75,11 @@ router.post('/login', authLimiter, async (req, res) => {
         await db.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
 
         const token = generateToken(user);
+        const refreshToken = generateRefreshToken(user);
         logger.info('User logged in', { userId: user.id, component: 'auth' });
         res.json({
             token,
+            refreshToken,
             user: { id: user.id, email: user.email, name: user.name, role: user.role },
             mustChangePassword: user.must_change_password
         });
@@ -142,6 +145,37 @@ router.get('/me', authenticateRequired, async (req, res) => {
     } catch (error) {
         logger.error('Get user error', { error: error.message, component: 'auth' });
         res.status(500).json({ error: 'Fehler beim Laden des Benutzers' });
+    }
+});
+
+// POST /auth/refresh — exchange refresh token for new access token
+router.post('/refresh', async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(400).json({ error: 'Refresh-Token erforderlich' });
+        }
+
+        const payload = verifyRefreshToken(refreshToken);
+        if (!payload) {
+            return res.status(401).json({ error: 'Ungültiger oder abgelaufener Refresh-Token' });
+        }
+
+        const result = await db.query(
+            'SELECT id, email, name, role, is_active FROM users WHERE id = $1',
+            [payload.sub]
+        );
+
+        if (result.rows.length === 0 || !result.rows[0].is_active) {
+            return res.status(401).json({ error: 'Benutzer nicht gefunden oder deaktiviert' });
+        }
+
+        const user = result.rows[0];
+        const newToken = generateToken(user);
+        res.json({ token: newToken, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+    } catch (error) {
+        logger.error('Token refresh error', { error: error.message, component: 'auth' });
+        res.status(500).json({ error: 'Token-Refresh fehlgeschlagen' });
     }
 });
 

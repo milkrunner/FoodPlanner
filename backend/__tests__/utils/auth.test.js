@@ -25,6 +25,15 @@ function validatePassword(password) {
     if (password.length > 128) {
         return { valid: false, error: 'Passwort darf maximal 128 Zeichen lang sein' };
     }
+    if (!/[A-Z]/.test(password)) {
+        return { valid: false, error: 'Passwort muss mindestens einen Großbuchstaben enthalten' };
+    }
+    if (!/[a-z]/.test(password)) {
+        return { valid: false, error: 'Passwort muss mindestens einen Kleinbuchstaben enthalten' };
+    }
+    if (!/\d/.test(password)) {
+        return { valid: false, error: 'Passwort muss mindestens eine Zahl enthalten' };
+    }
     return { valid: true };
 }
 
@@ -98,8 +107,8 @@ describe('validatePassword', () => {
         assert.strictEqual(result.error, undefined);
     });
 
-    it('should accept exactly 8 characters', () => {
-        assert.strictEqual(validatePassword('abcd1234').valid, true);
+    it('should accept exactly 8 characters with complexity', () => {
+        assert.strictEqual(validatePassword('Abcd1234').valid, true);
     });
 
     it('should reject password shorter than 8 characters', () => {
@@ -119,13 +128,31 @@ describe('validatePassword', () => {
     });
 
     it('should reject password longer than 128 characters', () => {
-        const result = validatePassword('a'.repeat(129));
+        const result = validatePassword('A' + 'a'.repeat(127) + '1');
         assert.strictEqual(result.valid, false);
         assert.ok(result.error.includes('128'));
     });
 
     it('should accept password of exactly 128 characters', () => {
-        assert.strictEqual(validatePassword('a'.repeat(128)).valid, true);
+        assert.strictEqual(validatePassword('A' + 'a'.repeat(126) + '1').valid, true);
+    });
+
+    it('should reject password without uppercase', () => {
+        const result = validatePassword('abcdefg1');
+        assert.strictEqual(result.valid, false);
+        assert.ok(result.error.includes('Großbuchstaben'));
+    });
+
+    it('should reject password without lowercase', () => {
+        const result = validatePassword('ABCDEFG1');
+        assert.strictEqual(result.valid, false);
+        assert.ok(result.error.includes('Kleinbuchstaben'));
+    });
+
+    it('should reject password without number', () => {
+        const result = validatePassword('Abcdefgh');
+        assert.strictEqual(result.valid, false);
+        assert.ok(result.error.includes('Zahl'));
     });
 });
 

@@ -7,7 +7,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const BCRYPT_ROUNDS = 12;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 // Fail fast in production if JWT_SECRET is not configured
 if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
@@ -44,6 +45,15 @@ function validatePassword(password) {
     }
     if (password.length > 128) {
         return { valid: false, error: 'Passwort darf maximal 128 Zeichen lang sein' };
+    }
+    if (!/[A-Z]/.test(password)) {
+        return { valid: false, error: 'Passwort muss mindestens einen Großbuchstaben enthalten' };
+    }
+    if (!/[a-z]/.test(password)) {
+        return { valid: false, error: 'Passwort muss mindestens einen Kleinbuchstaben enthalten' };
+    }
+    if (!/\d/.test(password)) {
+        return { valid: false, error: 'Passwort muss mindestens eine Zahl enthalten' };
     }
     return { valid: true };
 }
@@ -92,6 +102,30 @@ function generateToken(user) {
 }
 
 /**
+ * Generate a signed refresh token (longer-lived, minimal payload)
+ * @param {{ id: string }} user
+ * @returns {string}
+ */
+function generateRefreshToken(user) {
+    return jwt.sign({ sub: user.id, type: 'refresh' }, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
+}
+
+/**
+ * Verify a refresh token — returns payload or null
+ * @param {string} token
+ * @returns {{ sub: string, type: string } | null}
+ */
+function verifyRefreshToken(token) {
+    try {
+        const payload = jwt.verify(token, JWT_SECRET);
+        if (payload.type !== 'refresh') return null;
+        return payload;
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Verify and decode a JWT token
  * @param {string} token
  * @returns {{ sub: string, email: string, name: string } | null}
@@ -137,7 +171,9 @@ module.exports = {
     verifyPassword,
     createUserPayload,
     generateToken,
+    generateRefreshToken,
     verifyToken,
+    verifyRefreshToken,
     extractBearerToken,
     generateTempPassword
 };

@@ -240,7 +240,7 @@ export const App = {
                             </div>
                             <input id="auth-screen-email" type="email" placeholder="E-Mail" required
                                 class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-                            <input id="auth-screen-password" type="password" placeholder="Passwort (min. 8 Zeichen)" required minlength="8"
+                            <input id="auth-screen-password" type="password" placeholder="Passwort (Groß-/Kleinbuchstaben + Zahl)" required minlength="8"
                                 class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
                             <div id="auth-screen-error" class="text-sm text-red-500 hidden"></div>
                             <button type="submit" id="auth-screen-submit"
@@ -335,7 +335,7 @@ export const App = {
                         <form id="change-pw-form" class="space-y-4">
                             <input id="change-pw-current" type="password" placeholder="Temporäres Passwort" required
                                 class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-                            <input id="change-pw-new" type="password" placeholder="Neues Passwort (min. 8 Zeichen)" required minlength="8"
+                            <input id="change-pw-new" type="password" placeholder="Neues Passwort (Groß-/Kleinbuchstaben + Zahl)" required minlength="8"
                                 class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
                             <input id="change-pw-confirm" type="password" placeholder="Neues Passwort bestätigen" required minlength="8"
                                 class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
