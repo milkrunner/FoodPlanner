@@ -78,8 +78,8 @@ FoodPlanner/
 │   ├── db/           # Migrationen
 │   └── Dockerfile
 ├── icons/            # PWA Icons
-├── index.html        # Frontend
-├── app.js            # Frontend Logic
+├── js/               # Frontend (ES Modules)
+├── index.html        # Frontend Entry Point
 ├── nginx.conf        # Webserver Config
 ├── Dockerfile.frontend
 ├── docker-compose.yml      # Production

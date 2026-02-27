@@ -9,7 +9,7 @@ Dieses Dokument beschreibt die technische Architektur des FoodPlanner-Projekts.
 │                         Browser                                  │
 │  ┌─────────────────────────────────────────────────────────────┐│
 │  │                    Frontend (SPA)                           ││
-│  │              index.html + app.js                            ││
+│  │              index.html + js/main.js (ES Modules)           ││
 │  │              Tailwind CSS (CDN)                             ││
 │  └─────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────┘
@@ -41,22 +41,18 @@ Dieses Dokument beschreibt die technische Architektur des FoodPlanner-Projekts.
 Das Frontend ist eine Single-Page-Application (SPA) ohne Build-Prozess:
 
 - **index.html**: Hauptseite mit allen UI-Komponenten
-- **app.js**: Gesamte Anwendungslogik (~2000 Zeilen)
+- **js/main.js**: Entry Point (ES Module)
+- **js/app.js**: Zentrale App-Klasse
+- **js/core/**: State, API, Router, Auth
+- **js/views/**: View-Komponenten
 - **Tailwind CSS**: Über CDN eingebunden
 
 **Besonderheiten:**
 - Kein Framework (React, Vue, etc.)
 - Kein Bundler (Webpack, Vite, etc.)
+- Modulare ES-Module-Architektur
 - Direkt im Browser ausführbar
 - Fallback auf localStorage wenn Backend nicht verfügbar
-
-**State Management:**
-```javascript
-// Zentraler State in app.js
-let recipes = [];
-let weekPlan = null;
-let currentView = 'weekplan';
-```
 
 ### Backend
 
@@ -138,7 +134,7 @@ const pool = new Pool({
 User Input
     │
     ▼
-Frontend (app.js)
+Frontend (js/app.js)
     │
     ├─▶ Validierung
     │
@@ -223,7 +219,7 @@ Die Images werden bei jedem Release in der GitHub Container Registry veröffentl
 
 | Image | Inhalt |
 |-------|--------|
-| `ghcr.io/milkrunner/foodplanner/frontend` | nginx + statische Dateien (index.html, app.js, sw.js, manifest.json, icons/, nginx.conf) |
+| `ghcr.io/milkrunner/foodplanner/frontend` | nginx + statische Dateien (index.html, js/, sw.js, manifest.json, icons/, nginx.conf) |
 | `ghcr.io/milkrunner/foodplanner/backend` | Node.js + Express API + yt-dlp |
 
 ### Volumes
