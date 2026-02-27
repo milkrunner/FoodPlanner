@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '../config.js';
 import { OfflineDB } from './offline-db.js';
 import { Toast } from './toast.js';
+import { Auth } from './auth.js';
 
 // PWA & Offline Support
 export const PWA = {
@@ -122,7 +123,7 @@ export const PWA = {
                 try {
                     await fetch(`${API_BASE_URL}/recipes`, {
                         method: item.method || 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(item.data)
                     });
                     await OfflineDB.removePending('recipes', item.id);
@@ -136,7 +137,7 @@ export const PWA = {
                 try {
                     await fetch(`${API_BASE_URL}/weekplan`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
                         body: JSON.stringify(item.data)
                     });
                     await OfflineDB.removePending('weekplan', item.id);

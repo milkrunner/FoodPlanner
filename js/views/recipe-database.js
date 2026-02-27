@@ -3,6 +3,7 @@ import { StorageService } from '../core/storage-service.js';
 import { Toast } from '../core/toast.js';
 import { ActionHistory } from '../core/action-history.js';
 import { escapeHtml, trapFocus } from '../core/utils.js';
+import { Auth } from '../core/auth.js';
 import { App } from '../app.js';
 import { API_BASE_URL } from '../config.js';
 
@@ -57,14 +58,14 @@ export const RecipeDatabaseView = {
                 </div>
                 <div class="flex gap-3 overflow-x-auto favorite-quick-scroll pb-1">
                     ${limitedFavorites.map(recipe => `
-                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-red-100 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-left transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
+                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-red-100 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-left transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${escapeHtml(recipe.name)} anzeigen">
                             <div class="flex items-center justify-between gap-3">
-                                <span class="font-medium text-red-700 dark:text-red-200 truncate">${recipe.name}</span>
+                                <span class="font-medium text-red-700 dark:text-red-200 truncate">${escapeHtml(recipe.name)}</span>
                                 <svg class="w-4 h-4 text-red-400 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                     <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
                                 </svg>
                             </div>
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-300 truncate">${recipe.category || 'Ohne Kategorie'}</p>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-300 truncate">${escapeHtml(recipe.category || 'Ohne Kategorie')}</p>
                         </button>
                     `).join('')}
                     ${overflow > 0 ? `
@@ -147,14 +148,14 @@ export const RecipeDatabaseView = {
                 </div>
                 <div class="flex gap-3 overflow-x-auto favorite-quick-scroll pb-1">
                     ${limitedFavorites.map(recipe => `
-                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-red-100 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-left transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${recipe.name} anzeigen">
+                        <button type="button" class="favorite-quick-item flex-shrink-0 min-w-[160px] px-4 py-3 rounded-lg border border-red-100 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-left transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:focus-visible:ring-red-500" data-recipe-id="${recipe.id}" aria-label="${escapeHtml(recipe.name)} anzeigen">
                             <div class="flex items-center justify-between gap-3">
-                                <span class="font-medium text-red-700 dark:text-red-200 truncate">${recipe.name}</span>
+                                <span class="font-medium text-red-700 dark:text-red-200 truncate">${escapeHtml(recipe.name)}</span>
                                 <svg class="w-4 h-4 text-red-400 dark:text-red-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                     <path fill-rule="evenodd" d="M10.293 15.707a1 1 0 010-1.414L13.586 11H4a1 1 0 110-2h9.586l-3.293-3.293a1 1 0 011.414-1.414l5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
                                 </svg>
                             </div>
-                            <p class="mt-1 text-xs text-red-600 dark:text-red-300 truncate">${recipe.category || 'Ohne Kategorie'}</p>
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-300 truncate">${escapeHtml(recipe.category || 'Ohne Kategorie')}</p>
                         </button>
                     `).join('')}
                     ${overflow > 0 ? `
@@ -380,7 +381,7 @@ export const RecipeDatabaseView = {
                             return `
                             <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 hover:shadow-lg dark:hover:shadow-gray-900 transition-all duration-200 active:scale-[0.99] cursor-pointer recipe-card" data-recipe-card-id="${recipe.id}">
                                 <div class="flex items-start justify-between gap-3 mb-2">
-                                    <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white line-clamp-2 flex-1">${recipe.name}</h3>
+                                    <h3 class="text-base sm:text-lg font-semibold text-gray-800 dark:text-white line-clamp-2 flex-1">${escapeHtml(recipe.name)}</h3>
                                     <button type="button" class="favorite-toggle-btn ${recipe.is_favorite ? 'is-favorite' : ''} p-2 rounded-full transition transform favorite-heart" data-recipe-id="${recipe.id}" title="${recipe.is_favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" aria-label="${recipe.is_favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">
                                         <svg class="w-5 h-5 favorite-heart-icon" viewBox="0 0 24 24" fill="${recipe.is_favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8">
                                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
@@ -390,7 +391,7 @@ export const RecipeDatabaseView = {
                                 <div class="flex flex-wrap gap-1 mb-2">
                                     ${recipe.category ? `
                                         <span class="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs rounded">
-                                            ${recipe.category}
+                                            ${escapeHtml(recipe.category)}
                                         </span>
                                     ` : ''}
                                     ${recipe.is_meal_prep_suitable ? `
@@ -566,11 +567,11 @@ export const RecipeDatabaseView = {
                     <div class="p-4 sm:p-6 border-b dark:border-gray-700 bg-gradient-to-r from-blue-500 to-purple-600 flex-shrink-0">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
-                                <h2 id="recipe-detail-title" class="text-xl sm:text-2xl font-bold text-white mb-2">${recipe.name}</h2>
+                                <h2 id="recipe-detail-title" class="text-xl sm:text-2xl font-bold text-white mb-2">${escapeHtml(recipe.name)}</h2>
                                 <div class="flex flex-wrap gap-2">
                                     ${recipe.category ? `
                                         <span class="px-3 py-1 bg-white/20 text-white text-sm rounded-full">
-                                            ${recipe.category}
+                                            ${escapeHtml(recipe.category)}
                                         </span>
                                     ` : ''}
                                     ${recipe.servings ? `
@@ -678,13 +679,13 @@ export const RecipeDatabaseView = {
                                     <div class="space-y-4">
                                         ${Object.entries(ingredientsByCategory).map(([category, ingredients]) => `
                                             <div>
-                                                <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">${category}</h4>
+                                                <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">${escapeHtml(category)}</h4>
                                                 <ul class="space-y-2">
                                                     ${ingredients.map(ing => `
                                                         <li class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
                                                             <span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
-                                                            <span class="font-medium">${ing.amount || ''} ${ing.unit || ''}</span>
-                                                            <span>${ing.name}</span>
+                                                            <span class="font-medium">${escapeHtml(ing.amount || '')} ${escapeHtml(ing.unit || '')}</span>
+                                                            <span>${escapeHtml(ing.name)}</span>
                                                         </li>
                                                     `).join('')}
                                                 </ul>
@@ -749,7 +750,7 @@ export const RecipeDatabaseView = {
                             Bearbeiten
                         </button>
                         <button id="mark-cooked-from-detail" class="flex-1 sm:flex-none px-4 py-2.5 bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-                                data-recipe-id="${recipe.id}" data-recipe-name="${recipe.name}">
+                                data-recipe-id="${recipe.id}" data-recipe-name="${escapeHtml(recipe.name)}">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
@@ -1408,16 +1409,16 @@ export const RecipeDatabaseView = {
 
         container.innerHTML = this.ingredients.map((ing, index) => `
             <div class="flex gap-2 mb-2">
-                <input type="text" placeholder="Zutat" value="${ing.name}" data-index="${index}" data-field="name"
+                <input type="text" placeholder="Zutat" value="${escapeHtml(ing.name)}" data-index="${index}" data-field="name"
                        class="ingredient-input flex-1 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
-                <input type="text" placeholder="Menge" value="${ing.amount}" data-index="${index}" data-field="amount"
+                <input type="text" placeholder="Menge" value="${escapeHtml(ing.amount)}" data-index="${index}" data-field="amount"
                        class="ingredient-input w-20 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
-                <input type="text" placeholder="Einheit" value="${ing.unit}" data-index="${index}" data-field="unit"
+                <input type="text" placeholder="Einheit" value="${escapeHtml(ing.unit)}" data-index="${index}" data-field="unit"
                        class="ingredient-input w-20 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                 <select data-index="${index}" data-field="category" title="Kategorie (wird automatisch erkannt)"
                         class="ingredient-input ingredient-category-select w-40 px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
                     ${this.categories.map(cat => `
-                        <option value="${cat}" ${(ing.category || 'Sonstiges') === cat ? 'selected' : ''}>${cat}</option>
+                        <option value="${escapeHtml(cat)}" ${(ing.category || 'Sonstiges') === cat ? 'selected' : ''}>${escapeHtml(cat)}</option>
                     `).join('')}
                 </select>
                 <button type="button" class="remove-ingredient-btn px-3 py-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" data-index="${index}">
@@ -1564,9 +1565,9 @@ export const RecipeDatabaseView = {
                                     <div class="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4 space-y-2">
                                         ${this.scaledIngredients.map(ing => `
                                             <div class="flex justify-between items-center py-2 border-b dark:border-gray-700 last:border-0">
-                                                <span class="text-gray-800 dark:text-gray-200">${ing.name}</span>
+                                                <span class="text-gray-800 dark:text-gray-200">${escapeHtml(ing.name)}</span>
                                                 <span class="font-medium text-green-600 dark:text-green-400">
-                                                    ${ing.amount} ${ing.unit}
+                                                    ${escapeHtml(String(ing.amount || ''))} ${escapeHtml(ing.unit || '')}
                                                 </span>
                                             </div>
                                         `).join('')}
@@ -1699,8 +1700,8 @@ export const RecipeDatabaseView = {
         if (selectedTagsContainer) {
             selectedTagsContainer.innerHTML = this.tags.map(tag => `
                 <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-full text-sm">
-                    ${tag}
-                    <button type="button" class="remove-tag-btn hover:text-blue-600 dark:hover:text-blue-200" data-tag="${tag}">✕</button>
+                    ${escapeHtml(tag)}
+                    <button type="button" class="remove-tag-btn hover:text-blue-600 dark:hover:text-blue-200" data-tag="${escapeHtml(tag)}">✕</button>
                 </span>
             `).join('');
         }
@@ -2128,7 +2129,7 @@ export const RecipeDatabaseView = {
                         ${(this.variantData.ingredients || []).map(ing => `
                             <div class="flex items-center gap-2 text-sm ${ing.isNew ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}">
                                 ${ing.isNew ? '<span class="text-xs bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">Neu</span>' : ''}
-                                <span>${ing.amount || ''} ${ing.unit || ''} ${ing.name}</span>
+                                <span>${escapeHtml(ing.amount || '')} ${escapeHtml(ing.unit || '')} ${escapeHtml(ing.name)}</span>
                             </div>
                         `).join('')}
                     </div>
@@ -2263,9 +2264,9 @@ export const RecipeDatabaseView = {
         try {
             const response = await fetch(`${API_BASE_URL}/ai/scale-portions`, {
                 method: 'POST',
-                headers: {
+                headers: Auth.authHeaders({
                     'Content-Type': 'application/json'
-                },
+                }),
                 body: JSON.stringify({
                     ingredients: this.scalingRecipe.ingredients,
                     originalServings: this.scalingRecipe.servings,
@@ -2305,9 +2306,9 @@ export const RecipeDatabaseView = {
         try {
             const response = await fetch(`${API_BASE_URL}/ai/categorize-ingredient`, {
                 method: 'POST',
-                headers: {
+                headers: Auth.authHeaders({
                     'Content-Type': 'application/json'
-                },
+                }),
                 body: JSON.stringify({
                     ingredientName: ingredientName
                 })

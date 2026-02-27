@@ -6,6 +6,7 @@ import { ActionHistory } from '../core/action-history.js';
 import { MobileUtils } from '../core/mobile-utils.js';
 import { escapeHtml, trapFocus } from '../core/utils.js';
 import { API_BASE_URL } from '../config.js';
+import { Auth } from '../core/auth.js';
 import { App } from '../app.js';
 
 export const WeekPlannerView = {
@@ -54,14 +55,14 @@ export const WeekPlannerView = {
                     ${recommendations.map(recipe => `
                         <div class="seasonal-recipe-card flex-shrink-0 min-w-[180px] max-w-[200px] px-4 py-3 rounded-lg border border-green-200 dark:border-green-800 bg-white dark:bg-gray-800 text-left transition-colors hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer" data-recipe-id="${recipe.id}">
                             <div class="flex items-start justify-between gap-2 mb-1">
-                                <span class="font-medium text-gray-800 dark:text-white text-sm line-clamp-2">${recipe.name}</span>
+                                <span class="font-medium text-gray-800 dark:text-white text-sm line-clamp-2">${escapeHtml(recipe.name)}</span>
                                 ${recipe.is_favorite ? `
                                     <svg class="w-4 h-4 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
                                     </svg>
                                 ` : ''}
                             </div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">${recipe.category || 'Rezept'}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">${escapeHtml(recipe.category || 'Rezept')}</p>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
                                     ${recipe.seasonalScore}% saisonal
@@ -251,10 +252,10 @@ export const WeekPlannerView = {
                                 ${meal ? `
                                     <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
                                         <p class="text-sm text-gray-800 dark:text-gray-200 font-medium ${meal.recipeId ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline open-recipe-btn' : ''}"
-                                           ${meal.recipeId ? `data-recipe-id="${meal.recipeId}"` : ''}>${meal.recipeName}</p>
+                                           ${meal.recipeId ? `data-recipe-id="${meal.recipeId}"` : ''}>${escapeHtml(meal.recipeName)}</p>
                                         <button class="mark-cooked-btn mt-3 w-full py-2.5 text-sm bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center justify-center gap-2 active:scale-98"
                                                 data-recipe-id="${meal.recipeId}"
-                                                data-recipe-name="${meal.recipeName}">
+                                                data-recipe-name="${escapeHtml(meal.recipeName)}">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                             </svg>
@@ -360,8 +361,8 @@ export const WeekPlannerView = {
                                 ${AppState.recipes.map(recipe => `
                                     <button class="select-recipe-btn text-left p-3 border dark:border-gray-700 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
                                             data-recipe-id="${recipe.id}">
-                                        <p class="font-medium text-gray-800 dark:text-white">${recipe.name}</p>
-                                        ${recipe.category ? `<p class="text-sm text-gray-600 dark:text-gray-400">${recipe.category}</p>` : ''}
+                                        <p class="font-medium text-gray-800 dark:text-white">${escapeHtml(recipe.name)}</p>
+                                        ${recipe.category ? `<p class="text-sm text-gray-600 dark:text-gray-400">${escapeHtml(recipe.category)}</p>` : ''}
                                     </button>
                                 `).join('')}
                             </div>
@@ -889,9 +890,9 @@ export const WeekPlannerView = {
                     <div class="border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                         <div class="flex justify-between items-start mb-2">
                             <div class="flex-1">
-                                <h4 class="font-semibold text-gray-800 dark:text-white">${template.name}</h4>
+                                <h4 class="font-semibold text-gray-800 dark:text-white">${escapeHtml(template.name)}</h4>
                                 ${template.description ? `
-                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${template.description}</p>
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${escapeHtml(template.description)}</p>
                                 ` : ''}
                                 <p class="text-xs text-gray-500 dark:text-gray-500 mt-2">
                                     Erstellt: ${new Date(template.createdAt).toLocaleDateString('de-DE')}
@@ -1049,7 +1050,7 @@ export const WeekPlannerView = {
         try {
             const response = await fetch(`${API_BASE_URL}/ai/generate-weekplan`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     mealTypes,
                     days: 7,

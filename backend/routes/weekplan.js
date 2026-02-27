@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { logger } = require('../utils/logger');
+const { authenticateRequired } = require('../middleware/authenticate');
 
 // Get current week plan
 router.get('/', async (req, res) => {
@@ -49,12 +50,12 @@ router.get('/', async (req, res) => {
         });
     } catch (error) {
         logger.error('Error fetching week plan', { error: error.message, requestId: req.requestId, component: 'weekplan' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Save week plan (supports multiple weeks)
-router.post('/', async (req, res) => {
+router.post('/', authenticateRequired, async (req, res) => {
     const { id, startDate, days, mealPrepPlan } = req.body;
     const sanitizedMealPrepPlan = mealPrepPlan && typeof mealPrepPlan === 'object' ? mealPrepPlan : {};
 
@@ -91,12 +92,12 @@ router.post('/', async (req, res) => {
         res.status(201).json({ message: 'Week plan saved successfully' });
     } catch (error) {
         logger.error('Error saving week plan', { error: error.message, requestId: req.requestId, component: 'weekplan' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Delete week plan by ID
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateRequired, async (req, res) => {
     try {
         const { id } = req.params;
         const { rowCount } = await db.query('DELETE FROM week_plans WHERE id = $1', [id]);
@@ -166,7 +167,7 @@ router.get('/by-date/:date', async (req, res) => {
         });
     } catch (error) {
         logger.error('Error fetching week plan by date', { error: error.message, date: req.params.date, requestId: req.requestId, component: 'weekplan' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
@@ -191,7 +192,7 @@ router.get('/templates', async (req, res) => {
         res.json(parsedTemplates);
     } catch (error) {
         logger.error('Error fetching templates', { error: error.message, requestId: req.requestId, component: 'templates' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
@@ -218,12 +219,12 @@ router.get('/templates/:id', async (req, res) => {
         });
     } catch (error) {
         logger.error('Error fetching template', { error: error.message, templateId: req.params.id, requestId: req.requestId, component: 'templates' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Save template
-router.post('/templates', async (req, res) => {
+router.post('/templates', authenticateRequired, async (req, res) => {
     const { id, name, description, templateData } = req.body;
 
     if (!name || !templateData) {
@@ -242,12 +243,12 @@ router.post('/templates', async (req, res) => {
         });
     } catch (error) {
         logger.error('Error saving template', { error: error.message, requestId: req.requestId, component: 'templates' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Update template
-router.put('/templates/:id', async (req, res) => {
+router.put('/templates/:id', authenticateRequired, async (req, res) => {
     const { name, description, templateData } = req.body;
 
     if (!name || !templateData) {
@@ -267,12 +268,12 @@ router.put('/templates/:id', async (req, res) => {
         res.json({ message: 'Template updated successfully' });
     } catch (error) {
         logger.error('Error updating template', { error: error.message, templateId: req.params.id, requestId: req.requestId, component: 'templates' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Delete template
-router.delete('/templates/:id', async (req, res) => {
+router.delete('/templates/:id', authenticateRequired, async (req, res) => {
     try {
         const { rowCount } = await db.query(
             'DELETE FROM week_plan_templates WHERE id = $1',
@@ -286,7 +287,7 @@ router.delete('/templates/:id', async (req, res) => {
         res.json({ message: 'Template deleted successfully' });
     } catch (error) {
         logger.error('Error deleting template', { error: error.message, templateId: req.params.id, requestId: req.requestId, component: 'templates' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 

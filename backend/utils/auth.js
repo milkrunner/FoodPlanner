@@ -7,8 +7,17 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const BCRYPT_ROUNDS = 12;
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+
+// Fail fast in production if JWT_SECRET is not configured
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET environment variable is required in production');
+    process.exit(1);
+}
+if (!process.env.JWT_SECRET) {
+    console.warn('WARNING: Using default JWT secret. Set JWT_SECRET in production!');
+}
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 
 /**
  * Validate email format - pure function

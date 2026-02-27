@@ -3,6 +3,7 @@ import { StorageService } from '../core/storage-service.js';
 import { Toast } from '../core/toast.js';
 import { DateUtils } from '../core/date-utils.js';
 import { escapeHtml, trapFocus } from '../core/utils.js';
+import { Auth } from '../core/auth.js';
 import { App } from '../app.js';
 import { API_BASE_URL } from '../config.js';
 
@@ -784,7 +785,7 @@ export const ShoppingListView = {
         try {
             const response = await fetch(`${API_BASE_URL}/shopping/optimize`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     shoppingList: this.shoppingList.map(item => ({
                         name: item.name,
@@ -817,7 +818,7 @@ export const ShoppingListView = {
         try {
             const response = await fetch(`${API_BASE_URL}/shopping/substitutions`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     originalIngredient: original,
                     substituteIngredient: substitute,
@@ -843,7 +844,7 @@ export const ShoppingListView = {
         try {
             await fetch(`${API_BASE_URL}/shopping/budget`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     weekStart: weekStart,
                     budgetAmount: this.budgetAmount

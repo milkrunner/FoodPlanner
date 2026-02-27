@@ -62,6 +62,10 @@ export const Auth = {
         return data.user;
     },
 
+    authHeaders(extra = {}) {
+        return this._token ? { ...extra, 'Authorization': `Bearer ${this._token}` } : extra;
+    },
+
     async logout() {
         try {
             await fetch('/auth/logout', {

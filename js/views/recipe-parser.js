@@ -1,6 +1,8 @@
 import { AppState } from '../core/app-state.js';
 import { StorageService } from '../core/storage-service.js';
 import { Toast } from '../core/toast.js';
+import { escapeHtml } from '../core/utils.js';
+import { Auth } from '../core/auth.js';
 import { App } from '../app.js';
 import { API_BASE_URL } from '../config.js';
 
@@ -45,13 +47,13 @@ export const RecipeParserView = {
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-                                    <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">${this.parsedRecipe.name}</p>
+                                    <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">${escapeHtml(this.parsedRecipe.name)}</p>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategorie</label>
-                                        <p class="text-gray-900 dark:text-gray-100">${this.parsedRecipe.category}</p>
+                                        <p class="text-gray-900 dark:text-gray-100">${escapeHtml(this.parsedRecipe.category)}</p>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Portionen</label>
@@ -64,9 +66,9 @@ export const RecipeParserView = {
                                     <ul class="space-y-2">
                                         ${this.parsedRecipe.ingredients.map(ing => `
                                             <li class="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                                                <span class="w-16 text-right font-mono text-sm">${ing.amount} ${ing.unit}</span>
-                                                <span>${ing.name}</span>
-                                                <span class="ml-auto text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">${ing.category}</span>
+                                                <span class="w-16 text-right font-mono text-sm">${escapeHtml(ing.amount || '')} ${escapeHtml(ing.unit || '')}</span>
+                                                <span>${escapeHtml(ing.name)}</span>
+                                                <span class="ml-auto text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">${escapeHtml(ing.category || '')}</span>
                                             </li>
                                         `).join('')}
                                     </ul>
@@ -74,7 +76,7 @@ export const RecipeParserView = {
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zubereitung</label>
-                                    <p class="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">${this.parsedRecipe.instructions}</p>
+                                    <p class="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">${escapeHtml(this.parsedRecipe.instructions)}</p>
                                 </div>
 
                                 <button
@@ -292,9 +294,9 @@ export const RecipeParserView = {
         try {
             const response = await fetch(`${API_BASE_URL}/ai/parse-recipe`, {
                 method: 'POST',
-                headers: {
+                headers: Auth.authHeaders({
                     'Content-Type': 'application/json',
-                },
+                }),
                 body: JSON.stringify({
                     input: this.inputText,
                     type: this.isUrl ? 'url' : 'text'
@@ -337,9 +339,9 @@ export const RecipeParserView = {
         try {
             const response = await fetch(`${API_BASE_URL}/ai/parse-video-recipe`, {
                 method: 'POST',
-                headers: {
+                headers: Auth.authHeaders({
                     'Content-Type': 'application/json',
-                },
+                }),
                 body: JSON.stringify({
                     url: this.videoUrl,
                     acceptDisclaimer: true

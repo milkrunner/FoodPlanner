@@ -1,6 +1,8 @@
 import { AppState } from '../core/app-state.js';
 import { StorageService } from '../core/storage-service.js';
 import { Toast } from '../core/toast.js';
+import { escapeHtml } from '../core/utils.js';
+import { Auth } from '../core/auth.js';
 import { App } from '../app.js';
 import { API_BASE_URL } from '../config.js';
 
@@ -98,11 +100,11 @@ export const AIRecipeGeneratorView = {
                             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-6 transition-colors duration-200">
                                 <div class="flex justify-between items-start mb-4">
                                     <div>
-                                        <h4 class="text-xl font-semibold text-gray-800 dark:text-white">${recipe.name}</h4>
+                                        <h4 class="text-xl font-semibold text-gray-800 dark:text-white">${escapeHtml(recipe.name)}</h4>
                                         <div class="flex gap-2 mt-2">
                                             ${recipe.category ? `
                                                 <span class="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs rounded">
-                                                    ${recipe.category}
+                                                    ${escapeHtml(recipe.category)}
                                                 </span>
                                             ` : ''}
                                             ${recipe.servings ? `
@@ -123,14 +125,14 @@ export const AIRecipeGeneratorView = {
                                         <h5 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Zutaten:</h5>
                                         <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
                                             ${recipe.ingredients.map(ing => `
-                                                <li>${ing.amount} ${ing.unit} ${ing.name}</li>
+                                                <li>${escapeHtml(ing.amount || '')} ${escapeHtml(ing.unit || '')} ${escapeHtml(ing.name)}</li>
                                             `).join('')}
                                         </ul>
                                     </div>
 
                                     <div>
                                         <h5 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Zubereitung:</h5>
-                                        <p class="text-gray-600 dark:text-gray-400 whitespace-pre-line">${recipe.instructions}</p>
+                                        <p class="text-gray-600 dark:text-gray-400 whitespace-pre-line">${escapeHtml(recipe.instructions)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -223,7 +225,7 @@ export const AIRecipeGeneratorView = {
         try {
             const response = await fetch(`${API_BASE_URL}/ai/generate-recipes`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     ingredients,
                     preferences: this.preferences

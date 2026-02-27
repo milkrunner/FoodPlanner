@@ -13,6 +13,7 @@ const { categorizeIngredient } = require('../utils/categorization');
 const { validateUrl, ALLOWED_RECIPE_DOMAINS, VIDEO_PLATFORMS, isVideoUrl } = require('../utils/validation');
 const { downloadVideo, cleanupTempFiles } = require('../utils/video');
 const { classicSearch } = require('../utils/search');
+const { authenticateRequired } = require('../middleware/authenticate');
 
 // ========== HELPER FUNCTIONS ==========
 
@@ -122,7 +123,7 @@ function extractRecipeText(html) {
 // ========== ROUTES ==========
 
 // Generate recipes from ingredients
-router.post('/generate-recipes', aiLimiter, async (req, res) => {
+router.post('/generate-recipes', authenticateRequired, aiLimiter, async (req, res) => {
     if (!genAI) {
         return res.status(503).json({
             error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
@@ -189,13 +190,13 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
         logger.error('AI generation error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
             error: 'Failed to generate recipes',
-            details: error.message
+            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
         });
     }
 });
 
 // AI-based ingredient categorization
-router.post('/categorize-ingredient', aiLimiter, async (req, res) => {
+router.post('/categorize-ingredient', authenticateRequired, aiLimiter, async (req, res) => {
     try {
         const { ingredientName } = req.body;
 
@@ -251,13 +252,13 @@ WICHTIG: Antworte NUR mit dem Namen der Kategorie, ohne zusätzlichen Text oder 
         logger.error('Categorization error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
             error: 'Failed to categorize ingredient',
-            details: error.message
+            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
         });
     }
 });
 
 // AI-based portion scaling
-router.post('/scale-portions', aiLimiter, async (req, res) => {
+router.post('/scale-portions', authenticateRequired, aiLimiter, async (req, res) => {
     if (!genAI) {
         return res.status(503).json({
             error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
@@ -315,13 +316,13 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
         logger.error('AI portion scaling error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
             error: 'Failed to scale portions',
-            details: error.message
+            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
         });
     }
 });
 
 // AI-based recipe analysis and improvement suggestions
-router.post('/analyze-recipe', aiLimiter, async (req, res) => {
+router.post('/analyze-recipe', authenticateRequired, aiLimiter, async (req, res) => {
     if (!genAI) {
         return res.status(503).json({
             error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
@@ -420,13 +421,13 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zu
         logger.error('AI recipe analysis error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
             error: 'Failed to analyze recipe',
-            details: error.message
+            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
         });
     }
 });
 
 // AI-based recipe variant generation
-router.post('/generate-variant', aiLimiter, async (req, res) => {
+router.post('/generate-variant', authenticateRequired, aiLimiter, async (req, res) => {
     if (!genAI) {
         return res.status(503).json({
             error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
@@ -528,7 +529,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zu
         logger.error('AI variant generation error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
             error: 'Failed to generate recipe variant',
-            details: error.message
+            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
         });
     }
 });
@@ -550,7 +551,7 @@ router.get('/variant-types', (req, res) => {
 });
 
 // AI-powered natural language recipe search
-router.post('/search', aiLimiter, async (req, res) => {
+router.post('/search', authenticateRequired, aiLimiter, async (req, res) => {
     const startTime = Date.now();
     const { query, recipes } = req.body;
 
@@ -704,7 +705,7 @@ REGELN:
 });
 
 // Recipe Parser - Parse free text into structured recipe
-router.post('/parse-recipe', aiLimiter, async (req, res) => {
+router.post('/parse-recipe', authenticateRequired, aiLimiter, async (req, res) => {
     if (!genAI) {
         return res.status(503).json({
             error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
@@ -795,8 +796,7 @@ Regeln:
             logger.error('JSON parse error', { error: parseError.message, requestId: req.requestId, component: 'ai' });
             return res.status(500).json({
                 error: 'Failed to parse AI response as JSON',
-                details: parseError.message,
-                rawResponse: jsonText
+                details: process.env.NODE_ENV !== 'production' ? parseError.message : undefined
             });
         }
 
@@ -830,13 +830,13 @@ Regeln:
         logger.error('Recipe parsing error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
             error: 'Failed to parse recipe',
-            details: error.message
+            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
         });
     }
 });
 
 // Parse video recipe using Gemini
-router.post('/parse-video-recipe', aiLimiter, async (req, res) => {
+router.post('/parse-video-recipe', authenticateRequired, aiLimiter, async (req, res) => {
     if (!genAI) {
         return res.status(503).json({
             error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
@@ -970,7 +970,7 @@ Regeln:
             logger.error('JSON parse error', { error: parseError.message, requestId: req.requestId, component: 'video' });
             return res.status(500).json({
                 error: 'Failed to parse AI response as JSON',
-                details: parseError.message,
+                details: process.env.NODE_ENV !== 'production' ? parseError.message : undefined,
                 hint: 'The video might not contain a clear recipe.'
             });
         }
@@ -1012,7 +1012,7 @@ Regeln:
         logger.error('Video recipe parsing error', { error: error.message, requestId: req.requestId, component: 'video' });
         res.status(500).json({
             error: 'Failed to parse video recipe',
-            details: error.message
+            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
         });
     }
 });
@@ -1027,7 +1027,7 @@ router.get('/video-platforms', (req, res) => {
 });
 
 // AI-powered weekly meal plan generation
-router.post('/generate-weekplan', aiLimiter, async (req, res) => {
+router.post('/generate-weekplan', authenticateRequired, aiLimiter, async (req, res) => {
     if (!genAI) {
         return res.status(503).json({
             error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
@@ -1255,13 +1255,13 @@ Einheiten für Zutaten: g, kg, ml, l, Stück, EL, TL, Prise, Bund, Dose, Packung
 
         res.status(500).json({
             error: 'Fehler bei der Wochenplan-Generierung',
-            details: error.message
+            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
         });
     }
 });
 
 // AI-powered meal prep suggestions
-router.post('/meal-prep-suggestions', aiLimiter, async (req, res) => {
+router.post('/meal-prep-suggestions', authenticateRequired, aiLimiter, async (req, res) => {
     if (!genAI) {
         return res.status(503).json({
             error: 'AI service not configured. Please set GEMINI_API_KEY environment variable.'
@@ -1419,7 +1419,7 @@ router.post('/meal-prep-suggestions', aiLimiter, async (req, res) => {
 
         res.status(500).json({
             error: 'Fehler bei der Meal-Prep Empfehlung',
-            details: error.message
+            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
         });
     }
 });

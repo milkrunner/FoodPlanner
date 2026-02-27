@@ -7,6 +7,7 @@ const { resolveFavoriteFlagFromBody, resolveToggleTarget } = require('../utils/f
 const { buildRecipeQuery } = require('../utils/recipe-queries');
 const { parseNullableInt, parseNullableText, parseBooleanFlag } = require('../utils/parsing');
 const { SEASONAL_CALENDAR, getCurrentSeason, isIngredientInSeason, calculateSeasonalScore } = require('../utils/seasonal');
+const { authenticateRequired } = require('../middleware/authenticate');
 
 // Default pagination settings
 const DEFAULT_PAGE_SIZE = 20;
@@ -71,7 +72,7 @@ router.get('/', async (req, res) => {
             stack: error.stack,
             component: 'recipes'
         });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
@@ -125,7 +126,7 @@ router.get('/seasonal', async (req, res) => {
         });
     } catch (error) {
         logger.error('Error fetching seasonal recipes', { error: error.message, requestId: req.requestId, component: 'seasons' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
@@ -169,7 +170,7 @@ router.get('/seasonal/recommendations', async (req, res) => {
         });
     } catch (error) {
         logger.error('Error fetching seasonal recommendations', { error: error.message, requestId: req.requestId, component: 'seasons' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
@@ -202,12 +203,12 @@ router.get('/:id', async (req, res) => {
             stack: error.stack,
             component: 'recipes'
         });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Create recipe
-router.post('/', async (req, res) => {
+router.post('/', authenticateRequired, async (req, res) => {
     const {
         name,
         category,
@@ -308,12 +309,12 @@ router.post('/', async (req, res) => {
         res.status(201).json({ id, is_favorite: favoriteValue, message: 'Recipe created successfully' });
     } catch (error) {
         logger.error('Error creating recipe', { error: error.message, requestId: req.requestId, component: 'recipes' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Update recipe
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateRequired, async (req, res) => {
     const {
         name,
         category,
@@ -417,12 +418,12 @@ router.put('/:id', async (req, res) => {
         res.json({ message: 'Recipe updated successfully', is_favorite: updatedFavorite });
     } catch (error) {
         logger.error('Error updating recipe', { error: error.message, recipeId: req.params.id, requestId: req.requestId, component: 'recipes' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Toggle favorite status
-router.put('/:id/favorite', async (req, res) => {
+router.put('/:id/favorite', authenticateRequired, async (req, res) => {
     try {
         const recipeId = req.params.id;
         const { rows: existingRows } = await db.query('SELECT is_favorite FROM recipes WHERE id = $1', [recipeId]);
@@ -461,18 +462,18 @@ router.put('/:id/favorite', async (req, res) => {
             stack: error.stack,
             component: 'recipes'
         });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 
 // Delete recipe
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateRequired, async (req, res) => {
     try {
         await db.query('DELETE FROM recipes WHERE id = $1', [req.params.id]);
         res.json({ message: 'Recipe deleted successfully' });
     } catch (error) {
         logger.error('Error deleting recipe', { error: error.message, recipeId: req.params.id, requestId: req.requestId, component: 'recipes' });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Interner Serverfehler' });
     }
 });
 

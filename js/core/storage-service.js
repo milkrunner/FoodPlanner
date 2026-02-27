@@ -2,6 +2,11 @@ import { API_BASE_URL } from '../config.js';
 import { OfflineDB } from './offline-db.js';
 import { PWA } from './pwa.js';
 import { Toast } from './toast.js';
+import { Auth } from './auth.js';
+
+function authHeaders(extra = {}) {
+    return Auth.authHeaders(extra);
+}
 
 // Storage Service with API integration and offline support
 export const StorageService = {
@@ -48,7 +53,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/recipes/${recipeId}/favorite`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ isFavorite })
             });
             if (!response.ok) {
@@ -66,7 +71,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/recipes`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(recipe)
             });
             if (!response.ok) throw new Error('Failed to add recipe');
@@ -87,7 +92,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/recipes/${recipe.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(recipe)
             });
             if (!response.ok) throw new Error('Failed to update recipe');
@@ -101,7 +106,8 @@ export const StorageService = {
     async deleteRecipe(id) {
         try {
             const response = await fetch(`${API_BASE_URL}/recipes/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: authHeaders()
             });
             if (!response.ok) throw new Error('Failed to delete recipe');
             return await response.json();
@@ -150,7 +156,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/weekplan`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(weekPlan)
             });
             if (!response.ok) throw new Error('Failed to save week plan');
@@ -164,7 +170,8 @@ export const StorageService = {
     async clearWeekPlan() {
         try {
             const response = await fetch(`${API_BASE_URL}/weekplan`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: authHeaders()
             });
             if (!response.ok) throw new Error('Failed to clear week plan');
             return await response.json();
@@ -201,7 +208,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/weekplan/templates`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(template)
             });
             if (!response.ok) throw new Error('Failed to save template');
@@ -216,7 +223,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/weekplan/templates/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(template)
             });
             if (!response.ok) throw new Error('Failed to update template');
@@ -230,7 +237,8 @@ export const StorageService = {
     async deleteTemplate(id) {
         try {
             const response = await fetch(`${API_BASE_URL}/weekplan/templates/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: authHeaders()
             });
             if (!response.ok) throw new Error('Failed to delete template');
             return await response.json();
@@ -256,7 +264,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/shopping/manual`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(item)
             });
             if (!response.ok) throw new Error('Failed to add manual shopping item');
@@ -270,7 +278,8 @@ export const StorageService = {
     async deleteManualShoppingItem(id) {
         try {
             const response = await fetch(`${API_BASE_URL}/shopping/manual/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: authHeaders()
             });
             if (!response.ok) throw new Error('Failed to delete manual shopping item');
             return await response.json();
@@ -283,7 +292,8 @@ export const StorageService = {
     async clearManualShoppingItems() {
         try {
             const response = await fetch(`${API_BASE_URL}/shopping/manual`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: authHeaders()
             });
             if (!response.ok) throw new Error('Failed to clear manual shopping items');
             return await response.json();
@@ -337,7 +347,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/cooking-history`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ recipeId, servings, notes })
             });
             if (!response.ok) throw new Error('Failed to mark recipe as cooked');
@@ -351,7 +361,8 @@ export const StorageService = {
     async deleteCookingHistoryEntry(id) {
         try {
             const response = await fetch(`${API_BASE_URL}/cooking-history/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: authHeaders()
             });
             if (!response.ok) throw new Error('Failed to delete cooking history entry');
             return await response.json();
@@ -428,7 +439,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/seasons/check`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ ingredients, season })
             });
             if (!response.ok) throw new Error('Failed to check ingredients');
@@ -444,7 +455,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/ai/analyze-recipe`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ recipe })
             });
             if (!response.ok) {
@@ -462,7 +473,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/ai/generate-variant`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ recipe, variantType })
             });
             if (!response.ok) {
@@ -491,7 +502,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/ai/search`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({ query, recipes })
             });
             if (!response.ok) {
@@ -509,7 +520,7 @@ export const StorageService = {
         try {
             const response = await fetch(`${API_BASE_URL}/ai/meal-prep-suggestions`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(payload)
             });
             if (!response.ok) {
@@ -537,7 +548,7 @@ export const StorageService = {
     async addPantryItem(item) {
         const response = await fetch(`${API_BASE_URL}/pantry`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(item)
         });
         if (!response.ok) {
@@ -550,7 +561,7 @@ export const StorageService = {
     async updatePantryItem(item) {
         const response = await fetch(`${API_BASE_URL}/pantry/${item.id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(item)
         });
         if (!response.ok) {
@@ -562,7 +573,8 @@ export const StorageService = {
 
     async deletePantryItem(id) {
         const response = await fetch(`${API_BASE_URL}/pantry/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: authHeaders()
         });
         if (!response.ok) throw new Error('Failed to delete pantry item');
         return await response.json();
