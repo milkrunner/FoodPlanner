@@ -5,6 +5,7 @@ import { escapeHtml } from '../core/utils.js';
 import { Auth } from '../core/auth.js';
 import { App } from '../app.js';
 import { API_BASE_URL } from '../config.js';
+import { api } from '../core/api.js';
 
 export const AIRecipeGeneratorView = {
     ingredients: [''],
@@ -223,21 +224,10 @@ export const AIRecipeGeneratorView = {
         App.render();
 
         try {
-            const response = await fetch(`${API_BASE_URL}/ai/generate-recipes`, {
-                method: 'POST',
-                headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify({
+            const data = await api.post(`${API_BASE_URL}/ai/generate-recipes`, {
                     ingredients,
                     preferences: this.preferences
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Fehler beim Generieren der Rezepte');
-            }
-
-            const data = await response.json();
+                });
             const recipes = Array.isArray(data.recipes) ? data.recipes : [];
             this.generatedRecipes = recipes;
             if (recipes.length > 0) {

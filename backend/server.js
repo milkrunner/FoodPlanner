@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const helmet = require('helmet');
 const swaggerUi = require('swagger-ui-express');
@@ -55,6 +56,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
+app.use(cookieParser());
 app.use(requestLogger);
 
 // Swagger API Documentation

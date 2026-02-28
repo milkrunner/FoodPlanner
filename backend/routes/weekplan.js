@@ -5,7 +5,7 @@ const { logger } = require('../utils/logger');
 const { authenticateRequired } = require('../middleware/authenticate');
 
 // Get current week plan
-router.get('/', async (req, res) => {
+router.get('/', authenticateRequired, async (req, res) => {
     try {
         const { rows: weekPlans } = await db.query(
             'SELECT * FROM week_plans ORDER BY created_at DESC LIMIT 1'
@@ -113,7 +113,7 @@ router.delete('/:id', authenticateRequired, async (req, res) => {
 
 // Get week plan by date (finds week containing the given date)
 // NOTE: This route must be defined BEFORE /:id-style routes
-router.get('/by-date/:date', async (req, res) => {
+router.get('/by-date/:date', authenticateRequired, async (req, res) => {
     try {
         // Parse date string directly - expected format: YYYY-MM-DD
         const dateStr = req.params.date.split('T')[0];
@@ -174,7 +174,7 @@ router.get('/by-date/:date', async (req, res) => {
 // ========== TEMPLATES ==========
 
 // Get all templates
-router.get('/templates', async (req, res) => {
+router.get('/templates', authenticateRequired, async (req, res) => {
     try {
         const { rows: templates } = await db.query(
             'SELECT * FROM week_plan_templates ORDER BY created_at DESC'
@@ -197,7 +197,7 @@ router.get('/templates', async (req, res) => {
 });
 
 // Get template by ID
-router.get('/templates/:id', async (req, res) => {
+router.get('/templates/:id', authenticateRequired, async (req, res) => {
     try {
         const { rows } = await db.query(
             'SELECT * FROM week_plan_templates WHERE id = $1',

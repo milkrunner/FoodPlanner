@@ -1,6 +1,7 @@
 import { Auth } from '../core/auth.js';
 import { Toast } from '../core/toast.js';
 import { escapeHtml } from '../core/utils.js';
+import { api } from '../core/api.js';
 
 export const AdminUsersView = {
     users: [],
@@ -242,14 +243,7 @@ export const AdminUsersView = {
         const role = document.getElementById('admin-create-role').value;
 
         try {
-            const res = await fetch('/admin/users', {
-                method: 'POST',
-                headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify({ email, name: name || undefined, role })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Fehler');
-
+            const data = await api.post('/admin/users', { email, name: name || undefined, role });
             document.getElementById('admin-create-modal').classList.add('hidden');
             this._showTempPassword(email, data.tempPassword);
             await this._loadUsers();
@@ -302,12 +296,7 @@ export const AdminUsersView = {
                 const email = btn.dataset.email;
                 if (!confirm(`Passwort für "${email}" wirklich zurücksetzen? Ein neues temporäres Passwort wird generiert.`)) return;
                 try {
-                    const res = await fetch(`/admin/users/${btn.dataset.id}/reset-password`, {
-                        method: 'PUT',
-                        headers: Auth.authHeaders({ 'Content-Type': 'application/json' })
-                    });
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.error || 'Fehler');
+                    const data = await api.put(`/admin/users/${btn.dataset.id}/reset-password`, {});
                     this._showTempPassword(email, data.tempPassword);
                     await this._loadUsers();
                 } catch (err) {
@@ -330,14 +319,7 @@ export const AdminUsersView = {
         this.loading = true;
         this._rerenderTable();
         try {
-            const res = await fetch('/admin/users', {
-                headers: Auth.authHeaders({ 'Content-Type': 'application/json' })
-            });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || 'Fehler beim Laden');
-            }
-            const data = await res.json();
+            const data = await api.get('/admin/users');
             this.users = data.users;
         } catch (err) {
             Toast.show(err.message, { type: 'error' });
@@ -348,14 +330,7 @@ export const AdminUsersView = {
 
     async _apiCall(url, method, body) {
         try {
-            const opts = {
-                method,
-                headers: Auth.authHeaders({ 'Content-Type': 'application/json' })
-            };
-            if (body) opts.body = JSON.stringify(body);
-            const res = await fetch(url, opts);
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Fehler');
+            const data = await api(url, { method, body });
             Toast.show(data.message || 'Erfolgreich', { type: 'success' });
             await this._loadUsers();
         } catch (err) {

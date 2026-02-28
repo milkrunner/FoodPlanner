@@ -4,7 +4,7 @@ const db = require('../db');
 const { logger } = require('../utils/logger');
 const { authenticateRequired } = require('../middleware/authenticate');
 
-router.get('/', async (req, res) => {
+router.get('/', authenticateRequired, async (req, res) => {
     try {
         const result = await db.query(
             'SELECT * FROM pantry_items ORDER BY expiry_date ASC NULLS LAST, name ASC'
@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.get('/expiring', async (req, res) => {
+router.get('/expiring', authenticateRequired, async (req, res) => {
     const days = parseInt(req.query.days) || 3;
     try {
         const result = await db.query(

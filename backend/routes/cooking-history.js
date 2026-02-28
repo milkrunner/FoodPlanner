@@ -5,7 +5,7 @@ const { logger } = require('../utils/logger');
 const { authenticateRequired } = require('../middleware/authenticate');
 
 // Get cooking history (paginated)
-router.get('/', async (req, res) => {
+router.get('/', authenticateRequired, async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 50;
         const offset = parseInt(req.query.offset) || 0;
@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get cooking stats for all recipes
-router.get('/stats', async (req, res) => {
+router.get('/stats', authenticateRequired, async (req, res) => {
     try {
         const { rows } = await db.query(`
             SELECT
@@ -57,7 +57,7 @@ router.get('/stats', async (req, res) => {
 });
 
 // Get cooking history for a specific recipe
-router.get('/recipe/:recipeId', async (req, res) => {
+router.get('/recipe/:recipeId', authenticateRequired, async (req, res) => {
     try {
         const { rows } = await db.query(`
             SELECT id, recipe_id, cooked_at, servings, notes
@@ -128,7 +128,7 @@ router.delete('/:id', authenticateRequired, async (req, res) => {
 });
 
 // Get recipes that haven't been cooked recently
-router.get('/not-cooked-recently', async (req, res) => {
+router.get('/not-cooked-recently', authenticateRequired, async (req, res) => {
     try {
         const days = parseInt(req.query.days) || 30;
 

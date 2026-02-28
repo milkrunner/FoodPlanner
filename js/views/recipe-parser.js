@@ -5,6 +5,7 @@ import { escapeHtml } from '../core/utils.js';
 import { Auth } from '../core/auth.js';
 import { App } from '../app.js';
 import { API_BASE_URL } from '../config.js';
+import { api } from '../core/api.js';
 
 export const RecipeParserView = {
     inputText: '',
@@ -292,23 +293,10 @@ export const RecipeParserView = {
         App.render();
 
         try {
-            const response = await fetch(`${API_BASE_URL}/ai/parse-recipe`, {
-                method: 'POST',
-                headers: Auth.authHeaders({
-                    'Content-Type': 'application/json',
-                }),
-                body: JSON.stringify({
+            const data = await api.post(`${API_BASE_URL}/ai/parse-recipe`, {
                     input: this.inputText,
                     type: this.isUrl ? 'url' : 'text'
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to parse recipe');
-            }
-
-            const data = await response.json();
+                });
             this.parsedRecipe = data.recipe;
             this.isLoading = false;
             App.render();
@@ -337,23 +325,10 @@ export const RecipeParserView = {
         App.render();
 
         try {
-            const response = await fetch(`${API_BASE_URL}/ai/parse-video-recipe`, {
-                method: 'POST',
-                headers: Auth.authHeaders({
-                    'Content-Type': 'application/json',
-                }),
-                body: JSON.stringify({
+            const data = await api.post(`${API_BASE_URL}/ai/parse-video-recipe`, {
                     url: this.videoUrl,
                     acceptDisclaimer: true
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || error.hint || 'Video-Analyse fehlgeschlagen');
-            }
-
-            const data = await response.json();
+                });
             this.parsedRecipe = data.recipe;
             this.isLoading = false;
             App.render();

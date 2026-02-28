@@ -15,7 +15,7 @@ const MAX_PAGE_SIZE = 100;
 
 // Get all recipes - Optimized with single JOIN query and pagination
 // Query params: page (default: 1), pageSize (default: 20, max: 100), all (if true, returns all recipes)
-router.get('/', async (req, res) => {
+router.get('/', authenticateRequired, async (req, res) => {
     try {
         const startTime = Date.now();
 
@@ -78,7 +78,7 @@ router.get('/', async (req, res) => {
 
 // Get recipes filtered by season (recipes with seasonal ingredients)
 // NOTE: This route must be defined BEFORE /:id to avoid "seasonal" being matched as an ID
-router.get('/seasonal', async (req, res) => {
+router.get('/seasonal', authenticateRequired, async (req, res) => {
     try {
         const { season, minScore, limit, offset } = req.query;
         const minimumScore = parseInt(minScore) || 30;
@@ -131,7 +131,7 @@ router.get('/seasonal', async (req, res) => {
 });
 
 // Get seasonal recommendations for the start page
-router.get('/seasonal/recommendations', async (req, res) => {
+router.get('/seasonal/recommendations', authenticateRequired, async (req, res) => {
     try {
         const { limit } = req.query;
         const maxResults = Math.min(parseInt(limit) || 6, 20);
@@ -175,7 +175,7 @@ router.get('/seasonal/recommendations', async (req, res) => {
 });
 
 // Get recipe by ID - Optimized with single JOIN query
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateRequired, async (req, res) => {
     try {
         const startTime = Date.now();
 

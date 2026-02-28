@@ -6,6 +6,7 @@ import { escapeHtml, trapFocus } from '../core/utils.js';
 import { Auth } from '../core/auth.js';
 import { App } from '../app.js';
 import { API_BASE_URL } from '../config.js';
+import { api } from '../core/api.js';
 
 export const ShoppingListView = {
     shoppingList: [],
@@ -783,10 +784,7 @@ export const ShoppingListView = {
         App.render();
 
         try {
-            const response = await fetch(`${API_BASE_URL}/shopping/optimize`, {
-                method: 'POST',
-                headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify({
+            this.optimizationResult = await api.post(`${API_BASE_URL}/shopping/optimize`, {
                     shoppingList: this.shoppingList.map(item => ({
                         name: item.name,
                         amount: item.amount,
@@ -795,15 +793,7 @@ export const ShoppingListView = {
                     })),
                     budget: this.budgetAmount,
                     preferences: this.preferences
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Optimierung fehlgeschlagen');
-            }
-
-            this.optimizationResult = await response.json();
+                });
             Toast.success('Optimierungsvorschläge erstellt');
         } catch (error) {
             console.error('Optimization error:', error);
@@ -816,20 +806,12 @@ export const ShoppingListView = {
 
     async saveSubstitutionPreference(original, substitute, reason, savingsPercent) {
         try {
-            const response = await fetch(`${API_BASE_URL}/shopping/substitutions`, {
-                method: 'POST',
-                headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify({
+            await api.post(`${API_BASE_URL}/shopping/substitutions`, {
                     originalIngredient: original,
                     substituteIngredient: substitute,
                     reason: reason,
                     savingsPercent: savingsPercent
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Fehler beim Speichern');
-            }
+                });
 
             Toast.success(`Substitution "${original} → ${substitute}" gespeichert`);
         } catch (error) {
@@ -842,14 +824,10 @@ export const ShoppingListView = {
         const weekStart = DateUtils.getMonday(new Date()).toISOString().split('T')[0];
 
         try {
-            await fetch(`${API_BASE_URL}/shopping/budget`, {
-                method: 'POST',
-                headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify({
+            await api.post(`${API_BASE_URL}/shopping/budget`, {
                     weekStart: weekStart,
                     budgetAmount: this.budgetAmount
-                })
-            });
+                });
         } catch (error) {
             console.error('Save budget error:', error);
         }
@@ -859,12 +837,9 @@ export const ShoppingListView = {
         const weekStart = DateUtils.getMonday(new Date()).toISOString().split('T')[0];
 
         try {
-            const response = await fetch(`${API_BASE_URL}/shopping/budget/${weekStart}`);
-            if (response.ok) {
-                const budget = await response.json();
-                if (budget && budget.budget_amount) {
-                    this.budgetAmount = parseFloat(budget.budget_amount);
-                }
+            const budget = await api.get(`${API_BASE_URL}/shopping/budget/${weekStart}`);
+            if (budget && budget.budget_amount) {
+                this.budgetAmount = parseFloat(budget.budget_amount);
             }
         } catch (error) {
             console.error('Load budget error:', error);

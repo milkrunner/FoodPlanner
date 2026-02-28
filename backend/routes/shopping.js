@@ -4,12 +4,13 @@ const db = require('../db');
 const { logger } = require('../utils/logger');
 const { genAI } = require('../utils/gemini');
 const { aiLimiter } = require('../middleware/rate-limiters');
+const { sanitizeForPrompt, extractJsonFromAiResponse } = require('../utils/ai-sanitize');
 const { authenticateRequired } = require('../middleware/authenticate');
 
 // ========== MANUAL SHOPPING ITEMS ==========
 
 // Get all manual shopping items
-router.get('/manual', async (req, res) => {
+router.get('/manual', authenticateRequired, async (req, res) => {
     try {
         const { rows } = await db.query(
             'SELECT * FROM manual_shopping_items ORDER BY created_at DESC'
@@ -78,7 +79,7 @@ router.delete('/manual', authenticateRequired, async (req, res) => {
 // ========== BUDGET ==========
 
 // Get budget for a specific week
-router.get('/budget/:weekStart', async (req, res) => {
+router.get('/budget/:weekStart', authenticateRequired, async (req, res) => {
     try {
         const { weekStart } = req.params;
         const { rows } = await db.query(
@@ -124,7 +125,7 @@ router.post('/budget', authenticateRequired, async (req, res) => {
 // ========== SUBSTITUTIONS ==========
 
 // Get substitution preferences
-router.get('/substitutions', async (req, res) => {
+router.get('/substitutions', authenticateRequired, async (req, res) => {
     try {
         const { rows } = await db.query(
             'SELECT * FROM substitution_preferences WHERE is_active = true ORDER BY created_at DESC'
@@ -201,7 +202,7 @@ router.post('/optimize', authenticateRequired, aiLimiter, async (req, res) => {
         const prompt = `Du bist ein intelligenter Einkaufsberater. Analysiere die folgende Einkaufsliste und schlage Optimierungen vor.
 
 EINKAUFSLISTE:
-${shoppingList.map(item => `- ${item.amount} ${item.unit} ${item.name} (Kategorie: ${item.category})`).join('\n')}
+${shoppingList.slice(0, 50).map(item => `- ${sanitizeForPrompt(item.amount, 20)} ${sanitizeForPrompt(item.unit, 20)} ${sanitizeForPrompt(item.name, 100)} (Kategorie: ${sanitizeForPrompt(item.category, 50)})`).join('\n')}
 
 ${budget ? `BUDGET: ${budget} EUR` : 'Kein spezifisches Budget angegeben.'}
 
@@ -256,23 +257,13 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format:
 }`;
 
         const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
-
-        // Extract JSON from response
-        let jsonText = text.trim();
-        if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
-        }
-
-        const optimization = JSON.parse(jsonText);
+        const optimization = extractJsonFromAiResponse(result.response.text());
 
         res.json(optimization);
     } catch (error) {
         logger.error('Shopping optimization error', { error: error.message, requestId: req.requestId, component: 'ai' });
         res.status(500).json({
-            error: 'Failed to optimize shopping list',
-            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+            error: 'Failed to optimize shopping list'
         });
     }
 });

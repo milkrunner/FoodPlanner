@@ -8,6 +8,7 @@ import { escapeHtml, trapFocus } from '../core/utils.js';
 import { API_BASE_URL } from '../config.js';
 import { Auth } from '../core/auth.js';
 import { App } from '../app.js';
+import { api } from '../core/api.js';
 
 export const WeekPlannerView = {
     selectedDay: null,
@@ -1048,22 +1049,11 @@ export const WeekPlannerView = {
         App.render();
 
         try {
-            const response = await fetch(`${API_BASE_URL}/ai/generate-weekplan`, {
-                method: 'POST',
-                headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify({
+            const data = await api.post(`${API_BASE_URL}/ai/generate-weekplan`, {
                     mealTypes,
                     days: 7,
                     preferences
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `HTTP ${response.status}`);
-            }
-
-            const data = await response.json();
+                });
 
             if (!data.success || !data.weekPlan) {
                 throw new Error('Ungültige Antwort vom Server');
