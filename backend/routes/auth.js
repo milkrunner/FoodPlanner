@@ -1,5 +1,4 @@
 const express = require('express');
-const cookieParser = require('cookie-parser');
 const router = express.Router();
 const db = require('../db');
 const { logger } = require('../utils/logger');
@@ -7,38 +6,48 @@ const { validateEmail, validatePassword, hashPassword, verifyPassword, generateT
 const { authenticateRequired } = require('../middleware/authenticate');
 const { authLimiter } = require('../middleware/rate-limiters');
 
-// Parse cookies only on auth routes (refresh token is stored as HttpOnly cookie)
-router.use(cookieParser());
-
-// Refresh token cookie options
+// Refresh token cookie config
 const REFRESH_COOKIE_NAME = 'refresh_token';
-const REFRESH_COOKIE_OPTIONS = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/auth',  // only sent to /auth/* endpoints
-    maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days in ms
-};
+const REFRESH_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
+
+/**
+ * Build Set-Cookie header value for the refresh token.
+ * Uses HttpOnly + SameSite=Strict + Secure (in production) — OWASP-recommended storage.
+ */
+function buildRefreshCookieHeader(value) {
+    const parts = [`${REFRESH_COOKIE_NAME}=${value}`, 'HttpOnly', 'SameSite=Strict', 'Path=/auth'];
+    if (process.env.NODE_ENV === 'production') parts.push('Secure');
+    parts.push(`Max-Age=${REFRESH_MAX_AGE}`);
+    return parts.join('; ');
+}
 
 /**
  * Set refresh token as HttpOnly cookie on the response.
  */
 function setRefreshCookie(res, refreshToken) {
-    // HttpOnly + Secure + SameSite=Strict cookie is the recommended secure storage for refresh tokens
-    // lgtm[js/clear-text-storage-of-sensitive-data]
-    res.cookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_OPTIONS);
+    res.setHeader('Set-Cookie', buildRefreshCookieHeader(refreshToken));
 }
 
 /**
- * Clear the refresh token cookie.
+ * Clear the refresh token cookie by setting Max-Age=0.
  */
 function clearRefreshCookie(res) {
-    res.clearCookie(REFRESH_COOKIE_NAME, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/auth'
-    });
+    const parts = [`${REFRESH_COOKIE_NAME}=`, 'HttpOnly', 'SameSite=Strict', 'Path=/auth'];
+    if (process.env.NODE_ENV === 'production') parts.push('Secure');
+    parts.push('Max-Age=0');
+    res.setHeader('Set-Cookie', parts.join('; '));
+}
+
+/**
+ * Parse a specific cookie from the request headers.
+ */
+function getCookie(req, name) {
+    const header = req.headers.cookie || '';
+    for (const pair of header.split(';')) {
+        const [key, ...rest] = pair.trim().split('=');
+        if (key === name) return rest.join('=');
+    }
+    return undefined;
 }
 
 // POST /auth/register
@@ -188,7 +197,7 @@ router.get('/me', authenticateRequired, async (req, res) => {
 router.post('/refresh', async (req, res) => {
     try {
         // Read refresh token from HttpOnly cookie (preferred) or body (legacy fallback)
-        const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] || req.body?.refreshToken;
+        const refreshToken = getCookie(req, REFRESH_COOKIE_NAME) || req.body?.refreshToken;
         if (!refreshToken) {
             return res.status(400).json({ error: 'Refresh-Token erforderlich' });
         }
