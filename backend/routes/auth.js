@@ -1,10 +1,14 @@
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const router = express.Router();
 const db = require('../db');
 const { logger } = require('../utils/logger');
 const { validateEmail, validatePassword, hashPassword, verifyPassword, generateToken, generateRefreshToken, verifyRefreshToken } = require('../utils/auth');
 const { authenticateRequired } = require('../middleware/authenticate');
 const { authLimiter } = require('../middleware/rate-limiters');
+
+// Parse cookies only on auth routes (refresh token is stored as HttpOnly cookie)
+router.use(cookieParser());
 
 // Refresh token cookie options
 const REFRESH_COOKIE_NAME = 'refresh_token';
@@ -21,7 +25,8 @@ const REFRESH_COOKIE_OPTIONS = {
  */
 function setRefreshCookie(res, refreshToken) {
     // HttpOnly + Secure + SameSite=Strict cookie is the recommended secure storage for refresh tokens
-    res.cookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_OPTIONS); // lgtm[js/clear-text-storage-of-sensitive-data]
+    // lgtm[js/clear-text-storage-of-sensitive-data]
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_OPTIONS);
 }
 
 /**

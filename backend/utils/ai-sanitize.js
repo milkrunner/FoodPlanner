@@ -12,13 +12,14 @@
  */
 function sanitizeForPrompt(input, maxLength = 1000) {
     if (!input || typeof input !== 'string') return '';
-    // Strip all HTML tags iteratively until none remain (avoids incomplete sanitization)
-    let result = input;
-    let prev;
-    do {
-        prev = result;
-        result = result.replace(/<[^>]*>/g, '');
-    } while (result !== prev);
+    // Strip HTML tags using O(n) character scan — no regex backtracking risk
+    let result = '';
+    let inTag = false;
+    for (const ch of input) {
+        if (ch === '<') { inTag = true; continue; }
+        if (ch === '>') { inTag = false; continue; }
+        if (!inTag) result += ch;
+    }
     return result
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // strip control chars (keep \n, \r, \t)
         .replace(/\s+/g, ' ')           // collapse whitespace
