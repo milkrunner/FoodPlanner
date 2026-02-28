@@ -6,6 +6,7 @@ const { genAI } = require('../utils/gemini');
 const { aiLimiter } = require('../middleware/rate-limiters');
 const { sanitizeForPrompt, extractJsonFromAiResponse } = require('../utils/ai-sanitize');
 const { authenticateRequired } = require('../middleware/authenticate');
+const { normalizeIngredientName, normalizeToBase, parseAmount, areUnitsCompatible, convertUnit } = require('../utils/unit-conversion');
 
 // ========== MANUAL SHOPPING ITEMS ==========
 
@@ -172,6 +173,135 @@ router.delete('/substitutions/:id', authenticateRequired, async (req, res) => {
     } catch (error) {
         logger.error('Error deactivating substitution', { error: error.message, substitutionId: req.params.id, requestId: req.requestId, component: 'substitutions' });
         res.status(500).json({ error: 'Interner Serverfehler' });
+    }
+});
+
+// ========== PANTRY CHECK ==========
+
+// Check shopping list items against pantry inventory
+router.post('/check-pantry', authenticateRequired, async (req, res) => {
+    try {
+        const { items } = req.body;
+
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'items array is required' });
+        }
+
+        if (items.length > 200) {
+            return res.status(400).json({ error: 'Maximum 200 items allowed' });
+        }
+
+        // Fetch all pantry items
+        const { rows: pantryItems } = await db.query(
+            'SELECT id, name, quantity, unit FROM pantry_items ORDER BY name'
+        );
+
+        // Build a lookup map: normalized name → [pantry items]
+        const pantryMap = new Map();
+        for (const p of pantryItems) {
+            const key = normalizeIngredientName(p.name);
+            if (!key) continue;
+            if (!pantryMap.has(key)) pantryMap.set(key, []);
+            pantryMap.get(key).push(p);
+        }
+
+        // Check each shopping item against pantry
+        const results = items.map(item => {
+            const name = String(item.name || '').slice(0, 200);
+            const unit = String(item.unit || '').slice(0, 50);
+            const amount = parseAmount(item.amount);
+            const normalizedName = normalizeIngredientName(name);
+
+            const result = {
+                name,
+                amount: item.amount,
+                unit,
+                pantryAmount: 0,
+                pantryUnit: null,
+                adjustedAmount: item.amount,
+                fullyAvailable: false,
+                partiallyAvailable: false,
+            };
+
+            if (!normalizedName) return result;
+
+            // Find matching pantry items
+            const matches = pantryMap.get(normalizedName);
+            if (!matches || matches.length === 0) return result;
+
+            // Sum up all matching pantry quantities
+            let totalPantryInBase = 0;
+            let pantryUnit = matches[0].unit || unit;
+            let hasCompatibleUnits = false;
+
+            for (const match of matches) {
+                const pAmount = parseAmount(match.quantity);
+                if (pAmount === null || pAmount <= 0) continue;
+
+                const pUnit = match.unit || '';
+
+                // If shopping item has no parseable amount, just mark as available
+                if (amount === null) {
+                    result.fullyAvailable = true;
+                    result.pantryAmount = pAmount;
+                    result.pantryUnit = pUnit;
+                    return result;
+                }
+
+                // Try to convert to same unit system
+                if (areUnitsCompatible(pUnit, unit)) {
+                    hasCompatibleUnits = true;
+                    const converted = convertUnit(pAmount, pUnit, unit);
+                    if (converted !== null) {
+                        totalPantryInBase += converted;
+                    }
+                } else if (!pUnit && !unit) {
+                    // Both unitless
+                    hasCompatibleUnits = true;
+                    totalPantryInBase += pAmount;
+                }
+            }
+
+            if (!hasCompatibleUnits) {
+                // Units incompatible — still report pantry has it, but can't calculate
+                result.pantryAmount = matches.reduce((sum, m) => {
+                    const a = parseAmount(m.quantity);
+                    return a !== null ? sum + a : sum;
+                }, 0);
+                result.pantryUnit = matches[0].unit;
+                result.partiallyAvailable = true;
+                return result;
+            }
+
+            result.pantryAmount = Math.round(totalPantryInBase * 100) / 100;
+            result.pantryUnit = unit;
+
+            if (amount !== null && totalPantryInBase >= amount) {
+                result.fullyAvailable = true;
+                result.adjustedAmount = 0;
+            } else if (amount !== null && totalPantryInBase > 0) {
+                result.partiallyAvailable = true;
+                result.adjustedAmount = Math.round((amount - totalPantryInBase) * 100) / 100;
+            }
+
+            return result;
+        });
+
+        const fullyAvailableCount = results.filter(r => r.fullyAvailable).length;
+        const partiallyAvailableCount = results.filter(r => r.partiallyAvailable).length;
+
+        res.json({
+            items: results,
+            summary: {
+                totalItems: results.length,
+                fullyAvailable: fullyAvailableCount,
+                partiallyAvailable: partiallyAvailableCount,
+                toBuy: results.length - fullyAvailableCount,
+            }
+        });
+    } catch (error) {
+        logger.error('Pantry check error', { error: error.message, requestId: req.requestId, component: 'shopping' });
+        res.status(500).json({ error: 'Fehler beim Vorratsabgleich' });
     }
 });
 

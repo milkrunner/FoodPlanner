@@ -16,6 +16,8 @@ export const ShoppingListView = {
     optimizationResult: null,
     isOptimizing: false,
     showOptimizationModal: false,
+    usePantry: localStorage.getItem('shopping_use_pantry') !== 'false', // default: true
+    pantryCheckResult: null,
     preferences: {
         prioritizeSeasonal: false,
         prioritizeOrganic: false,
@@ -97,6 +99,9 @@ export const ShoppingListView = {
                     </div>
                 </div>
 
+                <!-- Pantry Toggle & Banner -->
+                ${this.renderPantryPanel()}
+
                 <!-- Optimization Result -->
                 ${this.optimizationResult ? this.renderOptimizationResult() : ''}
 
@@ -163,6 +168,38 @@ export const ShoppingListView = {
                         `}
                     </button>
                 </div>
+            </div>
+        `;
+    },
+
+    renderPantryPanel() {
+        const summary = this.pantryCheckResult?.summary;
+        const hasDeductions = summary && (summary.fullyAvailable > 0 || summary.partiallyAvailable > 0);
+
+        return `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Vorräte berücksichtigen</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="pantry-toggle" class="sr-only peer" ${this.usePantry ? 'checked' : ''}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:after:border-gray-600 peer-checked:bg-amber-500"></div>
+                    </label>
+                </div>
+                ${hasDeductions ? `
+                    <div class="mt-3 flex items-center gap-2 text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg p-2">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>
+                            ${summary.fullyAvailable} Zutat${summary.fullyAvailable !== 1 ? 'en' : ''} vollständig im Vorrat${summary.partiallyAvailable > 0 ? `, ${summary.partiallyAvailable} teilweise vorhanden` : ''}
+                        </span>
+                    </div>
+                ` : ''}
             </div>
         `;
     },
@@ -418,8 +455,15 @@ export const ShoppingListView = {
                     </div>
 
                     <div class="divide-y dark:divide-gray-700 ${isCollapsed ? 'hidden' : ''}">
-                        ${items.map(item => `
-                            <div class="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${item.checked ? 'bg-gray-50 dark:bg-gray-700/50' : ''} ${item.isManual ? 'border-l-4 border-green-500 dark:border-green-600' : ''}">
+                        ${items.map(item => {
+                            const pantryInfo = item.pantryInfo;
+                            const isFullyAvailable = pantryInfo?.fullyAvailable;
+                            const isPartial = pantryInfo?.partiallyAvailable;
+                            const displayAmount = pantryInfo ? pantryInfo.adjustedAmount : item.amount;
+                            const strikeClass = isFullyAvailable ? 'line-through text-gray-400 dark:text-gray-500' : '';
+
+                            return `
+                            <div class="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${item.checked || isFullyAvailable ? 'bg-gray-50 dark:bg-gray-700/50' : ''} ${item.isManual ? 'border-l-4 border-green-500 dark:border-green-600' : ''} ${isFullyAvailable ? 'opacity-60' : ''}">
                                 <div class="flex items-center gap-3 sm:gap-4">
                                     <!-- Large touch-friendly checkbox -->
                                     <label class="relative flex items-center justify-center cursor-pointer">
@@ -429,9 +473,10 @@ export const ShoppingListView = {
                                     </label>
                                     <div class="flex-1 min-w-0 cursor-pointer py-1" data-item-index="${item.index}">
                                         <div class="flex items-start justify-between gap-2">
-                                            <p class="font-medium text-gray-800 dark:text-white text-sm sm:text-base ${item.checked ? 'line-through text-gray-500 dark:text-gray-400' : ''}">
-                                                <span class="font-semibold">${item.amount}</span> ${item.unit} ${item.name}
+                                            <p class="font-medium text-gray-800 dark:text-white text-sm sm:text-base ${item.checked ? 'line-through text-gray-500 dark:text-gray-400' : ''} ${strikeClass}">
+                                                <span class="font-semibold">${isFullyAvailable ? item.amount : displayAmount}</span> ${item.unit} ${item.name}
                                                 ${item.isManual ? '<span class="ml-2 text-xs bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">Manuell</span>' : ''}
+                                                ${isFullyAvailable ? '<span class="ml-2 text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded">Im Vorrat</span>' : ''}
                                             </p>
                                             ${item.isManual ? `
                                                 <button class="delete-manual-item-btn p-2 -mr-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
@@ -443,6 +488,11 @@ export const ShoppingListView = {
                                                 </button>
                                             ` : ''}
                                         </div>
+                                        ${isPartial && pantryInfo.pantryAmount > 0 ? `
+                                            <p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                                                ${pantryInfo.pantryAmount} ${pantryInfo.pantryUnit || item.unit} im Vorrat
+                                            </p>
+                                        ` : ''}
                                         ${item.recipeNames.length > 0 ? `
                                             <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
                                                 Für: ${item.recipeNames.join(', ')}
@@ -451,7 +501,7 @@ export const ShoppingListView = {
                                     </div>
                                 </div>
                             </div>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                 </div>
             `;
@@ -521,6 +571,44 @@ export const ShoppingListView = {
         this.shoppingList = Array.from(ingredientsMap.values()).sort((a, b) =>
             a.name.localeCompare(b.name)
         );
+
+        // Check pantry availability if enabled
+        if (this.usePantry && this.shoppingList.length > 0) {
+            try {
+                const itemsToCheck = this.shoppingList
+                    .filter(item => !item.isManual)
+                    .map(item => ({ name: item.name, amount: item.amount, unit: item.unit }));
+
+                if (itemsToCheck.length > 0) {
+                    this.pantryCheckResult = await StorageService.checkPantryAvailability(itemsToCheck);
+
+                    // Merge pantry info into shopping list items
+                    if (this.pantryCheckResult?.items) {
+                        const pantryMap = new Map();
+                        for (const pItem of this.pantryCheckResult.items) {
+                            pantryMap.set(`${pItem.name.toLowerCase()}_${pItem.unit.toLowerCase()}`, pItem);
+                        }
+                        for (const item of this.shoppingList) {
+                            if (item.isManual) continue;
+                            const key = `${item.name.toLowerCase()}_${item.unit.toLowerCase()}`;
+                            const pantryInfo = pantryMap.get(key);
+                            if (pantryInfo && (pantryInfo.fullyAvailable || pantryInfo.partiallyAvailable)) {
+                                item.pantryInfo = pantryInfo;
+                            }
+                        }
+                    }
+                }
+            } catch {
+                // Silently fail — shopping list works without pantry check
+                this.pantryCheckResult = null;
+            }
+        } else {
+            this.pantryCheckResult = null;
+            // Clear pantry info from items
+            for (const item of this.shoppingList) {
+                delete item.pantryInfo;
+            }
+        }
     },
 
     attachEventListeners() {
@@ -611,6 +699,17 @@ export const ShoppingListView = {
                 await this.deleteManualItem(itemId);
             });
         });
+
+        // Pantry toggle
+        const pantryToggle = document.getElementById('pantry-toggle');
+        if (pantryToggle) {
+            pantryToggle.addEventListener('change', async (e) => {
+                this.usePantry = e.target.checked;
+                localStorage.setItem('shopping_use_pantry', String(this.usePantry));
+                await this.generateShoppingList();
+                App.render();
+            });
+        }
 
         // Budget slider
         const budgetSlider = document.getElementById('budget-slider');

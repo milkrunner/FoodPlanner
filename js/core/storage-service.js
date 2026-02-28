@@ -217,6 +217,15 @@ export const StorageService = {
         }
     },
 
+    async checkPantryAvailability(items) {
+        try {
+            return await api.post(`${API_BASE_URL}/shopping/check-pantry`, { items });
+        } catch (error) {
+            console.error('Error checking pantry availability:', error);
+            return { items: [], summary: { totalItems: 0, fullyAvailable: 0, partiallyAvailable: 0, toBuy: 0 } };
+        }
+    },
+
     // Cooking History methods
     async getCookingHistory(page = 1, limit = 20) {
         try {
