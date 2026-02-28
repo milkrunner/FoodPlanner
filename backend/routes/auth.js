@@ -25,6 +25,7 @@ function buildRefreshCookieHeader(value) {
  * Set refresh token as HttpOnly cookie on the response.
  */
 function setRefreshCookie(res, refreshToken) {
+    // codeql[js/clear-text-storage-of-sensitive-data] — HttpOnly cookie IS the secure storage
     res.setHeader('Set-Cookie', buildRefreshCookieHeader(refreshToken));
 }
 
