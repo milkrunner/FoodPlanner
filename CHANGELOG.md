@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.4.0](https://github.com/milkrunner/FoodPlanner/compare/v2.3.2...v2.4.0) (2026-02-28)
+
+
+### Features
+
+* Admin-Bereich für Benutzerverwaltung ([#205](https://github.com/milkrunner/FoodPlanner/issues/205)) ([#214](https://github.com/milkrunner/FoodPlanner/issues/214)) ([437ff41](https://github.com/milkrunner/FoodPlanner/commit/437ff4122d90983162ff24d8127c6d54b5451b6b))
+* Admin-Bereich, Auth-Härtung und Frontend-Refactoring ([#215](https://github.com/milkrunner/FoodPlanner/issues/215)) ([5ad70ab](https://github.com/milkrunner/FoodPlanner/commit/5ad70abb76c39ec021067ca4e8e16a31a40e40c8))
+* integrate pantry inventory into shopping list ([#152](https://github.com/milkrunner/FoodPlanner/issues/152)) ([#216](https://github.com/milkrunner/FoodPlanner/issues/216)) ([fc7874a](https://github.com/milkrunner/FoodPlanner/commit/fc7874a3446bb6b0b93785df3966df43f4e93e67))
+* require authentication to use the app ([#206](https://github.com/milkrunner/FoodPlanner/issues/206)) ([d51ac22](https://github.com/milkrunner/FoodPlanner/commit/d51ac22163d1465d7c1781e35f87d1b27502295f))
+
+
+### Bug Fixes
+
+* remove dead root app.js legacy monolith ([#176](https://github.com/milkrunner/FoodPlanner/issues/176)) ([#202](https://github.com/milkrunner/FoodPlanner/issues/202)) ([5436384](https://github.com/milkrunner/FoodPlanner/commit/54363840b7622f7ceed89ee90510a45c4e6737bb))
+* resolve HIGH priority security issues ([#171](https://github.com/milkrunner/FoodPlanner/issues/171)-[#175](https://github.com/milkrunner/FoodPlanner/issues/175)) ([#204](https://github.com/milkrunner/FoodPlanner/issues/204)) ([be7a6a3](https://github.com/milkrunner/FoodPlanner/commit/be7a6a352eeca954d1a373af619c3612c802b6a7))
+
 ## [2.3.2](https://github.com/milkrunner/FoodPlanner/compare/v2.3.1...v2.3.2) (2026-02-26)
 
 
