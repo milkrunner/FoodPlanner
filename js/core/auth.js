@@ -60,6 +60,7 @@ export const Auth = {
         this._mustChangePassword = false;
         this._stopRefreshTimer();
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_refresh_token');
         localStorage.removeItem('auth_user');
         localStorage.removeItem('auth_must_change');
     },

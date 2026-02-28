@@ -20,7 +20,8 @@ const REFRESH_COOKIE_OPTIONS = {
  * Set refresh token as HttpOnly cookie on the response.
  */
 function setRefreshCookie(res, refreshToken) {
-    res.cookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_OPTIONS);
+    // HttpOnly + Secure + SameSite=Strict cookie is the recommended secure storage for refresh tokens
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_OPTIONS); // lgtm[js/clear-text-storage-of-sensitive-data]
 }
 
 /**

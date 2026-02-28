@@ -12,8 +12,14 @@
  */
 function sanitizeForPrompt(input, maxLength = 1000) {
     if (!input || typeof input !== 'string') return '';
-    return input
-        .replace(/<[^>]*>/g, '')        // strip HTML tags
+    // Strip all HTML tags iteratively until none remain (avoids incomplete sanitization)
+    let result = input;
+    let prev;
+    do {
+        prev = result;
+        result = result.replace(/<[^>]*>/g, '');
+    } while (result !== prev);
+    return result
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // strip control chars (keep \n, \r, \t)
         .replace(/\s+/g, ' ')           // collapse whitespace
         .trim()
