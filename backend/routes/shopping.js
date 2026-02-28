@@ -77,6 +77,77 @@ router.delete('/manual', authenticateRequired, async (req, res) => {
     }
 });
 
+// Add ingredients from recipe (with amount merging)
+router.post('/manual/from-recipe', authenticateRequired, async (req, res) => {
+    const { ingredients } = req.body;
+
+    if (!Array.isArray(ingredients) || ingredients.length === 0) {
+        return res.status(400).json({ error: 'ingredients array is required' });
+    }
+
+    if (ingredients.length > 100) {
+        return res.status(400).json({ error: 'Maximum 100 ingredients allowed' });
+    }
+
+    try {
+        // Fetch existing manual items
+        const { rows: existing } = await db.query(
+            'SELECT id, name, amount, unit, category FROM manual_shopping_items'
+        );
+
+        // Build lookup: normalizedName|unit → existing item
+        const existingMap = new Map();
+        for (const item of existing) {
+            const key = `${normalizeIngredientName(item.name)}|${(item.unit || '').toLowerCase()}`;
+            existingMap.set(key, item);
+        }
+
+        let added = 0;
+        let merged = 0;
+
+        for (const ing of ingredients) {
+            const name = String(ing.name || '').slice(0, 200).trim();
+            const amount = String(ing.amount || '1').slice(0, 50).trim();
+            const unit = String(ing.unit || 'x').slice(0, 50).trim();
+            const category = String(ing.category || 'Sonstiges').slice(0, 100);
+
+            if (!name) continue;
+
+            const key = `${normalizeIngredientName(name)}|${unit.toLowerCase()}`;
+            const match = existingMap.get(key);
+
+            if (match) {
+                // Merge amounts
+                const existingAmount = parseAmount(match.amount);
+                const newAmount = parseAmount(amount);
+                if (existingAmount !== null && newAmount !== null) {
+                    const summed = Math.round((existingAmount + newAmount) * 100) / 100;
+                    await db.query(
+                        'UPDATE manual_shopping_items SET amount = $1 WHERE id = $2',
+                        [String(summed), match.id]
+                    );
+                    match.amount = String(summed);
+                    merged++;
+                }
+            } else {
+                const id = `recipe-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+                await db.query(
+                    'INSERT INTO manual_shopping_items (id, name, amount, unit, category) VALUES ($1, $2, $3, $4, $5)',
+                    [id, name, amount, unit, category]
+                );
+                // Add to map so subsequent duplicates in same batch get merged
+                existingMap.set(key, { id, name, amount, unit, category });
+                added++;
+            }
+        }
+
+        res.status(201).json({ added, merged, total: added + merged });
+    } catch (error) {
+        logger.error('Error adding ingredients from recipe', { error: error.message, requestId: req.requestId, component: 'shopping' });
+        res.status(500).json({ error: 'Interner Serverfehler' });
+    }
+});
+
 // ========== BUDGET ==========
 
 // Get budget for a specific week

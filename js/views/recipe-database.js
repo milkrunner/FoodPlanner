@@ -682,17 +682,35 @@ export const RecipeDatabaseView = {
                                             <div>
                                                 <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">${escapeHtml(category)}</h4>
                                                 <ul class="space-y-2">
-                                                    ${ingredients.map(ing => `
-                                                        <li class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                                                    ${ingredients.map((ing, idx) => `
+                                                        <li class="flex items-center gap-3 text-gray-700 dark:text-gray-300 group">
                                                             <span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
                                                             <span class="font-medium">${escapeHtml(ing.amount || '')} ${escapeHtml(ing.unit || '')}</span>
-                                                            <span>${escapeHtml(ing.name)}</span>
+                                                            <span class="flex-1">${escapeHtml(ing.name)}</span>
+                                                            <button class="add-ing-to-shopping-btn p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors opacity-60 group-hover:opacity-100"
+                                                                    data-ing-name="${escapeHtml(ing.name)}"
+                                                                    data-ing-amount="${escapeHtml(ing.amount || '1')}"
+                                                                    data-ing-unit="${escapeHtml(ing.unit || 'x')}"
+                                                                    data-ing-category="${escapeHtml(ing.category || 'Sonstiges')}"
+                                                                    title="Zur Einkaufsliste hinzufügen">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"></path>
+                                                                </svg>
+                                                            </button>
                                                         </li>
                                                     `).join('')}
                                                 </ul>
                                             </div>
                                         `).join('')}
                                     </div>
+                                    <button id="add-all-ingredients-btn"
+                                            class="mt-4 w-full px-4 py-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                                            data-recipe-id="${recipe.id}">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"></path>
+                                        </svg>
+                                        Alle Zutaten zur Einkaufsliste
+                                    </button>
                                 ` : `
                                     <p class="text-gray-500 dark:text-gray-400 italic">Keine Zutaten vorhanden</p>
                                 `}
@@ -1110,6 +1128,64 @@ export const RecipeDatabaseView = {
                 // Refresh detail view
                 if (this.viewingRecipe) {
                     await this.viewRecipe(recipeId);
+                }
+            });
+        }
+
+        // Add single ingredient to shopping list
+        document.querySelectorAll('.add-ing-to-shopping-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const button = e.currentTarget;
+                const ing = {
+                    name: button.dataset.ingName,
+                    amount: button.dataset.ingAmount,
+                    unit: button.dataset.ingUnit,
+                    category: button.dataset.ingCategory,
+                };
+                try {
+                    const result = await StorageService.addIngredientsToShoppingList([ing]);
+                    // Visual feedback: swap icon to checkmark
+                    button.innerHTML = '<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                    button.disabled = true;
+                    button.classList.add('opacity-100');
+                    const verb = result.merged > 0 ? 'aktualisiert' : 'hinzugefügt';
+                    Toast.success(`${ing.name} zur Einkaufsliste ${verb}`);
+                } catch (error) {
+                    Toast.error('Fehler beim Hinzufügen');
+                }
+            });
+        });
+
+        // Add all ingredients to shopping list
+        const addAllIngredientsBtn = document.getElementById('add-all-ingredients-btn');
+        if (addAllIngredientsBtn) {
+            addAllIngredientsBtn.addEventListener('click', async () => {
+                if (!this.viewingRecipe?.ingredients?.length) return;
+                const ingredients = this.viewingRecipe.ingredients.map(ing => ({
+                    name: ing.name,
+                    amount: ing.amount || '1',
+                    unit: ing.unit || 'x',
+                    category: ing.category || 'Sonstiges',
+                }));
+                try {
+                    const result = await StorageService.addIngredientsToShoppingList(ingredients);
+                    // Mark all individual buttons as done
+                    document.querySelectorAll('.add-ing-to-shopping-btn').forEach(btn => {
+                        btn.innerHTML = '<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                        btn.disabled = true;
+                        btn.classList.add('opacity-100');
+                    });
+                    addAllIngredientsBtn.innerHTML = `
+                        <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        ${result.added} hinzugefügt${result.merged > 0 ? `, ${result.merged} Mengen addiert` : ''}
+                    `;
+                    addAllIngredientsBtn.disabled = true;
+                    Toast.success(`${result.total} Zutaten zur Einkaufsliste hinzugefügt`);
+                } catch (error) {
+                    Toast.error('Fehler beim Hinzufügen');
                 }
             });
         }

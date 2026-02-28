@@ -190,6 +190,15 @@ export const StorageService = {
         }
     },
 
+    async addIngredientsToShoppingList(ingredients) {
+        try {
+            return await api.post(`${API_BASE_URL}/shopping/manual/from-recipe`, { ingredients });
+        } catch (error) {
+            console.error('Error adding ingredients to shopping list:', error);
+            throw error;
+        }
+    },
+
     async addManualShoppingItem(item) {
         try {
             return await api.post(`${API_BASE_URL}/shopping/manual`, item);
