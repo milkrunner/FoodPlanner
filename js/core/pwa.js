@@ -2,6 +2,7 @@ import { API_BASE_URL } from '../config.js';
 import { OfflineDB } from './offline-db.js';
 import { Toast } from './toast.js';
 import { Auth } from './auth.js';
+import { api } from './api.js';
 
 // PWA & Offline Support
 export const PWA = {
@@ -121,10 +122,9 @@ export const PWA = {
             const pendingRecipes = await OfflineDB.getPending('recipes');
             for (const item of pendingRecipes) {
                 try {
-                    await fetch(`${API_BASE_URL}/recipes`, {
+                    await api(`${API_BASE_URL}/recipes`, {
                         method: item.method || 'POST',
-                        headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
-                        body: JSON.stringify(item.data)
+                        body: item.data
                     });
                     await OfflineDB.removePending('recipes', item.id);
                 } catch (e) {
@@ -135,11 +135,7 @@ export const PWA = {
             const pendingWeekplans = await OfflineDB.getPending('weekplan');
             for (const item of pendingWeekplans) {
                 try {
-                    await fetch(`${API_BASE_URL}/weekplan`, {
-                        method: 'POST',
-                        headers: Auth.authHeaders({ 'Content-Type': 'application/json' }),
-                        body: JSON.stringify(item.data)
-                    });
+                    await api.post(`${API_BASE_URL}/weekplan`, item.data);
                     await OfflineDB.removePending('weekplan', item.id);
                 } catch (e) {
                     console.error('[PWA] Failed to sync weekplan:', e);

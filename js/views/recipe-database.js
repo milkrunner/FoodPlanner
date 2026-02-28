@@ -6,6 +6,7 @@ import { escapeHtml, trapFocus } from '../core/utils.js';
 import { Auth } from '../core/auth.js';
 import { App } from '../app.js';
 import { API_BASE_URL } from '../config.js';
+import { api } from '../core/api.js';
 
 export const RecipeDatabaseView = {
     editingRecipe: null,
@@ -2262,24 +2263,11 @@ export const RecipeDatabaseView = {
         App.render();
 
         try {
-            const response = await fetch(`${API_BASE_URL}/ai/scale-portions`, {
-                method: 'POST',
-                headers: Auth.authHeaders({
-                    'Content-Type': 'application/json'
-                }),
-                body: JSON.stringify({
+            const data = await api.post(`${API_BASE_URL}/ai/scale-portions`, {
                     ingredients: this.scalingRecipe.ingredients,
                     originalServings: this.scalingRecipe.servings,
                     newServings: newServings
-                })
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to scale portions');
-            }
-
-            const data = await response.json();
+                });
             this.scaledIngredients = data.ingredients;
             this.isScaling = false;
             App.render();
@@ -2304,21 +2292,9 @@ export const RecipeDatabaseView = {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/ai/categorize-ingredient`, {
-                method: 'POST',
-                headers: Auth.authHeaders({
-                    'Content-Type': 'application/json'
-                }),
-                body: JSON.stringify({
+            const data = await api.post(`${API_BASE_URL}/ai/categorize-ingredient`, {
                     ingredientName: ingredientName
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to categorize ingredient');
-            }
-
-            const data = await response.json();
+                });
             const category = data.category;
 
             // Cache the result

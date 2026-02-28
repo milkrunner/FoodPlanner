@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { SEASONAL_CALENDAR, getCurrentSeason, isIngredientInSeason } = require('../utils/seasonal');
+const { authenticateRequired } = require('../middleware/authenticate');
 
 // Get current season info and calendar
-router.get('/', (req, res) => {
+router.get('/', authenticateRequired, (req, res) => {
     res.set('Cache-Control', 'public, max-age=3600');
     const currentSeason = getCurrentSeason();
 
@@ -25,7 +26,7 @@ router.get('/', (req, res) => {
 });
 
 // Get seasonal ingredients for a specific season or current season
-router.get('/:season/ingredients', (req, res) => {
+router.get('/:season/ingredients', authenticateRequired, (req, res) => {
     const { season } = req.params;
 
     if (season === 'current') {
@@ -50,7 +51,7 @@ router.get('/:season/ingredients', (req, res) => {
 });
 
 // Check if specific ingredients are in season
-router.post('/check', (req, res) => {
+router.post('/check', authenticateRequired, (req, res) => {
     const { ingredients, season } = req.body;
 
     if (!ingredients || !Array.isArray(ingredients)) {

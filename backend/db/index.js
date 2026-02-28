@@ -67,7 +67,7 @@ const checkConnection = async () => {
     }
 };
 
-// Run database migrations
+// Run database migrations with tracking
 const runMigrations = async () => {
     const migrationsDir = path.join(__dirname, 'migrations');
 
@@ -76,20 +76,38 @@ const runMigrations = async () => {
         return;
     }
 
+    // Create tracking table if it doesn't exist
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            filename VARCHAR(255) PRIMARY KEY,
+            applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Get already-applied migrations
+    const { rows: applied } = await pool.query('SELECT filename FROM schema_migrations');
+    const appliedSet = new Set(applied.map(r => r.filename));
+
     const files = fs.readdirSync(migrationsDir)
         .filter(f => f.endsWith('.sql'))
         .sort();
 
+    let newCount = 0;
     for (const file of files) {
+        if (appliedSet.has(file)) continue;
+
         const filePath = path.join(migrationsDir, file);
         const sql = fs.readFileSync(filePath, 'utf8');
 
         try {
             await pool.query(sql);
+            await pool.query('INSERT INTO schema_migrations (filename) VALUES ($1)', [file]);
             logger.info(`Migration applied: ${file}`, { component: 'database' });
+            newCount++;
         } catch (error) {
-            // Ignore "already exists" errors for idempotent migrations
+            // Ignore "already exists" errors for idempotent migrations (legacy compat)
             if (error.code === '42P07' || error.code === '42710') {
+                await pool.query('INSERT INTO schema_migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING', [file]);
                 logger.debug(`Migration already applied: ${file}`, { component: 'database' });
             } else {
                 throw error;
@@ -97,7 +115,7 @@ const runMigrations = async () => {
         }
     }
 
-    logger.info('All migrations completed', { component: 'database' });
+    logger.info(`Migrations completed (${newCount} new, ${files.length} total)`, { component: 'database' });
 };
 
 // Graceful shutdown

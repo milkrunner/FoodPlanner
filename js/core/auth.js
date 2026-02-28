@@ -1,24 +1,25 @@
-// Client-side authentication module (JWT + localStorage)
+// Client-side authentication module (JWT + HttpOnly cookie for refresh)
 
 const TOKEN_REFRESH_INTERVAL = 12 * 60 * 1000; // 12 minutes (access token lives 15min)
 
 export const Auth = {
     _token: null,
-    _refreshToken: null,
     _user: null,
     _mustChangePassword: false,
     _refreshTimer: null,
 
     init() {
         this._token = localStorage.getItem('auth_token');
-        this._refreshToken = localStorage.getItem('auth_refresh_token');
         const stored = localStorage.getItem('auth_user');
         if (stored) {
             try { this._user = JSON.parse(stored); } catch { this._user = null; }
         }
         this._mustChangePassword = localStorage.getItem('auth_must_change') === 'true';
 
-        if (this._refreshToken) {
+        // Clean up legacy refresh token from localStorage (now in HttpOnly cookie)
+        localStorage.removeItem('auth_refresh_token');
+
+        if (this._token) {
             this._startRefreshTimer();
         }
     },
@@ -39,13 +40,11 @@ export const Auth = {
         return this._token;
     },
 
-    _save(token, refreshToken, user, mustChange = false) {
+    _save(token, user, mustChange = false) {
         this._token = token;
-        this._refreshToken = refreshToken;
         this._user = user;
         this._mustChangePassword = mustChange;
         localStorage.setItem('auth_token', token);
-        if (refreshToken) localStorage.setItem('auth_refresh_token', refreshToken);
         localStorage.setItem('auth_user', JSON.stringify(user));
         if (mustChange) {
             localStorage.setItem('auth_must_change', 'true');
@@ -57,7 +56,6 @@ export const Auth = {
 
     _clear() {
         this._token = null;
-        this._refreshToken = null;
         this._user = null;
         this._mustChangePassword = false;
         this._stopRefreshTimer();
@@ -80,12 +78,13 @@ export const Auth = {
     },
 
     async _refreshAccessToken() {
-        if (!this._refreshToken) return;
+        if (!this._token) return;
         try {
             const res = await fetch('/auth/refresh', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refreshToken: this._refreshToken })
+                credentials: 'same-origin',
+                body: JSON.stringify({})
             });
             if (!res.ok) {
                 this._clear();
@@ -106,11 +105,12 @@ export const Auth = {
         const res = await fetch('/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
             body: JSON.stringify({ email, password })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Anmeldung fehlgeschlagen');
-        this._save(data.token, data.refreshToken, data.user, data.mustChangePassword || false);
+        this._save(data.token, data.user, data.mustChangePassword || false);
         return data.user;
     },
 
@@ -118,11 +118,12 @@ export const Auth = {
         const res = await fetch('/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
             body: JSON.stringify({ email, password, name })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Registrierung fehlgeschlagen');
-        this._save(data.token, data.refreshToken, data.user);
+        this._save(data.token, data.user);
         return data.user;
     },
 
@@ -147,7 +148,8 @@ export const Auth = {
         try {
             await fetch('/auth/logout', {
                 method: 'POST',
-                headers: this._token ? { 'Authorization': `Bearer ${this._token}` } : {}
+                headers: this._token ? { 'Authorization': `Bearer ${this._token}` } : {},
+                credentials: 'same-origin'
             });
         } catch { /* ignore */ }
         this._clear();

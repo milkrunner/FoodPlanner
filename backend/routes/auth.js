@@ -6,6 +6,50 @@ const { validateEmail, validatePassword, hashPassword, verifyPassword, generateT
 const { authenticateRequired } = require('../middleware/authenticate');
 const { authLimiter } = require('../middleware/rate-limiters');
 
+// Refresh token cookie config
+const REFRESH_COOKIE_NAME = 'refresh_token';
+const REFRESH_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
+
+/**
+ * Build Set-Cookie header value for the refresh token.
+ * Uses HttpOnly + SameSite=Strict + Secure (in production) — OWASP-recommended storage.
+ */
+function buildRefreshCookieHeader(value) {
+    const parts = [`${REFRESH_COOKIE_NAME}=${value}`, 'HttpOnly', 'SameSite=Strict', 'Path=/auth'];
+    if (process.env.NODE_ENV === 'production') parts.push('Secure');
+    parts.push(`Max-Age=${REFRESH_MAX_AGE}`);
+    return parts.join('; ');
+}
+
+/**
+ * Set refresh token as HttpOnly cookie on the response.
+ */
+function setRefreshCookie(res, refreshToken) {
+    res.setHeader('Set-Cookie', buildRefreshCookieHeader(refreshToken));
+}
+
+/**
+ * Clear the refresh token cookie by setting Max-Age=0.
+ */
+function clearRefreshCookie(res) {
+    const parts = [`${REFRESH_COOKIE_NAME}=`, 'HttpOnly', 'SameSite=Strict', 'Path=/auth'];
+    if (process.env.NODE_ENV === 'production') parts.push('Secure');
+    parts.push('Max-Age=0');
+    res.setHeader('Set-Cookie', parts.join('; '));
+}
+
+/**
+ * Parse a specific cookie from the request headers.
+ */
+function getCookie(req, name) {
+    const header = req.headers.cookie || '';
+    for (const pair of header.split(';')) {
+        const [key, ...rest] = pair.trim().split('=');
+        if (key === name) return rest.join('=');
+    }
+    return undefined;
+}
+
 // POST /auth/register
 router.post('/register', authLimiter, async (req, res) => {
     try {
@@ -34,8 +78,9 @@ router.post('/register', authLimiter, async (req, res) => {
         const user = result.rows[0];
         const token = generateToken(user);
         const refreshToken = generateRefreshToken(user);
+        setRefreshCookie(res, refreshToken);
         logger.info('User registered', { userId: user.id, component: 'auth' });
-        res.status(201).json({ token, refreshToken, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+        res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
         logger.error('Registration error', { error: error.message, component: 'auth' });
         res.status(500).json({ error: 'Registrierung fehlgeschlagen' });
@@ -76,10 +121,10 @@ router.post('/login', authLimiter, async (req, res) => {
 
         const token = generateToken(user);
         const refreshToken = generateRefreshToken(user);
+        setRefreshCookie(res, refreshToken);
         logger.info('User logged in', { userId: user.id, component: 'auth' });
         res.json({
             token,
-            refreshToken,
             user: { id: user.id, email: user.email, name: user.name, role: user.role },
             mustChangePassword: user.must_change_password
         });
@@ -148,16 +193,18 @@ router.get('/me', authenticateRequired, async (req, res) => {
     }
 });
 
-// POST /auth/refresh — exchange refresh token for new access token
+// POST /auth/refresh — exchange refresh token cookie for new access token
 router.post('/refresh', async (req, res) => {
     try {
-        const { refreshToken } = req.body;
+        // Read refresh token from HttpOnly cookie (preferred) or body (legacy fallback)
+        const refreshToken = getCookie(req, REFRESH_COOKIE_NAME) || req.body?.refreshToken;
         if (!refreshToken) {
             return res.status(400).json({ error: 'Refresh-Token erforderlich' });
         }
 
         const payload = verifyRefreshToken(refreshToken);
         if (!payload) {
+            clearRefreshCookie(res);
             return res.status(401).json({ error: 'Ungültiger oder abgelaufener Refresh-Token' });
         }
 
@@ -167,11 +214,15 @@ router.post('/refresh', async (req, res) => {
         );
 
         if (result.rows.length === 0 || !result.rows[0].is_active) {
+            clearRefreshCookie(res);
             return res.status(401).json({ error: 'Benutzer nicht gefunden oder deaktiviert' });
         }
 
         const user = result.rows[0];
         const newToken = generateToken(user);
+        // Rotate refresh token — issue a new one with each refresh
+        const newRefreshToken = generateRefreshToken(user);
+        setRefreshCookie(res, newRefreshToken);
         res.json({ token: newToken, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
         logger.error('Token refresh error', { error: error.message, component: 'auth' });
@@ -179,8 +230,9 @@ router.post('/refresh', async (req, res) => {
     }
 });
 
-// POST /auth/logout — stateless JWT; client must discard the token
+// POST /auth/logout — clear refresh token cookie
 router.post('/logout', (req, res) => {
+    clearRefreshCookie(res);
     res.json({ message: 'Erfolgreich abgemeldet' });
 });
 

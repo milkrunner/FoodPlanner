@@ -13,6 +13,7 @@ const { categorizeIngredient } = require('../utils/categorization');
 const { validateUrl, ALLOWED_RECIPE_DOMAINS, VIDEO_PLATFORMS, isVideoUrl } = require('../utils/validation');
 const { downloadVideo, cleanupTempFiles } = require('../utils/video');
 const { classicSearch } = require('../utils/search');
+const { sanitizeForPrompt, sanitizeArrayForPrompt, extractJsonFromAiResponse } = require('../utils/ai-sanitize');
 const { authenticateRequired } = require('../middleware/authenticate');
 
 // ========== HELPER FUNCTIONS ==========
@@ -137,15 +138,20 @@ router.post('/generate-recipes', authenticateRequired, aiLimiter, async (req, re
             return res.status(400).json({ error: 'Please provide at least one ingredient' });
         }
 
+        const safeIngredients = sanitizeArrayForPrompt(ingredients, 100, 30);
+        if (safeIngredients.length === 0) {
+            return res.status(400).json({ error: 'No valid ingredients provided' });
+        }
+
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const prompt = `Du bist ein kreativer Koch-Assistent. Generiere 3 leckere Rezept-Vorschläge basierend auf folgenden Zutaten:
 
-Verfügbare Zutaten: ${ingredients.join(', ')}
+Verfügbare Zutaten: ${safeIngredients.join(', ')}
 
-${preferences?.dietary ? `Ernährungspräferenzen: ${preferences.dietary}` : ''}
-${preferences?.cookingTime ? `Maximale Kochzeit: ${preferences.cookingTime} Minuten` : ''}
-${preferences?.difficulty ? `Schwierigkeitsgrad: ${preferences.difficulty}` : ''}
+${preferences?.dietary ? `Ernährungspräferenzen: ${sanitizeForPrompt(preferences.dietary, 200)}` : ''}
+${preferences?.cookingTime ? `Maximale Kochzeit: ${sanitizeForPrompt(String(preferences.cookingTime), 20)} Minuten` : ''}
+${preferences?.difficulty ? `Schwierigkeitsgrad: ${sanitizeForPrompt(preferences.difficulty, 50)}` : ''}
 
 Erstelle für jedes Rezept:
 - Einen kreativen Namen
@@ -177,13 +183,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
         const response = result.response;
         const text = response.text();
 
-        // Extract JSON from response (remove markdown code blocks if present)
-        let jsonText = text.trim();
-        if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
-        }
-
-        const recipes = JSON.parse(jsonText);
+        const recipes = extractJsonFromAiResponse(text);
 
         res.json({ recipes });
     } catch (error) {
@@ -303,13 +303,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zus
         const response = result.response;
         const text = response.text();
 
-        // Extract JSON from response (remove markdown code blocks if present)
-        let jsonText = text.trim();
-        if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
-        }
-
-        const scaledIngredients = JSON.parse(jsonText);
+        const scaledIngredients = extractJsonFromAiResponse(text);
 
         res.json({ ingredients: scaledIngredients });
     } catch (error) {
@@ -336,24 +330,28 @@ router.post('/analyze-recipe', authenticateRequired, aiLimiter, async (req, res)
             return res.status(400).json({ error: 'Recipe with name is required' });
         }
 
+        const safeName = sanitizeForPrompt(recipe.name, 200);
+        const safeCategory = sanitizeForPrompt(recipe.category, 100);
+        const safeInstructions = sanitizeForPrompt(recipe.instructions, 5000);
+
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const ingredientsList = recipe.ingredients && recipe.ingredients.length > 0
-            ? recipe.ingredients.map(i => `- ${i.amount || ''} ${i.unit || ''} ${i.name}`.trim()).join('\n')
+            ? recipe.ingredients.slice(0, 50).map(i => `- ${sanitizeForPrompt(i.amount, 20)} ${sanitizeForPrompt(i.unit, 20)} ${sanitizeForPrompt(i.name, 100)}`.trim()).join('\n')
             : 'Keine Zutaten angegeben';
 
         const prompt = `Du bist ein erfahrener Koch und Ernährungsexperte. Analysiere das folgende Rezept und gib konkrete Verbesserungsvorschläge.
 
 REZEPT:
-Name: ${recipe.name}
-Kategorie: ${recipe.category || 'Nicht angegeben'}
+Name: ${safeName}
+Kategorie: ${safeCategory || 'Nicht angegeben'}
 Portionen: ${recipe.servings || 'Nicht angegeben'}
 
 Zutaten:
 ${ingredientsList}
 
 Zubereitung:
-${recipe.instructions || 'Keine Zubereitungsanleitung angegeben'}
+${safeInstructions || 'Keine Zubereitungsanleitung angegeben'}
 
 Gib mir genau 4 Verbesserungsvorschläge in den folgenden Kategorien:
 1. GESCHMACK: Wie kann der Geschmack verbessert oder intensiviert werden?
@@ -364,7 +362,7 @@ Gib mir genau 4 Verbesserungsvorschläge in den folgenden Kategorien:
 WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zusätzlichen Text:
 
 {
-  "recipeName": "${recipe.name}",
+  "recipeName": "${safeName}",
   "suggestions": [
     {
       "category": "Geschmack",
@@ -407,13 +405,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zu
         const response = result.response;
         const text = response.text();
 
-        // Extract JSON from response
-        let jsonText = text.trim();
-        if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
-        }
-
-        const analysis = JSON.parse(jsonText);
+        const analysis = extractJsonFromAiResponse(text);
 
         logger.info('Recipe analysis completed', { recipeName: recipe.name, requestId: req.requestId, component: 'ai' });
         res.json(analysis);
@@ -448,10 +440,14 @@ router.post('/generate-variant', authenticateRequired, aiLimiter, async (req, re
             });
         }
 
+        const safeName = sanitizeForPrompt(recipe.name, 200);
+        const safeCategory = sanitizeForPrompt(recipe.category, 100);
+        const safeInstructions = sanitizeForPrompt(recipe.instructions, 5000);
+
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
         const ingredientsList = recipe.ingredients && recipe.ingredients.length > 0
-            ? recipe.ingredients.map(i => `- ${i.amount || ''} ${i.unit || ''} ${i.name} (${i.category || 'Sonstiges'})`.trim()).join('\n')
+            ? recipe.ingredients.slice(0, 50).map(i => `- ${sanitizeForPrompt(i.amount, 20)} ${sanitizeForPrompt(i.unit, 20)} ${sanitizeForPrompt(i.name, 100)} (${sanitizeForPrompt(i.category, 50) || 'Sonstiges'})`.trim()).join('\n')
             : 'Keine Zutaten angegeben';
 
         const variantDescriptions = {
@@ -467,15 +463,15 @@ router.post('/generate-variant', authenticateRequired, aiLimiter, async (req, re
         const prompt = `Du bist ein erfahrener Koch und Ernährungsexperte. Erstelle ${variantDescriptions[variantType]} des folgenden Rezepts.
 
 ORIGINAL-REZEPT:
-Name: ${recipe.name}
-Kategorie: ${recipe.category || 'Nicht angegeben'}
+Name: ${safeName}
+Kategorie: ${safeCategory || 'Nicht angegeben'}
 Portionen: ${recipe.servings || 4}
 
 Zutaten:
 ${ingredientsList}
 
 Zubereitung:
-${recipe.instructions || 'Keine Zubereitungsanleitung angegeben'}
+${safeInstructions || 'Keine Zubereitungsanleitung angegeben'}
 
 Erstelle eine vollständige ${variantType} Variante dieses Rezepts. Die Variante soll:
 - Den Charakter und Geschmack des Originals möglichst beibehalten
@@ -486,7 +482,7 @@ Erstelle eine vollständige ${variantType} Variante dieses Rezepts. Die Variante
 WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zusätzlichen Text:
 
 {
-  "originalName": "${recipe.name}",
+  "originalName": "${safeName}",
   "variantType": "${variantType}",
   "variantName": "Neuer Name für die Variante",
   "category": "${recipe.category || 'Hauptgericht'}",
@@ -515,13 +511,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zu
         const response = result.response;
         const text = response.text();
 
-        // Extract JSON from response
-        let jsonText = text.trim();
-        if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
-        }
-
-        const variant = JSON.parse(jsonText);
+        const variant = extractJsonFromAiResponse(text);
 
         logger.info('Recipe variant generated', { recipeName: recipe.name, variantType, requestId: req.requestId, component: 'ai' });
         res.json(variant);
@@ -535,7 +525,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zu
 });
 
 // Get available variant types
-router.get('/variant-types', (req, res) => {
+router.get('/variant-types', authenticateRequired, (req, res) => {
     res.set('Cache-Control', 'public, max-age=86400');
     res.json({
         variantTypes: [
@@ -778,25 +768,17 @@ Regeln:
 - Antworte AUSSCHLIESSLICH mit dem JSON-Objekt, keine zusätzlichen Erklärungen`;
 
         const result = await model.generateContent(prompt);
-        const response = result.response;
-        let jsonText = response.text().trim();
+        const responseText = result.response.text();
 
-        logger.debug('AI Response received', { responseLength: jsonText.length, requestId: req.requestId, component: 'ai' });
+        logger.debug('AI Response received', { responseLength: responseText.length, requestId: req.requestId, component: 'ai' });
 
-        // Remove markdown code blocks if present
-        if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '').trim();
-        }
-
-        // Parse the JSON
         let recipe;
         try {
-            recipe = JSON.parse(jsonText);
+            recipe = extractJsonFromAiResponse(responseText);
         } catch (parseError) {
             logger.error('JSON parse error', { error: parseError.message, requestId: req.requestId, component: 'ai' });
             return res.status(500).json({
-                error: 'Failed to parse AI response as JSON',
-                details: process.env.NODE_ENV !== 'production' ? parseError.message : undefined
+                error: 'Failed to parse AI response as JSON'
             });
         }
 
@@ -952,25 +934,17 @@ Regeln:
         // Clean up video file
         cleanupTempFiles(videoPath);
 
-        const response = result.response;
-        let jsonText = response.text().trim();
+        const videoResponseText = result.response.text();
 
-        logger.debug('Video AI Response received', { responseLength: jsonText.length, requestId: req.requestId, component: 'video' });
+        logger.debug('Video AI Response received', { responseLength: videoResponseText.length, requestId: req.requestId, component: 'video' });
 
-        // Remove markdown code blocks if present
-        if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '').trim();
-        }
-
-        // Parse the JSON
         let recipe;
         try {
-            recipe = JSON.parse(jsonText);
+            recipe = extractJsonFromAiResponse(videoResponseText);
         } catch (parseError) {
             logger.error('JSON parse error', { error: parseError.message, requestId: req.requestId, component: 'video' });
             return res.status(500).json({
                 error: 'Failed to parse AI response as JSON',
-                details: process.env.NODE_ENV !== 'production' ? parseError.message : undefined,
                 hint: 'The video might not contain a clear recipe.'
             });
         }
@@ -1018,7 +992,7 @@ Regeln:
 });
 
 // Get supported video platforms
-router.get('/video-platforms', (req, res) => {
+router.get('/video-platforms', authenticateRequired, (req, res) => {
     res.set('Cache-Control', 'public, max-age=86400');
     res.json({
         platforms: Object.keys(VIDEO_PLATFORMS),
@@ -1128,15 +1102,7 @@ Kategorien für Zutaten: Obst & Gemüse, Milchprodukte, Fleisch & Fisch, Trocken
 Einheiten für Zutaten: g, kg, ml, l, Stück, EL, TL, Prise, Bund, Dose, Packung`;
 
         const result = await model.generateContent(prompt);
-        const response = result.response;
-        let jsonText = response.text().trim();
-
-        // Extract JSON from response (remove markdown code blocks if present)
-        if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '').trim();
-        }
-
-        const generatedPlan = JSON.parse(jsonText);
+        const generatedPlan = extractJsonFromAiResponse(result.response.text());
 
         // Validate response structure
         if (!generatedPlan.weekPlan || typeof generatedPlan.weekPlan !== 'object') {
@@ -1374,14 +1340,7 @@ router.post('/meal-prep-suggestions', authenticateRequired, aiLimiter, async (re
             `Nutze ausschließlich die vorhandenen Rezept-IDs. Verwende keine Markdown-Codeblöcke.`;
 
         const result = await model.generateContent(prompt);
-        const response = result.response;
-        let jsonText = response.text().trim();
-
-        if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```\n?$/g, '').trim();
-        }
-
-        const suggestions = JSON.parse(jsonText);
+        const suggestions = extractJsonFromAiResponse(result.response.text());
 
         if (!suggestions.sessions || !Array.isArray(suggestions.sessions)) {
             throw new Error('Invalid AI response: sessions missing');

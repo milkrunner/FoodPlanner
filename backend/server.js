@@ -55,6 +55,19 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
+
+// CSRF protection: state-changing requests must have JSON content-type
+// (HTML forms cannot set Content-Type to application/json)
+app.use((req, res, next) => {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.path !== '/auth/logout') {
+        const ct = req.headers['content-type'] || '';
+        if (!ct.includes('application/json')) {
+            return res.status(415).json({ error: 'Content-Type must be application/json' });
+        }
+    }
+    next();
+});
+
 app.use(requestLogger);
 
 // Swagger API Documentation
