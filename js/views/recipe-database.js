@@ -553,6 +553,25 @@ export const RecipeDatabaseView = {
             return enhancedText.split('\n').map(line => `<p>${line}</p>`).join('');
         };
 
+        // Build pantry and shopping list lookups for ingredient status
+        const normalizeForMatch = (name) => (name || '').trim().toLowerCase().replace(/\s*\(.*?\)\s*/g, ' ').replace(/\s+/g, ' ').replace(/(en|n|e|s)$/, '');
+        const pantryMap = new Map();
+        for (const p of (this._pantryItems || [])) {
+            const key = normalizeForMatch(p.name);
+            if (key) {
+                const existing = pantryMap.get(key);
+                pantryMap.set(key, {
+                    amount: (existing?.amount || 0) + (parseFloat(p.quantity) || 0),
+                    unit: p.unit || '',
+                });
+            }
+        }
+        const shoppingSet = new Set();
+        for (const s of (this._shoppingItems || [])) {
+            const key = normalizeForMatch(s.name);
+            if (key) shoppingSet.add(key);
+        }
+
         // Group ingredients by category
         const ingredientsByCategory = {};
         (recipe.ingredients || []).forEach(ing => {
@@ -682,11 +701,15 @@ export const RecipeDatabaseView = {
                                             <div>
                                                 <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">${escapeHtml(category)}</h4>
                                                 <ul class="space-y-2">
-                                                    ${ingredients.map((ing, idx) => `
+                                                    ${ingredients.map((ing, idx) => {
+                                                        const ingKey = normalizeForMatch(ing.name);
+                                                        const inPantry = pantryMap.get(ingKey);
+                                                        const onShoppingList = shoppingSet.has(ingKey);
+                                                        return `
                                                         <li class="flex items-center gap-3 text-gray-700 dark:text-gray-300 group">
-                                                            <span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></span>
+                                                            <span class="w-2 h-2 ${inPantry ? 'bg-green-500' : 'bg-blue-500'} rounded-full flex-shrink-0"></span>
                                                             <span class="font-medium">${escapeHtml(ing.amount || '')} ${escapeHtml(ing.unit || '')}</span>
-                                                            <span class="flex-1">${escapeHtml(ing.name)}</span>
+                                                            <span class="flex-1">${escapeHtml(ing.name)}${inPantry ? `<span class="ml-2 text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded" title="${inPantry.amount} ${inPantry.unit} im Vorrat">Im Vorrat</span>` : ''}${onShoppingList ? '<span class="ml-1 text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">Auf Liste</span>' : ''}</span>
                                                             <button class="add-ing-to-shopping-btn p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors opacity-60 group-hover:opacity-100"
                                                                     data-ing-name="${escapeHtml(ing.name)}"
                                                                     data-ing-amount="${escapeHtml(ing.amount || '1')}"
@@ -698,7 +721,7 @@ export const RecipeDatabaseView = {
                                                                 </svg>
                                                             </button>
                                                         </li>
-                                                    `).join('')}
+                                                    `; }).join('')}
                                                 </ul>
                                             </div>
                                         `).join('')}
@@ -1832,15 +1855,23 @@ export const RecipeDatabaseView = {
     },
 
     async viewRecipe(recipeId) {
-        const recipe = await StorageService.getRecipeById(recipeId);
+        const [recipe, pantryItems, shoppingItems] = await Promise.all([
+            StorageService.getRecipeById(recipeId),
+            StorageService.getPantryItems().catch(() => []),
+            StorageService.getManualShoppingItems().catch(() => []),
+        ]);
         if (recipe) {
             this.viewingRecipe = recipe;
+            this._pantryItems = pantryItems || [];
+            this._shoppingItems = shoppingItems || [];
             App.render();
         }
     },
 
     hideRecipeDetail() {
         this.viewingRecipe = null;
+        this._pantryItems = [];
+        this._shoppingItems = [];
         App.render();
     },
 
