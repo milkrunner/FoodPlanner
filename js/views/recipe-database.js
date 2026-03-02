@@ -15,6 +15,7 @@ export const RecipeDatabaseView = {
     ingredients: [{ name: '', amount: '', unit: '', category: 'Sonstiges' }],
     tags: [],
     searchQuery: '',
+    categoryFilter: null, // null = show category tiles, string = show filtered recipes
     showFavoritesOnly: false,
     showSeasonalOnly: false, // Filter for seasonal recipes
     showMealPrepOnly: false, // Filter for meal-prep suitable recipes
@@ -34,10 +35,6 @@ export const RecipeDatabaseView = {
     aiSearchResults: null,
     aiSearchInfo: null,
     isAiSearching: false,
-
-    getFavoriteRecipes() {
-        return AppState.recipes.filter(recipe => recipe.is_favorite);
-    },
 
     renderFavoritesQuickAccess(favorites) {
         if (!favorites || favorites.length === 0) {
@@ -89,6 +86,67 @@ export const RecipeDatabaseView = {
     showAnalysisModal: false,
     showVariantModal: false,
     variantTypes: null, // Cached variant types
+
+    categoryEmojis: {
+        'hauptgericht': '🍽️', 'hauptgerichte': '🍽️',
+        'vorspeise': '🥗', 'vorspeisen': '🥗', 'salat': '🥗', 'salate': '🥗',
+        'suppe': '🍲', 'suppen': '🍲', 'eintopf': '🍲', 'eintöpfe': '🍲',
+        'pasta': '🍝', 'nudeln': '🍝', 'nudelgericht': '🍝',
+        'fleisch': '🥩', 'fleischgericht': '🥩', 'fleischgerichte': '🥩',
+        'fisch': '🐟', 'fischgericht': '🐟', 'meeresfrüchte': '🐟',
+        'vegetarisch': '🌱', 'vegan': '🌿',
+        'dessert': '🍰', 'desserts': '🍰', 'nachtisch': '🍰', 'kuchen': '🎂', 'backen': '🎂',
+        'frühstück': '🥐', 'brunch': '🥐',
+        'snack': '🥨', 'snacks': '🥨', 'beilage': '🥔', 'beilagen': '🥔',
+        'getränk': '🥤', 'getränke': '🥤', 'smoothie': '🥤',
+        'sauce': '🫙', 'saucen': '🫙', 'dip': '🫙', 'dips': '🫙',
+        'brot': '🍞', 'pizza': '🍕', 'burger': '🍔',
+        'asiatisch': '🥢', 'sushi': '🍣', 'curry': '🍛',
+        'grillen': '🔥', 'bbq': '🔥',
+    },
+
+    getCategoryEmoji(category) {
+        if (!category) return '📋';
+        const key = category.toLowerCase().trim();
+        return this.categoryEmojis[key] || '📋';
+    },
+
+    getRecipeCategories() {
+        const counts = {};
+        for (const recipe of AppState.recipes) {
+            const cat = recipe.category || 'Sonstiges';
+            counts[cat] = (counts[cat] || 0) + 1;
+        }
+        return Object.entries(counts)
+            .sort((a, b) => b[1] - a[1])
+            .map(([name, count]) => ({ name, count, emoji: this.getCategoryEmoji(name) }));
+    },
+
+    renderCategoryTiles() {
+        const categories = this.getRecipeCategories();
+        const total = AppState.recipes.length;
+
+        if (total === 0) return '';
+
+        return `
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                <button class="category-tile-btn bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 sm:p-5 text-white shadow hover:shadow-lg hover:scale-[1.02] transition-all duration-200 text-left"
+                        data-category="__all__">
+                    <span class="text-2xl sm:text-3xl mb-2 block">📚</span>
+                    <span class="font-semibold text-sm sm:text-base block">Alle Rezepte</span>
+                    <span class="text-xs sm:text-sm opacity-80">${total} Rezept${total !== 1 ? 'e' : ''}</span>
+                </button>
+                ${categories.map(cat => `
+                    <button class="category-tile-btn bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-5 shadow hover:shadow-lg dark:shadow-gray-900 hover:scale-[1.02] transition-all duration-200 text-left border border-gray-100 dark:border-gray-700"
+                            data-category="${escapeHtml(cat.name)}">
+                        <span class="text-2xl sm:text-3xl mb-2 block">${cat.emoji}</span>
+                        <span class="font-semibold text-sm sm:text-base text-gray-800 dark:text-white block">${escapeHtml(cat.name)}</span>
+                        <span class="text-xs sm:text-sm text-gray-500 dark:text-gray-400">${cat.count} Rezept${cat.count !== 1 ? 'e' : ''}</span>
+                    </button>
+                `).join('')}
+            </div>
+        `;
+    },
 
     getFavoriteRecipes() {
         return AppState.recipes.filter(recipe => recipe.is_favorite);
@@ -229,7 +287,20 @@ export const RecipeDatabaseView = {
 
                 ${this.renderFavoritesQuickAccess(favoriteRecipes)}
 
-                ${AppState.recipes.length > 0 ? `
+                ${AppState.recipes.length > 0 && this.categoryFilter === null ? `
+                    ${this.renderCategoryTiles()}
+                ` : ''}
+
+                ${AppState.recipes.length > 0 && this.categoryFilter !== null ? `
+                    <!-- Breadcrumb -->
+                    <nav class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                        <button id="back-to-categories-btn" class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Kategorien</button>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        <span class="text-gray-800 dark:text-white font-medium">${this.categoryFilter === '__all__' ? 'Alle Rezepte' : escapeHtml(this.categoryFilter)}</span>
+                    </nav>
+                ` : ''}
+
+                ${AppState.recipes.length > 0 && this.categoryFilter !== null ? `
                     <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
                         <div class="flex gap-2">
                             <div class="relative flex-1">
@@ -970,6 +1041,24 @@ export const RecipeDatabaseView = {
     },
 
     attachEventListeners() {
+        // Category tiles
+        document.querySelectorAll('.category-tile-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const cat = btn.dataset.category;
+                this.categoryFilter = cat === '__all__' ? '__all__' : cat;
+                App.render();
+            });
+        });
+
+        // Breadcrumb back to categories
+        const backBtn = document.getElementById('back-to-categories-btn');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                this.categoryFilter = null;
+                App.render();
+            });
+        }
+
         // Search input
         const searchInput = document.getElementById('recipe-search-input');
         if (searchInput) {
@@ -1428,6 +1517,11 @@ export const RecipeDatabaseView = {
         }
 
         let recipes = AppState.recipes;
+
+        // Filter by recipe category (from tiles)
+        if (this.categoryFilter && this.categoryFilter !== '__all__') {
+            recipes = recipes.filter(r => (r.category || 'Sonstiges') === this.categoryFilter);
+        }
 
         if (this.showFavoritesOnly) {
             recipes = recipes.filter(recipe => recipe.is_favorite);
