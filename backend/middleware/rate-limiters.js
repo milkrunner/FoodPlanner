@@ -79,8 +79,32 @@ const authLimiter = rateLimit({
     }
 });
 
+// Admin Endpoints Rate Limiting
+// Limit: 10 requests per minute per IP
+const adminLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: isLocalRequest,
+    handler: (req, res) => {
+        logger.warn('Admin API rate limit exceeded', {
+            component: 'rate-limit',
+            ip: req.ip,
+            method: req.method,
+            path: req.path,
+            requestId: req.requestId
+        });
+        res.status(429).json({
+            error: 'Zu viele Admin-Anfragen. Bitte warte eine Minute.',
+            retryAfter: '1 minute'
+        });
+    }
+});
+
 module.exports = {
     generalLimiter,
     aiLimiter,
-    authLimiter
+    authLimiter,
+    adminLimiter
 };

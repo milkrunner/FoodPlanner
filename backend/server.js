@@ -6,7 +6,8 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
 const db = require('./db');
 const { logger, requestLogger } = require('./utils/logger');
-const { generalLimiter } = require('./middleware/rate-limiters');
+const { generalLimiter, adminLimiter } = require('./middleware/rate-limiters');
+const { authenticateRequired } = require('./middleware/authenticate');
 
 // Route modules
 const authRoutes = require('./routes/auth');
@@ -54,7 +55,7 @@ app.use(cors({
     origin: CORS_ORIGIN,
     credentials: true
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));
 
 // CSRF protection: state-changing requests must have JSON content-type
 // (HTML forms cannot set Content-Type to application/json)
@@ -70,17 +71,26 @@ app.use((req, res, next) => {
 
 app.use(requestLogger);
 
-// Swagger API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'FoodPlanner API Dokumentation'
-}));
-
-// Serve OpenAPI spec as JSON
-app.get('/api-docs.json', (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(swaggerSpec);
-});
+// Swagger API Documentation (protected in production)
+if (process.env.NODE_ENV === 'production') {
+    app.use('/api-docs', authenticateRequired, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+        customCss: '.swagger-ui .topbar { display: none }',
+        customSiteTitle: 'FoodPlanner API Dokumentation'
+    }));
+    app.get('/api-docs.json', authenticateRequired, (req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.send(swaggerSpec);
+    });
+} else {
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+        customCss: '.swagger-ui .topbar { display: none }',
+        customSiteTitle: 'FoodPlanner API Dokumentation'
+    }));
+    app.get('/api-docs.json', (req, res) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.send(swaggerSpec);
+    });
+}
 
 // Apply general rate limiter to all API routes
 app.use(generalLimiter);
