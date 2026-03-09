@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.0](https://github.com/milkrunner/FoodPlanner/compare/v2.4.0...v2.5.0) (2026-03-02)
+
+
+### Features
+
+* Zutaten aus Rezeptansicht zur Einkaufsliste ([#197](https://github.com/milkrunner/FoodPlanner/issues/197)) ([#217](https://github.com/milkrunner/FoodPlanner/issues/217)) ([6697285](https://github.com/milkrunner/FoodPlanner/commit/6697285dbbe3c8acf4edb6760536ade2baf111c7))
+
 ## [2.4.0](https://github.com/milkrunner/FoodPlanner/compare/v2.3.2...v2.4.0) (2026-02-28)
 
 
