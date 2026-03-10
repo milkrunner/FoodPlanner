@@ -4,9 +4,10 @@ const db = require('../db');
 const { logger } = require('../utils/logger');
 const { validateEmail, hashPassword, generateTempPassword } = require('../utils/auth');
 const { authenticateRequired, requireAdmin } = require('../middleware/authenticate');
+const { adminLimiter } = require('../middleware/rate-limiters');
 
-// All admin routes require authentication + admin role
-router.use(authenticateRequired, requireAdmin);
+// All admin routes require authentication + admin role + rate limiting
+router.use(authenticateRequired, requireAdmin, adminLimiter);
 
 // GET /admin/users — list all users with pagination
 router.get('/users', async (req, res) => {
