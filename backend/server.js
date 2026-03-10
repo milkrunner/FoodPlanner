@@ -73,11 +73,11 @@ app.use(requestLogger);
 
 // Swagger API Documentation (protected in production)
 if (process.env.NODE_ENV === 'production') {
-    app.use('/api-docs', authenticateRequired, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    app.use('/api-docs', generalLimiter, authenticateRequired, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
         customCss: '.swagger-ui .topbar { display: none }',
         customSiteTitle: 'FoodPlanner API Dokumentation'
     }));
-    app.get('/api-docs.json', authenticateRequired, (req, res) => {
+    app.get('/api-docs.json', generalLimiter, authenticateRequired, (req, res) => {
         res.setHeader('Content-Type', 'application/json');
         res.send(swaggerSpec);
     });
