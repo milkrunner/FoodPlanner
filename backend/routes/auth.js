@@ -5,6 +5,7 @@ const { logger } = require('../utils/logger');
 const { validateEmail, validatePassword, hashPassword, verifyPassword, generateToken, generateRefreshToken, verifyRefreshToken } = require('../utils/auth');
 const { authenticateRequired } = require('../middleware/authenticate');
 const { authLimiter } = require('../middleware/rate-limiters');
+const { logAudit } = require('../utils/audit');
 
 // Refresh token cookie config
 const REFRESH_COOKIE_NAME = 'refresh_token';
@@ -102,6 +103,7 @@ router.post('/login', authLimiter, async (req, res) => {
         );
 
         if (result.rows.length === 0) {
+            await logAudit(req, 'auth.login_failed', 'user', null, { email });
             return res.status(401).json({ error: 'Ungültige E-Mail oder Passwort' });
         }
 
@@ -113,6 +115,7 @@ router.post('/login', authLimiter, async (req, res) => {
 
         const valid = await verifyPassword(password, user.password_hash);
         if (!valid) {
+            await logAudit(req, 'auth.login_failed', 'user', null, { email });
             return res.status(401).json({ error: 'Ungültige E-Mail oder Passwort' });
         }
 
