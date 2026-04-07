@@ -5,7 +5,7 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm config set strict-ssl false && npm ci --omit=dev && npm config set strict-ssl true
+RUN npm ci --omit=dev
 
 # Stage 2: Production image
 FROM node:20-alpine
@@ -17,7 +17,9 @@ RUN apk add --no-cache \
     ffmpeg \
     ca-certificates \
     && update-ca-certificates \
-    && pip3 install --break-system-packages yt-dlp
+    && python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install yt-dlp \
+    && ln -s /opt/venv/bin/yt-dlp /usr/local/bin/yt-dlp
 
 WORKDIR /app
 
@@ -26,6 +28,9 @@ COPY --from=deps /app/node_modules ./node_modules
 
 # Copy application files
 COPY . .
+
+# Run as non-root user (node user exists in node:alpine)
+USER node
 
 # Expose port
 EXPOSE 3000

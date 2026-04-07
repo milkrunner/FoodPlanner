@@ -39,7 +39,9 @@ router.get('/ready', async (req, res) => {
             checks: {
                 database: {
                     status: 'DOWN',
-                    error: error.message
+                    error: process.env.NODE_ENV === 'production'
+                        ? 'Internal server error'
+                        : error.message
                 }
             }
         });
@@ -63,7 +65,9 @@ router.get('/detailed', async (req, res) => {
     } catch (error) {
         checks.database = {
             status: 'DOWN',
-            error: error.message
+            error: process.env.NODE_ENV === 'production'
+                ? 'Internal server error'
+                : error.message
         };
         overallStatus = 'DOWN';
     }

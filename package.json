@@ -1,0 +1,11 @@
+{
+  "name": "foodplanner-frontend",
+  "private": true,
+  "scripts": {
+    "build:css": "npx tailwindcss -i ./css/input.css -o ./css/styles.css --minify",
+    "watch:css": "npx tailwindcss -i ./css/input.css -o ./css/styles.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}
