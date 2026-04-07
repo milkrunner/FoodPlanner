@@ -1,0 +1,295 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== Base resets ===== */
+*, *::before, *::after {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-behavior: smooth;
+}
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== Touch target sizing ===== */
+button, a, input, select, textarea, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+}
+input[type="checkbox"], input[type="radio"] {
+    min-height: 20px;
+    min-width: 20px;
+}
+
+/* ===== Modal ===== */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 50;
+    overscroll-behavior: contain;
+}
+.modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.modal.active > div {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+@media (max-width: 640px) {
+    .modal.active {
+        align-items: flex-end;
+        padding: 0;
+    }
+    .modal.active > div {
+        border-radius: 0.75rem 0.75rem 0 0;
+        max-height: 90vh;
+        width: 100%;
+        animation: slideUpModal 0.25s cubic-bezier(.22,1,.36,1);
+    }
+}
+.dark .modal {
+    background-color: rgba(0, 0, 0, 0.65);
+}
+
+/* ===== Animations ===== */
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes slideUpModal {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0);    }
+}
+.animate-slide-up { animation: slideUp 0.25s cubic-bezier(.22,1,.36,1); }
+
+#toast-notification { transition: opacity 0.2s ease-out; }
+
+/* ===== Favorite heart ===== */
+.favorite-heart {
+    color: #CED4DA;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+.favorite-heart:hover { transform: scale(1.1); }
+.favorite-heart.is-favorite { color: #CC6B6B; }
+.dark .favorite-heart { color: #343A40; }
+.dark .favorite-heart.is-favorite { color: #DE8888; }
+.favorite-heart-animate { animation: heartBounce 0.35s ease-in-out; }
+@keyframes heartBounce {
+    0%   { transform: scale(1);   }
+    40%  { transform: scale(1.3); }
+    60%  { transform: scale(0.9); }
+    100% { transform: scale(1);   }
+}
+.favorite-highlight {
+    box-shadow: 0 0 0 3px rgba(204, 107, 107, 0.2);
+    transition: box-shadow 0.3s ease;
+}
+.favorite-quick-scroll { scrollbar-width: thin; scrollbar-color: #DEE2E6 transparent; }
+.favorite-quick-scroll::-webkit-scrollbar { height: 3px; }
+.favorite-quick-scroll::-webkit-scrollbar-thumb { background-color: #DEE2E6; border-radius: 9999px; }
+.favorite-quick-scroll::-webkit-scrollbar-track { background-color: transparent; }
+
+@media (max-width: 640px) {
+    #toast-notification {
+        left: 1rem !important; right: 1rem !important;
+        bottom: calc(1rem + env(safe-area-inset-bottom, 0)) !important;
+        width: auto !important;
+    }
+}
+
+/* ===== Mobile nav ===== */
+.mobile-nav-overlay {
+    display: none; position: fixed; inset: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    z-index: 40; opacity: 0; transition: opacity 0.25s ease;
+}
+.mobile-nav-overlay.active { display: block; opacity: 1; }
+.mobile-nav-menu {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 256px; max-width: 80vw;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(.22,1,.36,1);
+    z-index: 45; overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.mobile-nav-menu.active { transform: translateX(0); }
+
+/* ===== Pull-to-refresh ===== */
+.pull-to-refresh {
+    position: fixed; top: 0; left: 0; right: 0; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    transform: translateY(-100%); transition: transform 0.2s ease; z-index: 30;
+}
+.pull-to-refresh.visible { transform: translateY(0); }
+.pull-to-refresh.refreshing svg { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ===== Swipe indicator ===== */
+.swipe-indicator {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    width: 32px; height: 52px; display: flex;
+    align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.2s ease; pointer-events: none; z-index: 25;
+}
+.swipe-indicator.left { left: 0; }
+.swipe-indicator.right { right: 0; }
+.swipe-indicator.visible { opacity: 0.6; }
+
+/* ===== Skeleton ===== */
+.skeleton {
+    background: linear-gradient(90deg, #F1F3F5 25%, #E9ECEF 50%, #F1F3F5 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+}
+.dark .skeleton {
+    background: linear-gradient(90deg, #131417 25%, #18191D 50%, #131417 75%);
+    background-size: 200% 100%;
+}
+@keyframes skeleton-loading {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ===== Checkboxes ===== */
+.touch-checkbox { width: 20px !important; height: 20px !important; cursor: pointer; accent-color: #3A8569; }
+@media (max-width: 640px) { .touch-checkbox { width: 24px !important; height: 24px !important; } }
+
+/* ===== Recipe instructions (markdown) ===== */
+.recipe-instructions {
+    background: #ffffff;
+    border: 1px solid #E9ECEF;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    padding: 1.5rem;
+}
+.dark .recipe-instructions {
+    background: #131417;
+    border-color: #1E2024;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.recipe-instructions h1, .recipe-instructions h2, .recipe-instructions h3 {
+    font-weight: 600; margin: 1.25rem 0 0.75rem;
+}
+.recipe-instructions h2 {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.25rem 0.75rem; border-radius: 9999px;
+    font-size: 0.875rem; font-weight: 600; letter-spacing: 0.025em;
+    background: rgba(58, 133, 105, 0.08); color: #2C6952;
+}
+.dark .recipe-instructions h2 { background: rgba(58,133,105,0.12); color: #7DC2A7; }
+.recipe-instructions h3 { font-size: 0.9rem; color: #3A8569; }
+.dark .recipe-instructions h3 { color: #4EA083; }
+.recipe-instructions p { margin: 0.5rem 0; line-height: 1.75; color: #212529; font-size: 0.9rem; }
+.dark .recipe-instructions p { color: #E9ECEF; }
+.recipe-instructions strong { font-weight: 600; color: #141A1F; }
+.dark .recipe-instructions strong { color: #F8F9FA; }
+.recipe-instructions em { font-style: italic; color: #495057; }
+.dark .recipe-instructions em { color: #ADB5BD; }
+.recipe-instructions blockquote {
+    margin: 0.75rem 0; padding: 0.75rem 1rem;
+    border-left: 2px solid #B5DCCB; border-radius: 0 0.375rem 0.375rem 0;
+    background: rgba(58,133,105,0.04); color: #343A40; font-size: 0.9rem;
+}
+.dark .recipe-instructions blockquote {
+    background: rgba(58,133,105,0.08); color: #DEE2E6; border-left-color: #3A8569;
+}
+.recipe-instructions hr { border: none; height: 1px; margin: 1.25rem 0; background: #E9ECEF; }
+.dark .recipe-instructions hr { background: #1E2024; }
+.recipe-instructions code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    background: #F1F3F5; border-radius: 0.25rem;
+    padding: 0.1rem 0.35rem; font-size: 0.82em; color: #495057;
+}
+.dark .recipe-instructions code { background: #18191D; color: #ADB5BD; }
+.recipe-instructions ol { counter-reset: step; list-style: none; margin: 1rem 0; padding: 0; }
+.recipe-instructions ol > li {
+    position: relative; counter-increment: step;
+    margin: 0.5rem 0; padding: 0.75rem 1rem 0.75rem 3rem;
+    border-radius: 0.375rem; border: 1px solid #E9ECEF;
+    background: #FAFAFA; font-size: 0.9rem;
+    transition: border-color 0.15s ease;
+}
+.dark .recipe-instructions ol > li { background: #18191D; border-color: #1E2024; }
+.recipe-instructions ol > li:hover { border-color: #B5DCCB; }
+.dark .recipe-instructions ol > li:hover { border-color: #2C6952; }
+.recipe-instructions ol > li::before {
+    content: counter(step); position: absolute;
+    left: 0.875rem; top: 50%; transform: translateY(-50%);
+    width: 1.5rem; height: 1.5rem; border-radius: 9999px;
+    background: #3A8569; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 0.75rem;
+}
+.recipe-instructions ul { list-style: none; margin: 0.75rem 0; padding: 0; }
+.recipe-instructions ul > li {
+    position: relative; margin: 0.35rem 0;
+    padding-left: 1.5rem; line-height: 1.7;
+    color: #212529; font-size: 0.9rem;
+}
+.dark .recipe-instructions ul > li { color: #E9ECEF; }
+.recipe-instructions ul > li::before {
+    content: ''; position: absolute; left: 0.5rem; top: 0.6rem;
+    width: 0.375rem; height: 0.375rem; border-radius: 9999px;
+    background: #3A8569; opacity: 0.6;
+}
+
+/* ===== Skip link ===== */
+.skip-link {
+    position: absolute; top: -40px; left: 0;
+    background: #3A8569; color: white;
+    padding: 8px 16px; z-index: 10000; text-decoration: none;
+    font-weight: 600; font-size: 0.8rem; border-radius: 0 0 6px 0;
+    transition: top 0.2s ease;
+}
+.skip-link:focus { top: 0; }
+
+/* ===== Focus ===== */
+:focus-visible {
+    outline: 2px solid #3A8569; outline-offset: 2px; border-radius: 3px;
+}
+.dark :focus-visible { outline-color: #4EA083; }
+:focus:not(:focus-visible) { outline: none; }
+
+/* ===== Reduced motion ===== */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ===== Screen reader only ===== */
+.sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* ===== Scrollbars ===== */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #DEE2E6; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #CED4DA; }
+.dark ::-webkit-scrollbar-thumb { background: #1E2024; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #343A40; }

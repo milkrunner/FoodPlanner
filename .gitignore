@@ -79,6 +79,7 @@ dist/
 build/
 out/
 *.tsbuildinfo
+css/styles.css
 
 # Temporary files
 tmp/
