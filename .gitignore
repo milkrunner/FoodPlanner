@@ -79,6 +79,7 @@ dist/
 build/
 out/
 *.tsbuildinfo
+css/styles.css
 
 # Temporary files
 tmp/
@@ -104,3 +105,4 @@ temp/
 # Backup files
 *.backup
 *.old
+backups/

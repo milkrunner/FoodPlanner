@@ -5,8 +5,9 @@
 const rateLimit = require('express-rate-limit');
 const { logger } = require('../utils/logger');
 
-// Skip rate limiting for local/Docker development
+// Skip rate limiting for local development only (never in production)
 function isLocalRequest(req) {
+    if (process.env.NODE_ENV === 'production') return false;
     const ip = req.ip;
     return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' ||
            ip.startsWith('172.') || ip.startsWith('::ffff:172.');

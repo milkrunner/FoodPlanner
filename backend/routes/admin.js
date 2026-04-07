@@ -5,6 +5,7 @@ const { logger } = require('../utils/logger');
 const { validateEmail, hashPassword, generateTempPassword } = require('../utils/auth');
 const { authenticateRequired, requireAdmin } = require('../middleware/authenticate');
 const { adminLimiter } = require('../middleware/rate-limiters');
+const { logAudit } = require('../utils/audit');
 
 // All admin routes require authentication + admin role + rate limiting
 router.use(authenticateRequired, requireAdmin, adminLimiter);
@@ -62,6 +63,7 @@ router.post('/users', async (req, res) => {
 
         const user = result.rows[0];
         logger.info('Admin created user', { targetUserId: user.id, adminId: req.user.id, component: 'admin' });
+        await logAudit(req, 'user.create', 'user', user.id, { email, role });
         res.status(201).json({ user, tempPassword });
     } catch (error) {
         logger.error('Admin create user error', { error: error.message, component: 'admin' });
@@ -93,6 +95,7 @@ router.put('/users/:id/role', async (req, res) => {
         }
 
         logger.info('Admin changed user role', { targetUserId: id, newRole: role, adminId: req.user.id, component: 'admin' });
+        await logAudit(req, 'user.role_change', 'user', id, { newRole: role });
         res.json(result.rows[0]);
     } catch (error) {
         logger.error('Admin change role error', { error: error.message, component: 'admin' });
@@ -124,6 +127,7 @@ router.put('/users/:id/status', async (req, res) => {
         }
 
         logger.info('Admin changed user status', { targetUserId: id, is_active, adminId: req.user.id, component: 'admin' });
+        await logAudit(req, 'user.toggle_active', 'user', id, { isActive: result.rows[0].is_active });
         res.json(result.rows[0]);
     } catch (error) {
         logger.error('Admin change status error', { error: error.message, component: 'admin' });
@@ -149,6 +153,7 @@ router.put('/users/:id/reset-password', async (req, res) => {
         }
 
         logger.info('Admin reset user password', { targetUserId: id, adminId: req.user.id, component: 'admin' });
+        await logAudit(req, 'user.password_reset', 'user', id);
         res.json({ message: 'Passwort erfolgreich zurückgesetzt', tempPassword });
     } catch (error) {
         logger.error('Admin reset password error', { error: error.message, component: 'admin' });
@@ -175,6 +180,7 @@ router.delete('/users/:id', async (req, res) => {
         }
 
         logger.info('Admin deleted user', { targetUserId: id, adminId: req.user.id, component: 'admin' });
+        await logAudit(req, 'user.delete', 'user', id);
         res.json({ message: 'Benutzer erfolgreich gelöscht' });
     } catch (error) {
         logger.error('Admin delete user error', { error: error.message, component: 'admin' });

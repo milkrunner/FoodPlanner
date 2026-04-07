@@ -688,7 +688,9 @@ REGELN:
                 query,
                 matchCount: classicResults.length,
                 aiPowered: false,
-                fallbackReason: error.message
+                fallbackReason: process.env.NODE_ENV === 'production'
+                    ? 'AI service temporarily unavailable'
+                    : error.message
             }
         });
     }

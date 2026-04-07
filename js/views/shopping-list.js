@@ -8,6 +8,107 @@ import { App } from '../app.js';
 import { API_BASE_URL } from '../config.js';
 import { api } from '../core/api.js';
 
+// Supermarket department definitions with default order
+const DEFAULT_DEPARTMENTS = [
+    { id: 'fruits_veggies', emoji: '🥬', name: 'Obst & Gemüse' },
+    { id: 'bread', emoji: '🍞', name: 'Brot & Backwaren' },
+    { id: 'dairy', emoji: '🥛', name: 'Milch & Molkerei' },
+    { id: 'eggs', emoji: '🥚', name: 'Eier' },
+    { id: 'meat_fish', emoji: '🥩', name: 'Fleisch & Fisch' },
+    { id: 'cheese_deli', emoji: '🧀', name: 'Käse & Aufschnitt' },
+    { id: 'canned', emoji: '🥫', name: 'Konserven & Gläser' },
+    { id: 'dry_goods', emoji: '🌾', name: 'Trockenware & Pasta' },
+    { id: 'frozen', emoji: '❄️', name: 'Tiefkühlkost' },
+    { id: 'household', emoji: '🧴', name: 'Pflege & Haushalt' },
+    { id: 'other', emoji: '📦', name: 'Sonstiges' }
+];
+
+// Keyword mapping for supermarket department assignment
+const DEPARTMENT_KEYWORDS = {
+    fruits_veggies: [
+        'apfel', 'birne', 'banane', 'orange', 'zitrone', 'erdbeere', 'himbeere', 'blaubeere', 'traube', 'melone',
+        'tomate', 'gurke', 'paprika', 'zwiebel', 'knoblauch', 'kartoffel', 'karotte', 'möhre', 'salat', 'spinat',
+        'brokkoli', 'blumenkohl', 'kohl', 'zucchini', 'aubergine', 'kürbis', 'sellerie', 'lauch', 'radieschen',
+        'pilz', 'champignon', 'petersilie', 'basilikum', 'thymian', 'rosmarin', 'koriander', 'schnittlauch',
+        'avocado', 'mango', 'ananas', 'kiwi', 'pfirsich', 'pflaume', 'kirsche', 'gemüse', 'obst',
+        'frühlingszwiebel', 'fenchel', 'rucola', 'mangold', 'rettich', 'ingwer', 'chili', 'limette', 'granatapfel'
+    ],
+    bread: [
+        'brot', 'brötchen', 'semmel', 'toast', 'baguette', 'croissant', 'brezel', 'laugenstange',
+        'knäckebrot', 'zwieback', 'tortilla', 'wrap', 'fladenbrot', 'ciabatta', 'pumpernickel'
+    ],
+    dairy: [
+        'milch', 'sahne', 'butter', 'joghurt', 'quark', 'schmand', 'crème fraîche', 'crème',
+        'mascarpone', 'schlagsahne', 'buttermilch', 'kefir', 'saure sahne', 'kaffeesahne'
+    ],
+    eggs: [
+        'eier', 'eigelb', 'eiweiß'
+    ],
+    meat_fish: [
+        'fleisch', 'huhn', 'hähnchen', 'pute', 'rind', 'schwein', 'lamm', 'hack', 'wurst',
+        'fisch', 'lachs', 'thunfisch', 'forelle', 'kabeljau', 'garnele', 'shrimp', 'muschel',
+        'steak', 'schnitzel', 'filet', 'bacon', 'bratwurst', 'gulasch', 'braten', 'geschnetzeltes'
+    ],
+    cheese_deli: [
+        'käse', 'mozzarella', 'parmesan', 'gouda', 'feta', 'ricotta', 'frischkäse', 'emmentaler',
+        'cheddar', 'camembert', 'brie', 'schinken', 'salami', 'aufschnitt', 'speck', 'mortadella',
+        'leberwurst', 'mettwurst', 'prosciutto'
+    ],
+    canned: [
+        'konserve', 'dose', 'passierte', 'tomatenmark', 'kokosmilch', 'kokosnussmilch',
+        'kichererbsen', 'bohnen', 'mais', 'erbsen', 'linsen', 'oliven', 'kapern',
+        'eingelegte', 'gewürzgurke', 'sauerkraut', 'thunfisch in'
+    ],
+    dry_goods: [
+        'mehl', 'zucker', 'salz', 'pfeffer', 'reis', 'nudel', 'pasta', 'spaghetti', 'penne', 'fusilli',
+        'hafer', 'müsli', 'cornflakes', 'honig', 'marmelade', 'öl', 'essig', 'gewürz',
+        'backpulver', 'hefe', 'vanille', 'zimt', 'kakao', 'schokolade', 'nuss', 'mandel', 'walnuss',
+        'haselnuss', 'rosine', 'dattel', 'couscous', 'quinoa', 'bulgur', 'kaffee', 'tee',
+        'sojasoße', 'sojasauce', 'senf', 'ketchup', 'mayonnaise', 'currypulver', 'paprikapulver',
+        'paniermehl', 'speisestärke', 'gelatine', 'agavendicksaft', 'ahornsirup'
+    ],
+    frozen: [
+        'tiefkühl', 'gefroren', 'tk-', 'eiscreme', 'tiefgekühlt', 'pizza tiefkühl',
+        'pommes', 'kroketten', 'fischstäbchen', 'blätterteig', 'gefrorene'
+    ],
+    household: [
+        'spülmittel', 'waschmittel', 'toilettenpapier', 'küchenrolle', 'müllbeutel',
+        'schwamm', 'seife', 'shampoo', 'zahnpasta', 'alufolie', 'frischhaltefolie',
+        'backpapier', 'serviette', 'taschentuch'
+    ]
+};
+
+/**
+ * Assigns a shopping item to a supermarket department based on keyword matching.
+ * Falls back to mapping from existing backend categories.
+ */
+function assignDepartment(item) {
+    const name = item.name.toLowerCase();
+
+    // Special case: "Ei" as whole word (too short for substring matching)
+    if (/\bei\b/.test(name)) return 'eggs';
+
+    // Direct keyword match against department keywords
+    for (const [deptId, keywords] of Object.entries(DEPARTMENT_KEYWORDS)) {
+        for (const keyword of keywords) {
+            if (name.includes(keyword)) {
+                return deptId;
+            }
+        }
+    }
+
+    // Fallback: map existing backend category to department
+    const categoryMap = {
+        'Obst & Gemüse': 'fruits_veggies',
+        'Milchprodukte': 'dairy',
+        'Fleisch & Fisch': 'meat_fish',
+        'Trockenwaren': 'dry_goods',
+        'Tiefkühl': 'frozen',
+        'Sonstiges': 'other'
+    };
+    return categoryMap[item.category] || 'other';
+}
+
 export const ShoppingListView = {
     shoppingList: [],
     collapsedCategories: new Set(),
@@ -18,6 +119,8 @@ export const ShoppingListView = {
     showOptimizationModal: false,
     usePantry: localStorage.getItem('shopping_use_pantry') !== 'false', // default: true
     pantryCheckResult: null,
+    sortMode: localStorage.getItem('shopping_sort_mode') || 'supermarket', // 'supermarket' or 'alphabetical'
+    departmentOrder: JSON.parse(localStorage.getItem('shopping_department_order') || 'null') || DEFAULT_DEPARTMENTS.map(d => d.id),
     preferences: {
         prioritizeSeasonal: false,
         prioritizeOrganic: false,
@@ -73,6 +176,9 @@ export const ShoppingListView = {
                         </p>
                     </div>
                     <div class="flex gap-2 flex-wrap">
+                        <button id="toggle-sort-btn" class="px-4 py-2 ${this.sortMode === 'supermarket' ? 'bg-emerald-500 dark:bg-emerald-600 hover:bg-emerald-600 dark:hover:bg-emerald-700' : 'bg-indigo-500 dark:bg-indigo-600 hover:bg-indigo-600 dark:hover:bg-indigo-700'} text-white rounded transition-colors" title="${this.sortMode === 'supermarket' ? 'Aktuell: Supermarkt-Reihenfolge' : 'Aktuell: Alphabetisch'}">
+                            ${this.sortMode === 'supermarket' ? '🏪 Supermarkt' : '🔤 Alphabetisch'}
+                        </button>
                         <button id="add-manual-item-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors">
                             + Artikel hinzufügen
                         </button>
@@ -415,9 +521,110 @@ export const ShoppingListView = {
     },
 
     renderCategorizedList() {
-        const categories = ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'];
+        if (this.sortMode === 'supermarket') {
+            return this.renderSupermarketList();
+        }
+        return this.renderAlphabeticalList();
+    },
 
-        // Group items by category
+    renderItemHtml(item) {
+        const pantryInfo = item.pantryInfo;
+        const isFullyAvailable = pantryInfo?.fullyAvailable;
+        const isPartial = pantryInfo?.partiallyAvailable;
+        const displayAmount = pantryInfo ? pantryInfo.adjustedAmount : item.amount;
+        const strikeClass = isFullyAvailable ? 'line-through text-gray-400 dark:text-gray-500' : '';
+
+        return `
+            <div class="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${item.checked || isFullyAvailable ? 'bg-gray-50 dark:bg-gray-700/50' : ''} ${item.isManual ? 'border-l-4 border-green-500 dark:border-green-600' : ''} ${isFullyAvailable ? 'opacity-60' : ''}">
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <label class="relative flex items-center justify-center cursor-pointer">
+                        <input type="checkbox" ${item.checked ? 'checked' : ''}
+                               class="item-checkbox touch-checkbox w-7 h-7 sm:w-6 sm:h-6 cursor-pointer accent-blue-500 dark:accent-blue-400 rounded"
+                               data-item-index="${item.index}">
+                    </label>
+                    <div class="flex-1 min-w-0 cursor-pointer py-1" data-item-index="${item.index}">
+                        <div class="flex items-start justify-between gap-2">
+                            <p class="font-medium text-gray-800 dark:text-white text-sm sm:text-base ${item.checked ? 'line-through text-gray-500 dark:text-gray-400' : ''} ${strikeClass}">
+                                <span class="font-semibold">${isFullyAvailable ? item.amount : displayAmount}</span> ${item.unit} ${item.name}
+                                ${item.isManual ? '<span class="ml-2 text-xs bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">Manuell</span>' : ''}
+                                ${isFullyAvailable ? '<span class="ml-2 text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded">Im Vorrat</span>' : ''}
+                            </p>
+                            ${item.isManual ? `
+                                <button class="delete-manual-item-btn p-2 -mr-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                        data-item-id="${item.id}"
+                                        aria-label="Artikel löschen">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            ` : ''}
+                        </div>
+                        ${isPartial && pantryInfo.pantryAmount > 0 ? `
+                            <p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                                ${pantryInfo.pantryAmount} ${pantryInfo.pantryUnit || item.unit} im Vorrat
+                            </p>
+                        ` : ''}
+                        ${item.recipeNames.length > 0 ? `
+                            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
+                                Für: ${item.recipeNames.join(', ')}
+                            </p>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderGroupHtml(groupKey, label, items) {
+        if (items.length === 0) return '';
+        const isCollapsed = this.collapsedCategories.has(groupKey);
+        const checkedCount = items.filter(item => item.checked).length;
+
+        return `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 transition-colors duration-200 mb-4">
+                <div class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                     data-category="${groupKey}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">${label}</h3>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">
+                            (${checkedCount}/${items.length})
+                        </span>
+                    </div>
+                </div>
+                <div class="divide-y dark:divide-gray-700 ${isCollapsed ? 'hidden' : ''}">
+                    ${items.map(item => this.renderItemHtml(item)).join('')}
+                </div>
+            </div>
+        `;
+    },
+
+    renderSupermarketList() {
+        const deptMap = new Map();
+        this.departmentOrder.forEach(id => deptMap.set(id, []));
+        if (!deptMap.has('other')) deptMap.set('other', []);
+
+        this.shoppingList.forEach((item, index) => {
+            const deptId = assignDepartment(item);
+            const target = deptMap.get(deptId) || deptMap.get('other');
+            target.push({ ...item, index });
+        });
+
+        const deptLookup = Object.fromEntries(DEFAULT_DEPARTMENTS.map(d => [d.id, d]));
+
+        return this.departmentOrder.map(deptId => {
+            const dept = deptLookup[deptId];
+            if (!dept) return '';
+            const items = deptMap.get(deptId) || [];
+            return this.renderGroupHtml(deptId, `${dept.emoji} ${dept.name}`, items);
+        }).join('');
+    },
+
+    renderAlphabeticalList() {
+        const categories = ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'];
         const itemsByCategory = {};
         categories.forEach(cat => itemsByCategory[cat] = []);
 
@@ -430,81 +637,8 @@ export const ShoppingListView = {
             }
         });
 
-        // Render each category
         return categories.map(category => {
-            const items = itemsByCategory[category];
-            if (items.length === 0) return '';
-
-            const isCollapsed = this.collapsedCategories.has(category);
-            const checkedCount = items.filter(item => item.checked).length;
-
-            return `
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 transition-colors duration-200 mb-4">
-                    <div class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                         data-category="${category}">
-                        <div class="flex items-center gap-3">
-                            <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}"
-                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                            </svg>
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">${category}</h3>
-                            <span class="text-sm text-gray-500 dark:text-gray-400">
-                                (${checkedCount}/${items.length})
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="divide-y dark:divide-gray-700 ${isCollapsed ? 'hidden' : ''}">
-                        ${items.map(item => {
-                            const pantryInfo = item.pantryInfo;
-                            const isFullyAvailable = pantryInfo?.fullyAvailable;
-                            const isPartial = pantryInfo?.partiallyAvailable;
-                            const displayAmount = pantryInfo ? pantryInfo.adjustedAmount : item.amount;
-                            const strikeClass = isFullyAvailable ? 'line-through text-gray-400 dark:text-gray-500' : '';
-
-                            return `
-                            <div class="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${item.checked || isFullyAvailable ? 'bg-gray-50 dark:bg-gray-700/50' : ''} ${item.isManual ? 'border-l-4 border-green-500 dark:border-green-600' : ''} ${isFullyAvailable ? 'opacity-60' : ''}">
-                                <div class="flex items-center gap-3 sm:gap-4">
-                                    <!-- Large touch-friendly checkbox -->
-                                    <label class="relative flex items-center justify-center cursor-pointer">
-                                        <input type="checkbox" ${item.checked ? 'checked' : ''}
-                                               class="item-checkbox touch-checkbox w-7 h-7 sm:w-6 sm:h-6 cursor-pointer accent-blue-500 dark:accent-blue-400 rounded"
-                                               data-item-index="${item.index}">
-                                    </label>
-                                    <div class="flex-1 min-w-0 cursor-pointer py-1" data-item-index="${item.index}">
-                                        <div class="flex items-start justify-between gap-2">
-                                            <p class="font-medium text-gray-800 dark:text-white text-sm sm:text-base ${item.checked ? 'line-through text-gray-500 dark:text-gray-400' : ''} ${strikeClass}">
-                                                <span class="font-semibold">${isFullyAvailable ? item.amount : displayAmount}</span> ${item.unit} ${item.name}
-                                                ${item.isManual ? '<span class="ml-2 text-xs bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">Manuell</span>' : ''}
-                                                ${isFullyAvailable ? '<span class="ml-2 text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded">Im Vorrat</span>' : ''}
-                                            </p>
-                                            ${item.isManual ? `
-                                                <button class="delete-manual-item-btn p-2 -mr-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                                                        data-item-id="${item.id}"
-                                                        aria-label="Artikel löschen">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                                    </svg>
-                                                </button>
-                                            ` : ''}
-                                        </div>
-                                        ${isPartial && pantryInfo.pantryAmount > 0 ? `
-                                            <p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-                                                ${pantryInfo.pantryAmount} ${pantryInfo.pantryUnit || item.unit} im Vorrat
-                                            </p>
-                                        ` : ''}
-                                        ${item.recipeNames.length > 0 ? `
-                                            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
-                                                Für: ${item.recipeNames.join(', ')}
-                                            </p>
-                                        ` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        `}).join('')}
-                    </div>
-                </div>
-            `;
+            return this.renderGroupHtml(category, category, itemsByCategory[category]);
         }).join('');
     },
 
@@ -691,6 +825,16 @@ export const ShoppingListView = {
             saveBtn.addEventListener('click', () => this.saveManualItem());
         }
 
+        // Sort mode toggle
+        const sortToggleBtn = document.getElementById('toggle-sort-btn');
+        if (sortToggleBtn) {
+            sortToggleBtn.addEventListener('click', () => {
+                this.sortMode = this.sortMode === 'supermarket' ? 'alphabetical' : 'supermarket';
+                localStorage.setItem('shopping_sort_mode', this.sortMode);
+                App.render();
+            });
+        }
+
         // Delete manual items
         document.querySelectorAll('.delete-manual-item-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
@@ -846,10 +990,40 @@ export const ShoppingListView = {
         }
     },
 
+    _formatListGrouped() {
+        if (this.sortMode !== 'supermarket') {
+            return this.shoppingList.map(item => ({
+                text: `${item.amount} ${item.unit} ${item.name}`,
+                checked: item.checked
+            }));
+        }
+        const deptLookup = Object.fromEntries(DEFAULT_DEPARTMENTS.map(d => [d.id, d]));
+        const deptMap = new Map();
+        this.departmentOrder.forEach(id => deptMap.set(id, []));
+        if (!deptMap.has('other')) deptMap.set('other', []);
+
+        this.shoppingList.forEach(item => {
+            const deptId = assignDepartment(item);
+            (deptMap.get(deptId) || deptMap.get('other')).push(item);
+        });
+
+        const lines = [];
+        for (const deptId of this.departmentOrder) {
+            const items = deptMap.get(deptId);
+            if (!items || items.length === 0) continue;
+            const dept = deptLookup[deptId];
+            lines.push({ header: `${dept.emoji} ${dept.name}` });
+            items.forEach(item => lines.push({
+                text: `${item.amount} ${item.unit} ${item.name}`,
+                checked: item.checked
+            }));
+        }
+        return lines;
+    },
+
     copyToClipboard() {
-        const text = this.shoppingList
-            .map(item => `${item.amount} ${item.unit} ${item.name}`)
-            .join('\n');
+        const lines = this._formatListGrouped();
+        const text = lines.map(l => l.header ? `\n${l.header}` : `  ${l.text}`).join('\n').trim();
 
         navigator.clipboard.writeText(text).then(() => {
             Toast.success('In Zwischenablage kopiert ✓');
@@ -857,12 +1031,12 @@ export const ShoppingListView = {
     },
 
     exportToFile() {
-        const text = this.shoppingList
-            .map(item => {
-                const checkbox = item.checked ? '[✓]' : '[ ]';
-                return `${checkbox} ${item.amount} ${item.unit} ${item.name}`;
-            })
-            .join('\n');
+        const lines = this._formatListGrouped();
+        const text = lines.map(l => {
+            if (l.header) return `\n${l.header}`;
+            const checkbox = l.checked ? '[✓]' : '[ ]';
+            return `  ${checkbox} ${l.text}`;
+        }).join('\n').trim();
 
         const blob = new Blob([text], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);

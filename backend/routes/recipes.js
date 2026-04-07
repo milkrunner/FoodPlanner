@@ -8,6 +8,8 @@ const { buildRecipeQuery } = require('../utils/recipe-queries');
 const { parseNullableInt, parseNullableText, parseBooleanFlag } = require('../utils/parsing');
 const { SEASONAL_CALENDAR, getCurrentSeason, isIngredientInSeason, calculateSeasonalScore } = require('../utils/seasonal');
 const { authenticateRequired } = require('../middleware/authenticate');
+const { validate } = require('../middleware/validate');
+const { createRecipeSchema } = require('../schemas/recipes');
 
 // Default pagination settings
 const DEFAULT_PAGE_SIZE = 20;
@@ -208,7 +210,7 @@ router.get('/:id', authenticateRequired, async (req, res) => {
 });
 
 // Create recipe
-router.post('/', authenticateRequired, async (req, res) => {
+router.post('/', authenticateRequired, validate(createRecipeSchema), async (req, res) => {
     const {
         name,
         category,
@@ -314,7 +316,7 @@ router.post('/', authenticateRequired, async (req, res) => {
 });
 
 // Update recipe
-router.put('/:id', authenticateRequired, async (req, res) => {
+router.put('/:id', authenticateRequired, validate(createRecipeSchema), async (req, res) => {
     const {
         name,
         category,

@@ -5,6 +5,9 @@ const { logger } = require('../utils/logger');
 const { validateEmail, validatePassword, hashPassword, verifyPassword, generateToken, generateRefreshToken, verifyRefreshToken } = require('../utils/auth');
 const { authenticateRequired } = require('../middleware/authenticate');
 const { authLimiter } = require('../middleware/rate-limiters');
+const { logAudit } = require('../utils/audit');
+const { validate } = require('../middleware/validate');
+const { loginSchema, registerSchema, changePasswordSchema } = require('../schemas/auth');
 
 // Refresh token cookie config
 const REFRESH_COOKIE_NAME = 'refresh_token';
@@ -51,7 +54,7 @@ function getCookie(req, name) {
 }
 
 // POST /auth/register
-router.post('/register', authLimiter, async (req, res) => {
+router.post('/register', authLimiter, validate(registerSchema), async (req, res) => {
     try {
         const { email, password, name } = req.body;
 
@@ -88,7 +91,7 @@ router.post('/register', authLimiter, async (req, res) => {
 });
 
 // POST /auth/login
-router.post('/login', authLimiter, async (req, res) => {
+router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -102,6 +105,7 @@ router.post('/login', authLimiter, async (req, res) => {
         );
 
         if (result.rows.length === 0) {
+            await logAudit(req, 'auth.login_failed', 'user', null, { email });
             return res.status(401).json({ error: 'Ungültige E-Mail oder Passwort' });
         }
 
@@ -113,6 +117,7 @@ router.post('/login', authLimiter, async (req, res) => {
 
         const valid = await verifyPassword(password, user.password_hash);
         if (!valid) {
+            await logAudit(req, 'auth.login_failed', 'user', null, { email });
             return res.status(401).json({ error: 'Ungültige E-Mail oder Passwort' });
         }
 
@@ -135,7 +140,7 @@ router.post('/login', authLimiter, async (req, res) => {
 });
 
 // POST /auth/change-password — for forced password change after temp password login
-router.post('/change-password', authenticateRequired, async (req, res) => {
+router.post('/change-password', authenticateRequired, validate(changePasswordSchema), async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
 
