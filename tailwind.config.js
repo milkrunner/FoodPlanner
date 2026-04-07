@@ -97,7 +97,7 @@ module.exports = {
         'ac-lg':      '0 4px 12px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
         'ac-glow':    '0 0 0 3px rgba(58,133,105,0.18)',
         'ac-dark-sm': '0 1px 2px rgba(0,0,0,0.3)',
-        'ac-dark':    '0 2px 8px rgba(0,0,0,0.4)',
+        'ac-dark-md': '0 2px 8px rgba(0,0,0,0.4)',
         'ac-dark-lg': '0 4px 16px rgba(0,0,0,0.5)'
       },
       fontFamily: {

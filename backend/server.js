@@ -32,14 +32,15 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
+            styleSrc: ["'self'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "blob:"],
-            connectSrc: ["'self'"]
+            connectSrc: ["'self'"],
+            frameAncestors: ["'none'"]
         }
     },
-    crossOriginEmbedderPolicy: false // Allow loading Swagger UI resources
+    crossOriginEmbedderPolicy: false
 }));
 // Validate CORS origin against strict URL pattern
 const CORS_ORIGIN = (() => {
