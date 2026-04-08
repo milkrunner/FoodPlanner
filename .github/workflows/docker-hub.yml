@@ -2,6 +2,7 @@ name: Build & Push Docker Hub Image
 
 on:
   push:
+    branches: [main, develop]
     tags: ['v*']
   workflow_dispatch:
 
@@ -29,15 +30,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract version from tag
-        id: version
+      - name: Determine tags
+        id: tags
         run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "tags=${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "tags=${IMAGE_NAME}:beta" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
             echo "tags=${IMAGE_NAME}:${GITHUB_REF_NAME#v},${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
-          else
-            echo "version=dev" >> $GITHUB_OUTPUT
-            echo "tags=${IMAGE_NAME}:dev" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push
@@ -45,6 +46,6 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.version.outputs.tags }}
+          tags: ${{ steps.tags.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
