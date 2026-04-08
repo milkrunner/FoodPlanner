@@ -1,14 +1,15 @@
 const { z } = require('zod');
 
 const loginSchema = z.object({
-    email: z.string().email().max(255),
+    username: z.string().min(1).max(50),
     password: z.string().min(1).max(128),
 });
 
 const registerSchema = z.object({
-    email: z.string().email().max(255),
+    username: z.string().min(3).max(50).regex(/^[a-zA-Z0-9_-]+$/, 'Username may only contain letters, numbers, underscore and hyphen'),
     password: z.string().min(8).max(128),
     name: z.string().max(255).optional(),
+    email: z.string().email().max(255).optional(),
 });
 
 const changePasswordSchema = z.object({

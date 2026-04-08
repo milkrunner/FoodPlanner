@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { logger } = require('../utils/logger');
-const { validateEmail, hashPassword, generateTempPassword } = require('../utils/auth');
+const { validateUsername, hashPassword, generateTempPassword } = require('../utils/auth');
 const { authenticateRequired, requireAdmin } = require('../middleware/authenticate');
 const { adminLimiter } = require('../middleware/rate-limiters');
 const { logAudit } = require('../utils/audit');
@@ -21,7 +21,7 @@ router.get('/users', async (req, res) => {
         const total = parseInt(countResult.rows[0].count);
 
         const result = await db.query(
-            'SELECT id, email, name, role, is_active, must_change_password, created_at, last_login_at FROM users ORDER BY created_at ASC LIMIT $1 OFFSET $2',
+            'SELECT id, username, email, name, role, is_active, must_change_password, created_at, last_login_at FROM users ORDER BY created_at ASC LIMIT $1 OFFSET $2',
             [limit, offset]
         );
 
@@ -38,32 +38,33 @@ router.get('/users', async (req, res) => {
 // POST /admin/users — create a new user with temporary password
 router.post('/users', async (req, res) => {
     try {
-        const { email, name, role } = req.body;
+        const { username, name, role } = req.body;
 
-        if (!validateEmail(email)) {
-            return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' });
+        const usernameCheck = validateUsername(username);
+        if (!usernameCheck.valid) {
+            return res.status(400).json({ error: usernameCheck.error });
         }
 
         if (role && !['user', 'admin'].includes(role)) {
             return res.status(400).json({ error: 'Ungültige Rolle. Erlaubt: user, admin' });
         }
 
-        const existing = await db.query('SELECT id FROM users WHERE email = $1', [email.trim().toLowerCase()]);
+        const existing = await db.query('SELECT id FROM users WHERE username = $1', [username.trim()]);
         if (existing.rows.length > 0) {
-            return res.status(409).json({ error: 'E-Mail-Adresse bereits registriert' });
+            return res.status(409).json({ error: 'Benutzername bereits vergeben' });
         }
 
         const tempPassword = generateTempPassword();
         const passwordHash = await hashPassword(tempPassword);
 
         const result = await db.query(
-            'INSERT INTO users (email, password_hash, name, role, must_change_password) VALUES ($1, $2, $3, $4, true) RETURNING id, email, name, role, is_active, created_at',
-            [email.trim().toLowerCase(), passwordHash, name ? name.trim() : null, role || 'user']
+            'INSERT INTO users (username, password_hash, name, role, must_change_password) VALUES ($1, $2, $3, $4, true) RETURNING id, username, name, role, is_active, created_at',
+            [username.trim(), passwordHash, name ? name.trim() : null, role || 'user']
         );
 
         const user = result.rows[0];
         logger.info('Admin created user', { targetUserId: user.id, adminId: req.user.id, component: 'admin' });
-        await logAudit(req, 'user.create', 'user', user.id, { email, role });
+        await logAudit(req, 'user.create', 'user', user.id, { username, role });
         res.status(201).json({ user, tempPassword });
     } catch (error) {
         logger.error('Admin create user error', { error: error.message, component: 'admin' });
@@ -86,7 +87,7 @@ router.put('/users/:id/role', async (req, res) => {
         }
 
         const result = await db.query(
-            'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, email, name, role, is_active',
+            'UPDATE users SET role = $1 WHERE id = $2 RETURNING id, username, email, name, role, is_active',
             [role, id]
         );
 
@@ -118,7 +119,7 @@ router.put('/users/:id/status', async (req, res) => {
         }
 
         const result = await db.query(
-            'UPDATE users SET is_active = $1 WHERE id = $2 RETURNING id, email, name, role, is_active',
+            'UPDATE users SET is_active = $1 WHERE id = $2 RETURNING id, username, email, name, role, is_active',
             [is_active, id]
         );
 
@@ -144,7 +145,7 @@ router.put('/users/:id/reset-password', async (req, res) => {
         const passwordHash = await hashPassword(tempPassword);
 
         const result = await db.query(
-            'UPDATE users SET password_hash = $1, must_change_password = true WHERE id = $2 RETURNING id, email, name',
+            'UPDATE users SET password_hash = $1, must_change_password = true WHERE id = $2 RETURNING id, username, name',
             [passwordHash, id]
         );
 
@@ -171,7 +172,7 @@ router.delete('/users/:id', async (req, res) => {
         }
 
         const result = await db.query(
-            'DELETE FROM users WHERE id = $1 RETURNING id, email',
+            'DELETE FROM users WHERE id = $1 RETURNING id, username',
             [id]
         );
 

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { logger } = require('../utils/logger');
-const { validateEmail, validatePassword, hashPassword, verifyPassword, generateToken, generateRefreshToken, verifyRefreshToken } = require('../utils/auth');
+const { validateUsername, validatePassword, hashPassword, verifyPassword, generateToken, generateRefreshToken, verifyRefreshToken } = require('../utils/auth');
 const { authenticateRequired } = require('../middleware/authenticate');
 const { authLimiter } = require('../middleware/rate-limiters');
 const { logAudit } = require('../utils/audit');
@@ -56,10 +56,11 @@ function getCookie(req, name) {
 // POST /auth/register
 router.post('/register', authLimiter, validate(registerSchema), async (req, res) => {
     try {
-        const { email, password, name } = req.body;
+        const { username, password, name, email } = req.body;
 
-        if (!validateEmail(email)) {
-            return res.status(400).json({ error: 'Ungültige E-Mail-Adresse' });
+        const usernameCheck = validateUsername(username);
+        if (!usernameCheck.valid) {
+            return res.status(400).json({ error: usernameCheck.error });
         }
 
         const pwCheck = validatePassword(password);
@@ -67,15 +68,15 @@ router.post('/register', authLimiter, validate(registerSchema), async (req, res)
             return res.status(400).json({ error: pwCheck.error });
         }
 
-        const existing = await db.query('SELECT id FROM users WHERE email = $1', [email.trim().toLowerCase()]);
+        const existing = await db.query('SELECT id FROM users WHERE username = $1', [username.trim()]);
         if (existing.rows.length > 0) {
-            return res.status(409).json({ error: 'E-Mail-Adresse bereits registriert' });
+            return res.status(409).json({ error: 'Benutzername bereits vergeben' });
         }
 
         const passwordHash = await hashPassword(password);
         const result = await db.query(
-            'INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name, role, created_at',
-            [email.trim().toLowerCase(), passwordHash, name ? name.trim() : null]
+            'INSERT INTO users (username, email, password_hash, name) VALUES ($1, $2, $3, $4) RETURNING id, username, email, name, role, created_at',
+            [username.trim(), email ? email.trim().toLowerCase() : null, passwordHash, name ? name.trim() : null]
         );
 
         const user = result.rows[0];
@@ -83,7 +84,7 @@ router.post('/register', authLimiter, validate(registerSchema), async (req, res)
         const refreshToken = generateRefreshToken(user);
         setRefreshCookie(res, refreshToken);
         logger.info('User registered', { userId: user.id, component: 'auth' });
-        res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+        res.status(201).json({ token, user: { id: user.id, username: user.username, name: user.name, role: user.role } });
     } catch (error) {
         logger.error('Registration error', { error: error.message, component: 'auth' });
         res.status(500).json({ error: 'Registrierung fehlgeschlagen' });
@@ -93,20 +94,20 @@ router.post('/register', authLimiter, validate(registerSchema), async (req, res)
 // POST /auth/login
 router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { username, password } = req.body;
 
-        if (!email || !password) {
-            return res.status(400).json({ error: 'E-Mail und Passwort erforderlich' });
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Benutzername und Passwort erforderlich' });
         }
 
         const result = await db.query(
-            'SELECT id, email, name, password_hash, role, is_active, must_change_password FROM users WHERE email = $1',
-            [email.trim().toLowerCase()]
+            'SELECT id, username, email, name, password_hash, role, is_active, must_change_password FROM users WHERE username = $1',
+            [username.trim()]
         );
 
         if (result.rows.length === 0) {
-            await logAudit(req, 'auth.login_failed', 'user', null, { email });
-            return res.status(401).json({ error: 'Ungültige E-Mail oder Passwort' });
+            await logAudit(req, 'auth.login_failed', 'user', null, { username });
+            return res.status(401).json({ error: 'Ungültiger Benutzername oder Passwort' });
         }
 
         const user = result.rows[0];
@@ -117,8 +118,8 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
 
         const valid = await verifyPassword(password, user.password_hash);
         if (!valid) {
-            await logAudit(req, 'auth.login_failed', 'user', null, { email });
-            return res.status(401).json({ error: 'Ungültige E-Mail oder Passwort' });
+            await logAudit(req, 'auth.login_failed', 'user', null, { username });
+            return res.status(401).json({ error: 'Ungültiger Benutzername oder Passwort' });
         }
 
         // Update last_login_at
@@ -130,7 +131,7 @@ router.post('/login', authLimiter, validate(loginSchema), async (req, res) => {
         logger.info('User logged in', { userId: user.id, component: 'auth' });
         res.json({
             token,
-            user: { id: user.id, email: user.email, name: user.name, role: user.role },
+            user: { id: user.id, username: user.username, name: user.name, role: user.role },
             mustChangePassword: user.must_change_password
         });
     } catch (error) {
@@ -185,7 +186,7 @@ router.post('/change-password', authenticateRequired, validate(changePasswordSch
 router.get('/me', authenticateRequired, async (req, res) => {
     try {
         const result = await db.query(
-            'SELECT id, email, name, role, created_at FROM users WHERE id = $1',
+            'SELECT id, username, email, name, role, created_at FROM users WHERE id = $1',
             [req.user.id]
         );
         if (result.rows.length === 0) {
@@ -214,7 +215,7 @@ router.post('/refresh', async (req, res) => {
         }
 
         const result = await db.query(
-            'SELECT id, email, name, role, is_active FROM users WHERE id = $1',
+            'SELECT id, username, email, name, role, is_active FROM users WHERE id = $1',
             [payload.sub]
         );
 
@@ -228,7 +229,7 @@ router.post('/refresh', async (req, res) => {
         // Rotate refresh token — issue a new one with each refresh
         const newRefreshToken = generateRefreshToken(user);
         setRefreshCookie(res, newRefreshToken);
-        res.json({ token: newToken, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+        res.json({ token: newToken, user: { id: user.id, username: user.username, name: user.name, role: user.role } });
     } catch (error) {
         logger.error('Token refresh error', { error: error.message, component: 'auth' });
         res.status(500).json({ error: 'Token-Refresh fehlgeschlagen' });
