@@ -87,6 +87,7 @@
 
     /* ===== Divider ===== */
     .ds-divider {
+        border: none;
         height: 1px;
         background: #F0F0F0;
         margin: 32px 0;
@@ -101,7 +102,7 @@
         font-size: 15px;
         transition: border-color 0.15s ease;
     }
-    .ds-input:focus { border: 2px solid #111; outline: none; }
+    .ds-input:focus { border-color: #111; box-shadow: 0 0 0 1px #111; outline: none; }
     .ds-input::placeholder { color: #BBB; }
 
     /* ===== Shopping list ===== */
@@ -123,10 +124,13 @@
         font-size: 15px;
         color: #333;
     }
+    .ds-shop-item + .ds-shop-item { border-top: 1px solid #FAFAFA; }
     .ds-shop-item input[type="checkbox"] {
         width: 20px;
         height: 20px;
         accent-color: #111;
+        cursor: pointer;
+        flex-shrink: 0;
     }
     .ds-shop-amount {
         color: #BBB;
@@ -147,12 +151,14 @@
         flex-direction: column;
         align-items: center;
         gap: 4px;
+        padding: 20px 0;
+        flex-shrink: 0;
         z-index: 40;
     }
     .ds-sidebar-logo {
         width: 36px;
         height: 36px;
-        border-radius: 50%;
+        border-radius: 10px;
         background: #3A8569;
         color: #fff;
         font-weight: 700;
@@ -174,6 +180,7 @@
     }
     .ds-sidebar-item:hover { background: #F0F0F0; color: #555; }
     .ds-sidebar-item.active { background: #F0F0F0; color: #212529; }
+    .ds-sidebar-item svg { width: 20px; height: 20px; stroke-width: 1.8; }
 
     /* ===== Bottom nav ===== */
     .ds-bottomnav {
@@ -188,24 +195,34 @@
         z-index: 40;
         align-items: center;
         justify-content: space-around;
+        padding-bottom: env(safe-area-inset-bottom, 0);
     }
     @media (max-width: 640px) { .ds-bottomnav { display: flex; } }
+    @media (max-width: 640px) { .ds-sidebar { display: none; } }
     .ds-bottomnav-item {
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 2px;
         color: #999;
+        min-height: 44px;
+        min-width: 48px;
     }
     .ds-bottomnav-item.active { color: #111; }
-    .ds-bottomnav-item svg { width: 22px; height: 22px; }
-    .ds-bottomnav-item span { font-size: 10px; }
+    .ds-bottomnav-item:hover { color: #555; }
+    .ds-bottomnav-item svg { width: 22px; height: 22px; stroke-width: 1.8; }
+    .ds-bottomnav-item span { font-size: 10px; font-weight: 500; }
 
     /* ===== Heart ===== */
     .ds-heart {
         width: 22px;
         height: 22px;
         color: #E8A0A0;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 4px;
+        line-height: 1;
         transition: color 0.15s ease;
     }
     .ds-heart:hover { color: #CC6B6B; }
