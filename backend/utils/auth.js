@@ -33,6 +33,20 @@ function validateEmail(email) {
 }
 
 /**
+ * Validate username format - pure function
+ * @param {string} username
+ * @returns {{ valid: boolean, error?: string }}
+ */
+function validateUsername(username) {
+    if (!username || typeof username !== 'string') return { valid: false, error: 'Username is required' };
+    const trimmed = username.trim();
+    if (trimmed.length < 3) return { valid: false, error: 'Username must be at least 3 characters' };
+    if (trimmed.length > 50) return { valid: false, error: 'Username must be at most 50 characters' };
+    if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) return { valid: false, error: 'Username may only contain letters, numbers, underscore and hyphen' };
+    return { valid: true };
+}
+
+/**
  * Validate password strength - pure function
  * @param {string} password
  * @returns {{ valid: boolean, error?: string }}
@@ -80,13 +94,14 @@ async function verifyPassword(password, hash) {
 
 /**
  * Create a JWT payload from a user object - pure function
- * @param {{ id: string, email: string, name?: string }} user
- * @returns {{ sub: string, email: string, name: string }}
+ * @param {{ id: string, username: string, email?: string, name?: string }} user
+ * @returns {{ sub: string, username: string, email: string, name: string, role: string }}
  */
 function createUserPayload(user) {
     return {
         sub: user.id,
-        email: user.email,
+        username: user.username,
+        email: user.email || '',
         name: user.name || '',
         role: user.role || 'user'
     };
@@ -203,6 +218,7 @@ function generateTempPassword() {
 
 module.exports = {
     validateEmail,
+    validateUsername,
     validatePassword,
     hashPassword,
     verifyPassword,

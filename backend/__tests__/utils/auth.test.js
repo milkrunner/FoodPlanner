@@ -37,11 +37,22 @@ function validatePassword(password) {
     return { valid: true };
 }
 
+function validateUsername(username) {
+    if (!username || typeof username !== 'string') return { valid: false, error: 'Username is required' };
+    const trimmed = username.trim();
+    if (trimmed.length < 3) return { valid: false, error: 'Username must be at least 3 characters' };
+    if (trimmed.length > 50) return { valid: false, error: 'Username must be at most 50 characters' };
+    if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) return { valid: false, error: 'Username may only contain letters, numbers, underscore and hyphen' };
+    return { valid: true };
+}
+
 function createUserPayload(user) {
     return {
         sub: user.id,
-        email: user.email,
-        name: user.name || ''
+        username: user.username,
+        email: user.email || '',
+        name: user.name || '',
+        role: user.role || 'user'
     };
 }
 
@@ -156,33 +167,113 @@ describe('validatePassword', () => {
     });
 });
 
+describe('validateUsername', () => {
+    it('should accept a valid username', () => {
+        const result = validateUsername('alice');
+        assert.strictEqual(result.valid, true);
+    });
+
+    it('should accept username with numbers, underscores and hyphens', () => {
+        assert.strictEqual(validateUsername('user_name-123').valid, true);
+    });
+
+    it('should accept exactly 3 characters', () => {
+        assert.strictEqual(validateUsername('abc').valid, true);
+    });
+
+    it('should accept exactly 50 characters', () => {
+        assert.strictEqual(validateUsername('a'.repeat(50)).valid, true);
+    });
+
+    it('should reject username shorter than 3 characters', () => {
+        const result = validateUsername('ab');
+        assert.strictEqual(result.valid, false);
+        assert.ok(result.error.includes('3'));
+    });
+
+    it('should reject username longer than 50 characters', () => {
+        const result = validateUsername('a'.repeat(51));
+        assert.strictEqual(result.valid, false);
+        assert.ok(result.error.includes('50'));
+    });
+
+    it('should reject username with spaces', () => {
+        const result = validateUsername('user name');
+        assert.strictEqual(result.valid, false);
+    });
+
+    it('should reject username with special characters', () => {
+        const result = validateUsername('user@name');
+        assert.strictEqual(result.valid, false);
+    });
+
+    it('should reject empty string', () => {
+        const result = validateUsername('');
+        assert.strictEqual(result.valid, false);
+    });
+
+    it('should reject null', () => {
+        const result = validateUsername(null);
+        assert.strictEqual(result.valid, false);
+    });
+
+    it('should reject non-string', () => {
+        const result = validateUsername(42);
+        assert.strictEqual(result.valid, false);
+    });
+});
+
 describe('createUserPayload', () => {
     it('should map user id to sub claim', () => {
-        const user = { id: 'abc-123', email: 'user@example.com', name: 'Alice' };
+        const user = { id: 'abc-123', username: 'alice', email: 'user@example.com', name: 'Alice' };
         const payload = createUserPayload(user);
         assert.strictEqual(payload.sub, 'abc-123');
     });
 
+    it('should include username in payload', () => {
+        const user = { id: 'abc-123', username: 'alice', email: 'user@example.com', name: 'Alice' };
+        const payload = createUserPayload(user);
+        assert.strictEqual(payload.username, 'alice');
+    });
+
     it('should include email in payload', () => {
-        const user = { id: 'abc-123', email: 'user@example.com', name: 'Alice' };
+        const user = { id: 'abc-123', username: 'alice', email: 'user@example.com', name: 'Alice' };
         const payload = createUserPayload(user);
         assert.strictEqual(payload.email, 'user@example.com');
     });
 
+    it('should default email to empty string when missing', () => {
+        const user = { id: 'abc-123', username: 'alice', name: 'Alice' };
+        const payload = createUserPayload(user);
+        assert.strictEqual(payload.email, '');
+    });
+
     it('should include name in payload', () => {
-        const user = { id: 'abc-123', email: 'user@example.com', name: 'Alice' };
+        const user = { id: 'abc-123', username: 'alice', email: 'user@example.com', name: 'Alice' };
         const payload = createUserPayload(user);
         assert.strictEqual(payload.name, 'Alice');
     });
 
     it('should default name to empty string when missing', () => {
-        const user = { id: 'abc-123', email: 'user@example.com' };
+        const user = { id: 'abc-123', username: 'alice', email: 'user@example.com' };
         const payload = createUserPayload(user);
         assert.strictEqual(payload.name, '');
     });
 
+    it('should include role in payload', () => {
+        const user = { id: 'abc-123', username: 'alice', email: 'user@example.com', name: 'Alice', role: 'admin' };
+        const payload = createUserPayload(user);
+        assert.strictEqual(payload.role, 'admin');
+    });
+
+    it('should default role to user', () => {
+        const user = { id: 'abc-123', username: 'alice', email: 'user@example.com', name: 'Alice' };
+        const payload = createUserPayload(user);
+        assert.strictEqual(payload.role, 'user');
+    });
+
     it('should not include password_hash in payload', () => {
-        const user = { id: 'abc-123', email: 'user@example.com', name: 'Alice', password_hash: '$2b$...' };
+        const user = { id: 'abc-123', username: 'alice', email: 'user@example.com', name: 'Alice', password_hash: '$2b$...' };
         const payload = createUserPayload(user);
         assert.strictEqual(payload.password_hash, undefined);
     });

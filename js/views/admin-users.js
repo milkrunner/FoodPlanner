@@ -78,7 +78,7 @@ export const AdminUsersView = {
                     <thead class="bg-ds-bg-muted">
                         <tr>
                             <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="name">Name${sortIcon('name')}</th>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="email">E-Mail${sortIcon('email')}</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="username">Benutzername${sortIcon('username')}</th>
                             <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="role">Rolle${sortIcon('role')}</th>
                             <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="is_active">Status${sortIcon('is_active')}</th>
                             <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="created_at">Erstellt${sortIcon('created_at')}</th>
@@ -111,7 +111,7 @@ export const AdminUsersView = {
         return `
             <tr class="hover:bg-ds-bg-muted ${isSelf ? 'bg-ds-accent-bg/50' : ''}">
                 <td class="px-4 py-3 text-ds-text">${escapeHtml(user.name || '—')}${isSelf ? ' <span class="text-xs text-ds-accent">(Du)</span>' : ''}</td>
-                <td class="px-4 py-3 text-ds-text-body">${escapeHtml(user.email)}${mustChangeBadge}</td>
+                <td class="px-4 py-3 text-ds-text-body">${escapeHtml(user.username || '—')}${mustChangeBadge}</td>
                 <td class="px-4 py-3">${roleBadge}</td>
                 <td class="px-4 py-3">${statusBadge}</td>
                 <td class="px-4 py-3 text-ds-text-muted text-xs">${formatDate(user.created_at)}</td>
@@ -125,10 +125,10 @@ export const AdminUsersView = {
                             <button class="admin-toggle-status ds-badge cursor-pointer hover:opacity-80 transition-opacity ${user.is_active ? 'bg-ds-danger-bg text-ds-danger' : 'bg-ds-accent-bg text-ds-accent'}" data-id="${user.id}" data-active="${user.is_active}">
                                 ${user.is_active ? 'Deaktivieren' : 'Aktivieren'}
                             </button>
-                            <button class="admin-reset-pw ds-badge ds-badge-accent cursor-pointer hover:opacity-80 transition-opacity" data-id="${user.id}" data-email="${escapeHtml(user.email)}">
+                            <button class="admin-reset-pw ds-badge ds-badge-accent cursor-pointer hover:opacity-80 transition-opacity" data-id="${user.id}" data-username="${escapeHtml(user.username || '')}">
                                 Passwort
                             </button>
-                            <button class="admin-delete-user ds-badge cursor-pointer hover:opacity-80 transition-opacity bg-ds-danger-bg text-ds-danger" data-id="${user.id}" data-email="${escapeHtml(user.email)}">
+                            <button class="admin-delete-user ds-badge cursor-pointer hover:opacity-80 transition-opacity bg-ds-danger-bg text-ds-danger" data-id="${user.id}" data-username="${escapeHtml(user.username || '')}">
                                 Löschen
                             </button>
                         `}
@@ -145,7 +145,7 @@ export const AdminUsersView = {
                     <h3 class="ds-section-title mb-4">Neuen Benutzer anlegen</h3>
                     <p class="text-sm text-ds-text-muted mb-4">Es wird ein temporäres Passwort generiert. Der Benutzer muss es beim ersten Login ändern.</p>
                     <form id="admin-create-form" class="space-y-3">
-                        <input id="admin-create-email" type="email" placeholder="E-Mail-Adresse" required
+                        <input id="admin-create-username" type="text" placeholder="Benutzername" required
                             class="ds-input w-full px-3 py-2" />
                         <input id="admin-create-name" type="text" placeholder="Name (optional)"
                             class="ds-input w-full px-3 py-2" />
@@ -170,7 +170,7 @@ export const AdminUsersView = {
             <div id="admin-temppw-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                 <div class="ds-card shadow-xl p-6 w-full max-w-sm mx-4">
                     <h3 class="ds-section-title mb-2">Temporäres Passwort</h3>
-                    <p id="admin-temppw-email" class="text-sm text-ds-text-muted mb-4"></p>
+                    <p id="admin-temppw-user" class="text-sm text-ds-text-muted mb-4"></p>
                     <div class="flex items-center gap-2 mb-4">
                         <code id="admin-temppw-value" class="flex-1 px-4 py-3 bg-ds-bg-subtle rounded-lg text-lg font-mono text-center text-ds-text tracking-wider select-all"></code>
                         <button id="admin-temppw-copy" class="ds-btn ds-btn-primary px-3 py-3" title="Kopieren">
@@ -218,17 +218,17 @@ export const AdminUsersView = {
 
     _showCreateModal() {
         const modal = document.getElementById('admin-create-modal');
-        document.getElementById('admin-create-email').value = '';
+        document.getElementById('admin-create-username').value = '';
         document.getElementById('admin-create-name').value = '';
         document.getElementById('admin-create-role').value = 'user';
         document.getElementById('admin-create-error').classList.add('hidden');
         modal.classList.remove('hidden');
-        document.getElementById('admin-create-email').focus();
+        document.getElementById('admin-create-username').focus();
     },
 
-    _showTempPassword(email, tempPassword) {
+    _showTempPassword(username, tempPassword) {
         const modal = document.getElementById('admin-temppw-modal');
-        document.getElementById('admin-temppw-email').textContent = email;
+        document.getElementById('admin-temppw-user').textContent = username;
         document.getElementById('admin-temppw-value').textContent = tempPassword;
         modal.classList.remove('hidden');
     },
@@ -238,14 +238,14 @@ export const AdminUsersView = {
         const errEl = document.getElementById('admin-create-error');
         errEl.classList.add('hidden');
 
-        const email = document.getElementById('admin-create-email').value.trim();
+        const username = document.getElementById('admin-create-username').value.trim();
         const name = document.getElementById('admin-create-name').value.trim();
         const role = document.getElementById('admin-create-role').value;
 
         try {
-            const data = await api.post('/admin/users', { email, name: name || undefined, role });
+            const data = await api.post('/admin/users', { username, name: name || undefined, role });
             document.getElementById('admin-create-modal').classList.add('hidden');
-            this._showTempPassword(email, data.tempPassword);
+            this._showTempPassword(username, data.tempPassword);
             await this._loadUsers();
         } catch (err) {
             errEl.textContent = err.message;
@@ -293,11 +293,11 @@ export const AdminUsersView = {
         // Reset password
         document.querySelectorAll('.admin-reset-pw').forEach(btn => {
             btn.addEventListener('click', async () => {
-                const email = btn.dataset.email;
-                if (!confirm(`Passwort für "${email}" wirklich zurücksetzen? Ein neues temporäres Passwort wird generiert.`)) return;
+                const username = btn.dataset.username;
+                if (!confirm(`Passwort für "${username}" wirklich zurücksetzen? Ein neues temporäres Passwort wird generiert.`)) return;
                 try {
                     const data = await api.put(`/admin/users/${btn.dataset.id}/reset-password`, {});
-                    this._showTempPassword(email, data.tempPassword);
+                    this._showTempPassword(username, data.tempPassword);
                     await this._loadUsers();
                 } catch (err) {
                     Toast.show(err.message, { type: 'error' });
@@ -308,8 +308,8 @@ export const AdminUsersView = {
         // Delete user
         document.querySelectorAll('.admin-delete-user').forEach(btn => {
             btn.addEventListener('click', async () => {
-                const email = btn.dataset.email;
-                if (!confirm(`Benutzer "${email}" wirklich endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return;
+                const username = btn.dataset.username;
+                if (!confirm(`Benutzer "${username}" wirklich endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return;
                 await this._apiCall(`/admin/users/${btn.dataset.id}`, 'DELETE');
             });
         });

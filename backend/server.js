@@ -124,6 +124,23 @@ const startServer = async () => {
         // Run migrations before starting the server
         await db.runMigrations();
 
+        // Auto-create admin user if no users exist (first start)
+        const { rows } = await db.query('SELECT COUNT(*) as count FROM users');
+        if (parseInt(rows[0].count) === 0) {
+            const { hashPassword } = require('./utils/auth');
+            const crypto = require('crypto');
+            const defaultPassword = 'admin';
+            const hash = await hashPassword(defaultPassword);
+            await db.query(
+                `INSERT INTO users (id, username, email, password_hash, name, role, is_active, must_change_password)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                [crypto.randomUUID(), 'admin', '', hash, 'Administrator', 'admin', true, true]
+            );
+            logger.info('=== FIRST START: Admin user created ===', { component: 'setup' });
+            logger.info('Username: admin / Password: admin', { component: 'setup' });
+            logger.info('You will be asked to change the password on first login.', { component: 'setup' });
+        }
+
         app.listen(PORT, '0.0.0.0', () => {
             logger.info('Food Planner Backend started', { port: PORT, component: 'server' });
         });

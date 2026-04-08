@@ -23,7 +23,7 @@ export const AuthModal = {
                 <h2 class="ds-page-title mb-4">${isLogin ? 'Anmelden' : 'Registrieren'}</h2>
                 <form id="auth-modal-form" class="space-y-3">
                     ${!isLogin ? '<input id="auth-name" type="text" placeholder="Name (optional)" class="ds-input"/>' : ''}
-                    <input id="auth-email" type="email" placeholder="E-Mail" required class="ds-input"/>
+                    <input id="auth-username" type="text" placeholder="Benutzername" required class="ds-input" autocomplete="username"/>
                     <input id="auth-password" type="password" placeholder="Passwort" required minlength="8" class="ds-input"/>
                     <div id="auth-error" class="text-xs text-ds-danger hidden"></div>
                     <button type="submit" class="ds-btn ds-btn-primary w-full">${isLogin ? 'Anmelden' : 'Registrieren'}</button>
@@ -43,16 +43,16 @@ export const AuthModal = {
 
         overlay.querySelector('#auth-modal-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = overlay.querySelector('#auth-email').value;
+            const username = overlay.querySelector('#auth-username').value;
             const password = overlay.querySelector('#auth-password').value;
             const errEl = overlay.querySelector('#auth-error');
             errEl.classList.add('hidden');
             try {
                 if (isLogin) {
-                    await Auth.login(email, password);
+                    await Auth.login(username, password);
                 } else {
                     const name = overlay.querySelector('#auth-name')?.value || '';
-                    await Auth.register(email, password, name);
+                    await Auth.register(username, password, name);
                 }
                 this.close();
                 if (this._onSuccess) this._onSuccess();
@@ -63,7 +63,7 @@ export const AuthModal = {
             }
         });
 
-        overlay.querySelector('#auth-email').focus();
+        overlay.querySelector('#auth-username').focus();
     },
 
     close() {
