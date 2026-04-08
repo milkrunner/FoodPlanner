@@ -33,17 +33,16 @@ jobs:
       - name: Determine tags
         id: tags
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          if [[ "${{ github.ref_type }}" == "tag" && "$VERSION" == *"-beta"* ]]; then
-            # Tag v1.2.3-beta → :1.2.3-beta + :beta
-            echo "tags=${IMAGE_NAME}:${VERSION},${IMAGE_NAME}:beta" >> $GITHUB_OUTPUT
+          PKG_VERSION=$(node -p "require('./backend/package.json').version")
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "${{ github.ref_type }}" == "tag" && "$TAG_VERSION" == *"-beta"* ]]; then
+            echo "tags=${IMAGE_NAME}:${TAG_VERSION},${IMAGE_NAME}:beta" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref_type }}" == "tag" ]]; then
-            # Tag v1.2.3 → :1.2.3 + :latest
-            echo "tags=${IMAGE_NAME}:${VERSION},${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
+            echo "tags=${IMAGE_NAME}:${TAG_VERSION},${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "tags=${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
+            echo "tags=${IMAGE_NAME}:${PKG_VERSION},${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
-            echo "tags=${IMAGE_NAME}:beta" >> $GITHUB_OUTPUT
+            echo "tags=${IMAGE_NAME}:beta-${PKG_VERSION},${IMAGE_NAME}:beta" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push
