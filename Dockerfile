@@ -18,9 +18,7 @@ RUN npm install tailwindcss \
 FROM node:20-alpine AS backend-deps
 WORKDIR /app
 COPY backend/package*.json ./
-COPY backend/.npmrc* ./
-# Remove corporate registry config (unreachable in CI)
-RUN rm -f .npmrc && npm ci --omit=dev
+RUN npm ci --omit=dev --registry=https://registry.npmjs.org
 
 # --- Stage 3: Production image ---
 FROM node:20-alpine
