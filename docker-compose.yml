@@ -35,7 +35,7 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "${PORT:-80}:80"
+      - "${PORT:-5173}:80"
     restart: unless-stopped
 
 volumes:
