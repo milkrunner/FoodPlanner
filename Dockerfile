@@ -18,7 +18,7 @@ RUN npm install tailwindcss \
 FROM node:20-alpine AS backend-deps
 WORKDIR /app
 COPY backend/package*.json ./
-RUN npm ci --omit=dev --registry=https://registry.npmjs.org
+RUN npm install --omit=dev --registry=https://registry.npmjs.org
 
 # --- Stage 3: Production image ---
 FROM node:20-alpine
