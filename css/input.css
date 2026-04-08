@@ -343,22 +343,6 @@ input[type="checkbox"], input[type="radio"] {
     }
 }
 
-/* ===== Mobile nav ===== */
-.mobile-nav-overlay {
-    display: none; position: fixed; inset: 0;
-    background-color: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-    z-index: 40; opacity: 0; transition: opacity 0.25s ease;
-}
-.mobile-nav-overlay.active { display: block; opacity: 1; }
-.mobile-nav-menu {
-    position: fixed; top: 0; left: 0; bottom: 0;
-    width: 256px; max-width: 80vw;
-    transform: translateX(-100%);
-    transition: transform 0.25s cubic-bezier(.22,1,.36,1);
-    z-index: 45; overflow-y: auto; -webkit-overflow-scrolling: touch;
-}
-.mobile-nav-menu.active { transform: translateX(0); }
 
 /* ===== Pull-to-refresh ===== */
 .pull-to-refresh {
