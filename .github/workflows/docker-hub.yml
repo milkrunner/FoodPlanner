@@ -33,12 +33,17 @@ jobs:
       - name: Determine tags
         id: tags
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "${{ github.ref_type }}" == "tag" && "$VERSION" == *"-beta"* ]]; then
+            # Tag v1.2.3-beta → :1.2.3-beta + :beta
+            echo "tags=${IMAGE_NAME}:${VERSION},${IMAGE_NAME}:beta" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
+            # Tag v1.2.3 → :1.2.3 + :latest
+            echo "tags=${IMAGE_NAME}:${VERSION},${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "tags=${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
             echo "tags=${IMAGE_NAME}:beta" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "tags=${IMAGE_NAME}:${GITHUB_REF_NAME#v},${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push
