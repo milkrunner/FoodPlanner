@@ -26,4 +26,4 @@ jobs:
 
       - name: Run tests (no npm required)
         working-directory: ./backend
-        run: node --test --test-reporter spec __tests__/**/*.test.js
+        run: node --test --test-reporter spec __tests__/middleware/*.test.js __tests__/routes/*.test.js __tests__/utils/*.test.js
