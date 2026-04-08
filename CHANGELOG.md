@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.6.0](https://github.com/milkrunner/FoodPlanner/compare/v2.5.0...v2.6.0) (2026-04-08)
+
+
+### Features
+
+* magic strings extrahieren & integration tests hinzufügen ([#242](https://github.com/milkrunner/FoodPlanner/issues/242)) ([56937e4](https://github.com/milkrunner/FoodPlanner/commit/56937e44f209d27eb6e294d01fd9afc5430ea85a))
+* recipe category tiles + security hardening ([#219](https://github.com/milkrunner/FoodPlanner/issues/219)) ([a994708](https://github.com/milkrunner/FoodPlanner/commit/a99470826baefb36238716956d5d5adcd704cdca))
+
+
+### Bug Fixes
+
+* security hardening, quality improvements & ops tooling ([#240](https://github.com/milkrunner/FoodPlanner/issues/240)) ([782f9a2](https://github.com/milkrunner/FoodPlanner/commit/782f9a20a64c409f527e7202986fe3e6eca8ced3))
+* update express-rate-limit to 8.3.1 (CVE IPv4-mapped IPv6 bypass) ([#221](https://github.com/milkrunner/FoodPlanner/issues/221)) ([91a6766](https://github.com/milkrunner/FoodPlanner/commit/91a6766b8627a1a210181fa60d92a99a75e37d31))
+
 ## [2.6.0](https://github.com/milkrunner/FoodPlanner/compare/v2.5.0...v2.6.0) (2026-03-10)
 
 
