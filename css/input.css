@@ -280,6 +280,9 @@ input[type="checkbox"], input[type="radio"] {
 .modal.active > div {
     max-height: 90vh;
     overflow-y: auto;
+    border-radius: 20px;
+    padding: 32px;
+    background: #fff;
 }
 @media (max-width: 640px) {
     .modal.active {
@@ -287,14 +290,12 @@ input[type="checkbox"], input[type="radio"] {
         padding: 0;
     }
     .modal.active > div {
-        border-radius: 0.75rem 0.75rem 0 0;
+        border-radius: 20px 20px 0 0;
         max-height: 90vh;
         width: 100%;
+        padding: 24px;
         animation: slideUpModal 0.25s cubic-bezier(.22,1,.36,1);
     }
-}
-.dark .modal {
-    background-color: rgba(0, 0, 0, 0.65);
 }
 
 /* ===== Animations ===== */
