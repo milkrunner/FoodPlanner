@@ -6,7 +6,7 @@ import { escapeHtml, trapFocus } from '../core/utils.js';
 import { renderFavoritesQuickAccess } from '../core/favorites.js';
 import { Auth } from '../core/auth.js';
 import { App } from '../app.js';
-import { API_BASE_URL } from '../config.js';
+import { API_BASE_URL, INGREDIENT_CATEGORIES } from '../config.js';
 import { api } from '../core/api.js';
 
 export const RecipeDatabaseView = {
@@ -25,7 +25,7 @@ export const RecipeDatabaseView = {
     seasonalData: null, // Cache for seasonal recipe data
     currentSeasonInfo: null, // Current season info
     selectedTags: [],
-    categories: ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'],
+    categories: INGREDIENT_CATEGORIES,
     availableTags: ['vegetarisch', 'vegan', 'glutenfrei', 'laktosefrei', 'schnell', 'günstig', 'meal-prep', 'Frühling', 'Sommer', 'Herbst', 'Winter'],
     scalingRecipe: null,
     scaledIngredients: null,

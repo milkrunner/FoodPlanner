@@ -5,23 +5,8 @@ import { DateUtils } from '../core/date-utils.js';
 import { escapeHtml, trapFocus } from '../core/utils.js';
 import { Auth } from '../core/auth.js';
 import { App } from '../app.js';
-import { API_BASE_URL } from '../config.js';
+import { API_BASE_URL, DEFAULT_DEPARTMENTS, INGREDIENT_CATEGORIES, CATEGORY_TO_DEPARTMENT } from '../config.js';
 import { api } from '../core/api.js';
-
-// Supermarket department definitions with default order
-const DEFAULT_DEPARTMENTS = [
-    { id: 'fruits_veggies', emoji: '🥬', name: 'Obst & Gemüse' },
-    { id: 'bread', emoji: '🍞', name: 'Brot & Backwaren' },
-    { id: 'dairy', emoji: '🥛', name: 'Milch & Molkerei' },
-    { id: 'eggs', emoji: '🥚', name: 'Eier' },
-    { id: 'meat_fish', emoji: '🥩', name: 'Fleisch & Fisch' },
-    { id: 'cheese_deli', emoji: '🧀', name: 'Käse & Aufschnitt' },
-    { id: 'canned', emoji: '🥫', name: 'Konserven & Gläser' },
-    { id: 'dry_goods', emoji: '🌾', name: 'Trockenware & Pasta' },
-    { id: 'frozen', emoji: '❄️', name: 'Tiefkühlkost' },
-    { id: 'household', emoji: '🧴', name: 'Pflege & Haushalt' },
-    { id: 'other', emoji: '📦', name: 'Sonstiges' }
-];
 
 // Keyword mapping for supermarket department assignment
 const DEPARTMENT_KEYWORDS = {
@@ -98,15 +83,7 @@ function assignDepartment(item) {
     }
 
     // Fallback: map existing backend category to department
-    const categoryMap = {
-        'Obst & Gemüse': 'fruits_veggies',
-        'Milchprodukte': 'dairy',
-        'Fleisch & Fisch': 'meat_fish',
-        'Trockenwaren': 'dry_goods',
-        'Tiefkühl': 'frozen',
-        'Sonstiges': 'other'
-    };
-    return categoryMap[item.category] || 'other';
+    return CATEGORY_TO_DEPARTMENT[item.category] || 'other';
 }
 
 export const ShoppingListView = {
@@ -498,12 +475,9 @@ export const ShoppingListView = {
                             </label>
                             <select id="manual-item-category"
                                     class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white">
-                                <option value="Obst & Gemüse">Obst & Gemüse</option>
-                                <option value="Milchprodukte">Milchprodukte</option>
-                                <option value="Fleisch & Fisch">Fleisch & Fisch</option>
-                                <option value="Trockenwaren">Trockenwaren</option>
-                                <option value="Tiefkühl">Tiefkühl</option>
-                                <option value="Sonstiges" selected>Sonstiges</option>
+                                ${INGREDIENT_CATEGORIES.map(c =>
+                                    `<option value="${c}"${c === 'Sonstiges' ? ' selected' : ''}>${c}</option>`
+                                ).join('\n                                ')}
                             </select>
                         </div>
                         <div class="flex gap-2 justify-end">
@@ -624,9 +598,8 @@ export const ShoppingListView = {
     },
 
     renderAlphabeticalList() {
-        const categories = ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'];
         const itemsByCategory = {};
-        categories.forEach(cat => itemsByCategory[cat] = []);
+        INGREDIENT_CATEGORIES.forEach(cat => itemsByCategory[cat] = []);
 
         this.shoppingList.forEach((item, index) => {
             const category = item.category || 'Sonstiges';
@@ -637,7 +610,7 @@ export const ShoppingListView = {
             }
         });
 
-        return categories.map(category => {
+        return INGREDIENT_CATEGORIES.map(category => {
             return this.renderGroupHtml(category, category, itemsByCategory[category]);
         }).join('');
     },
