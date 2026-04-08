@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FoodPlanner Design Mockups</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #111;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+
+  /* ===== Top bar ===== */
+  .top-bar {
+    position: sticky; top: 0; z-index: 100;
+    background: #1a1a1a; border-bottom: 1px solid #2a2a2a;
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 24px;
+  }
+  .top-bar h1 { font-size: 14px; font-weight: 600; color: #888; margin-right: 24px; letter-spacing: 0.02em; }
+
+  /* ===== Tab buttons ===== */
+  .tab-btn {
+    padding: 8px 20px; border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent; color: #888;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+  }
+  .tab-btn:hover { background: #222; color: #ccc; }
+  .tab-btn.active { background: #252525; color: #fff; border-color: #333; }
+  .tab-btn .rec { font-size: 10px; background: #3A8569; color: #fff; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: 600; }
+
+  /* ===== Preview frame ===== */
+  .preview-frame {
+    margin: 32px auto; max-width: 1100px;
+    background: #fff; border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    min-height: 700px;
+  }
+
+  /* ===== Prompt output ===== */
+  .prompt-area {
+    max-width: 1100px; margin: 24px auto 48px;
+    background: #1a1a1a; border: 1px solid #2a2a2a;
+    border-radius: 12px; padding: 20px 24px;
+    position: relative;
+  }
+  .prompt-area label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; display: block; margin-bottom: 8px; }
+  .prompt-text { font-size: 14px; line-height: 1.7; color: #ccc; }
+  .copy-btn {
+    position: absolute; top: 16px; right: 16px;
+    background: #252525; border: 1px solid #333; color: #aaa;
+    padding: 6px 14px; border-radius: 6px; font-size: 12px;
+    cursor: pointer; font-family: inherit; font-weight: 500;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { background: #333; color: #fff; }
+
+  /* ========================================================
+     APPROACH A — Token Consolidation
+     ======================================================== */
+  .a-shell { display: flex; flex-direction: column; font-family: 'Inter', sans-serif; }
+
+  .a-nav {
+    display: flex; align-items: center; gap: 4px;
+    padding: 12px 24px; background: #F8F9FA;
+    border-bottom: 1px solid #E9ECEF;
+  }
+  .a-nav-logo { font-weight: 700; font-size: 16px; color: #3A8569; margin-right: 20px; }
+  .a-nav-item {
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 13px; font-weight: 500; color: #495057;
+    cursor: pointer; transition: all 0.15s;
+    border: none; background: none; font-family: inherit;
+  }
+  .a-nav-item:hover { background: #E9ECEF; }
+  .a-nav-item.active { background: #3A8569; color: #fff; }
+
+  .a-content { padding: 24px; background: #F8F9FA; min-height: 600px; }
+  .a-section-title { font-size: 20px; font-weight: 700; color: #212529; margin-bottom: 20px; }
+
+  .a-card {
+    background: #fff; border-radius: 12px;
+    padding: 20px; margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .a-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .a-card-title { font-size: 17px; font-weight: 600; color: #212529; }
+  .a-heart { font-size: 20px; cursor: pointer; color: #CC6B6B; }
+  .a-card-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .a-badge {
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 12px; font-weight: 500;
+    background: #DCF0E7; color: #2C6952;
+  }
+  .a-badge.cat { background: #EFF6FF; color: #3B82F6; }
+  .a-ingredients { font-size: 13px; color: #495057; line-height: 1.6; margin-bottom: 16px; }
+  .a-ingredients span { color: #868E96; }
+
+  .a-btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+  .a-btn {
+    padding: 10px 20px; border-radius: 8px; font-size: 13px;
+    font-weight: 600; cursor: pointer; border: none;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .a-btn-primary { background: #3A8569; color: #fff; }
+  .a-btn-primary:hover { background: #2C6952; }
+  .a-btn-secondary { background: #E9ECEF; color: #495057; }
+  .a-btn-secondary:hover { background: #DEE2E6; }
+  .a-btn-destructive { background: #FDF5F3; color: #CC6B6B; }
+  .a-btn-destructive:hover { background: #FAE8E4; }
+
+  .a-shop-section { margin-top: 8px; }
+  .a-shop-dept {
+    font-size: 13px; font-weight: 600; color: #3A8569;
+    margin-bottom: 8px; padding-bottom: 4px;
+    border-bottom: 1px solid #E9ECEF;
+  }
+  .a-shop-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid #F1F3F5;
+    font-size: 14px; color: #212529;
+  }
+  .a-shop-item input[type="checkbox"] {
+    width: 18px; height: 18px; accent-color: #3A8569;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .a-shop-item .amount { color: #868E96; margin-left: auto; font-size: 13px; }
+
+  /* ========================================================
+     APPROACH B — Design System + Layout Refresh (Recommended)
+     ======================================================== */
+  .b-shell { display: flex; font-family: 'Inter', sans-serif; min-height: 700px; }
+
+  .b-sidebar {
+    width: 64px; background: #FAFAFA;
+    border-right: 1px solid #EBEBEB;
+    display: flex; flex-direction: column;
+    align-items: center; padding: 20px 0; gap: 4px;
+    flex-shrink: 0;
+  }
+  .b-sidebar-logo {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: #3A8569; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px; margin-bottom: 24px;
+  }
+  .b-sidebar-item {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #999; cursor: pointer; transition: all 0.15s;
+    border: none; background: none;
+  }
+  .b-sidebar-item:hover { background: #F0F0F0; color: #555; }
+  .b-sidebar-item.active { background: #F0F0F0; color: #212529; }
+  .b-sidebar-item svg { width: 20px; height: 20px; stroke-width: 1.8; }
+
+  .b-content { flex: 1; padding: 48px 56px; background: #fff; overflow-y: auto; }
+  .b-page-title { font-size: 28px; font-weight: 700; color: #111; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .b-page-sub { font-size: 15px; color: #999; margin-bottom: 40px; font-weight: 400; }
+
+  .b-card {
+    background: #fff; border: 1px solid #F0F0F0;
+    border-radius: 16px; padding: 28px;
+    margin-bottom: 32px;
+    transition: border-color 0.2s;
+  }
+  .b-card:hover { border-color: #E0E0E0; }
+  .b-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .b-card-title { font-size: 20px; font-weight: 600; color: #111; letter-spacing: -0.01em; }
+  .b-heart { font-size: 22px; cursor: pointer; color: #E8A0A0; transition: color 0.15s; }
+  .b-heart:hover { color: #CC6B6B; }
+  .b-card-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .b-badge {
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+    background: #F5F5F5; color: #666;
+  }
+  .b-badge.accent { background: #F0F7F4; color: #3A8569; }
+  .b-ingredients { font-size: 14px; color: #777; line-height: 1.8; }
+  .b-ingredients strong { color: #333; font-weight: 500; }
+
+  .b-btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 32px 0; }
+  .b-btn {
+    padding: 11px 24px; border-radius: 10px; font-size: 14px;
+    font-weight: 500; cursor: pointer; border: none;
+    font-family: inherit; transition: all 0.15s;
+    letter-spacing: -0.01em;
+  }
+  .b-btn-primary { background: #111; color: #fff; }
+  .b-btn-primary:hover { background: #333; }
+  .b-btn-secondary { background: #F5F5F5; color: #333; }
+  .b-btn-secondary:hover { background: #EBEBEB; }
+  .b-btn-destructive { background: #fff; color: #CC6B6B; border: 1px solid #F0E0E0; }
+  .b-btn-destructive:hover { background: #FDF5F3; }
+
+  .b-divider { height: 1px; background: #F0F0F0; margin: 32px 0; }
+
+  .b-shop-title { font-size: 18px; font-weight: 600; color: #111; margin-bottom: 24px; letter-spacing: -0.01em; }
+  .b-shop-dept {
+    font-size: 11px; font-weight: 600; color: #999;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 12px; margin-top: 20px;
+  }
+  .b-shop-dept:first-child { margin-top: 0; }
+  .b-shop-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 0;
+    font-size: 15px; color: #333;
+  }
+  .b-shop-item + .b-shop-item { border-top: 1px solid #FAFAFA; }
+  .b-shop-item input[type="checkbox"] {
+    width: 20px; height: 20px; accent-color: #111;
+    cursor: pointer; flex-shrink: 0;
+    border-radius: 4px;
+  }
+  .b-shop-item .amount { color: #BBB; margin-left: auto; font-size: 14px; }
+
+  /* ========================================================
+     APPROACH C — Complete Redesign
+     ======================================================== */
+  .c-shell { display: flex; font-family: 'DM Sans', sans-serif; min-height: 700px; }
+
+  .c-sidebar {
+    width: 220px; background: #FAFAFA;
+    border-right: 1px solid #F0F0F0;
+    padding: 28px 16px; flex-shrink: 0;
+  }
+  .c-sidebar-logo {
+    font-weight: 700; font-size: 18px; color: #111;
+    padding: 0 8px; margin-bottom: 32px; letter-spacing: -0.03em;
+  }
+  .c-sidebar-logo span { color: #3A8569; }
+  .c-sidebar-section {
+    font-size: 10px; font-weight: 600; color: #BBB;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    padding: 0 8px; margin-bottom: 8px; margin-top: 24px;
+  }
+  .c-sidebar-section:first-of-type { margin-top: 0; }
+  .c-sidebar-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: 8px;
+    font-size: 14px; color: #888; cursor: pointer;
+    transition: all 0.12s; border: none; background: none;
+    font-family: inherit; width: 100%; text-align: left;
+  }
+  .c-sidebar-item:hover { background: #F0F0F0; color: #555; }
+  .c-sidebar-item.active { background: #F0F0F0; color: #111; font-weight: 500; }
+  .c-sidebar-item svg { width: 18px; height: 18px; stroke-width: 1.6; flex-shrink: 0; }
+
+  .c-content { flex: 1; padding: 40px 48px; background: #fff; overflow-y: auto; }
+  .c-topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 36px;
+  }
+  .c-page-title { font-size: 24px; font-weight: 700; color: #111; letter-spacing: -0.03em; }
+  .c-topbar-actions { display: flex; gap: 8px; }
+
+  .c-card {
+    border: 1px solid #EBEBEB; border-radius: 12px;
+    padding: 24px; margin-bottom: 24px;
+    transition: border-color 0.15s;
+  }
+  .c-card:hover { border-color: #DDD; }
+  .c-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+  .c-card-title { font-size: 18px; font-weight: 600; color: #111; letter-spacing: -0.02em; }
+  .c-heart {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1px solid #EBEBEB; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.15s; font-size: 16px;
+  }
+  .c-heart:hover { border-color: #E8A0A0; background: #FDF8F8; }
+  .c-card-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .c-badge {
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 12px; font-weight: 500;
+    border: 1px solid #EBEBEB; color: #777; background: #fff;
+  }
+  .c-badge.accent { border-color: #D4E8DC; color: #3A8569; background: #F8FCF9; }
+  .c-ingredients { font-size: 14px; color: #888; line-height: 1.8; }
+
+  .c-btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 28px 0; }
+  .c-btn {
+    padding: 10px 22px; border-radius: 8px; font-size: 14px;
+    font-weight: 600; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.12s;
+    letter-spacing: -0.01em;
+  }
+  .c-btn-primary { background: #111; color: #fff; border: 1px solid #111; }
+  .c-btn-primary:hover { background: #222; }
+  .c-btn-secondary { background: #fff; color: #333; border: 1px solid #E0E0E0; }
+  .c-btn-secondary:hover { background: #FAFAFA; }
+  .c-btn-destructive { background: #fff; color: #CC6B6B; border: 1px solid #F0E0E0; }
+  .c-btn-destructive:hover { background: #FDF5F3; }
+
+  .c-divider { height: 1px; background: #F0F0F0; margin: 28px 0; }
+
+  .c-shop-title { font-size: 16px; font-weight: 600; color: #111; margin-bottom: 20px; letter-spacing: -0.02em; }
+  .c-shop-dept {
+    font-size: 12px; font-weight: 600; color: #BBB;
+    margin-bottom: 10px; margin-top: 20px;
+    letter-spacing: 0.02em;
+  }
+  .c-shop-dept:first-child { margin-top: 0; }
+  .c-shop-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; font-size: 14px; color: #333;
+  }
+  .c-shop-item + .c-shop-item { border-top: 1px solid #FAFAFA; }
+  .c-shop-item input[type="checkbox"] {
+    width: 18px; height: 18px; accent-color: #3A8569;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .c-shop-item .amount { color: #BBB; margin-left: auto; font-size: 13px; }
+
+  /* ===== Tab content switching ===== */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Top bar with tabs -->
+<div class="top-bar">
+  <h1>FoodPlanner Redesign</h1>
+  <button class="tab-btn active" data-tab="a">A: Token-Konsolidierung</button>
+  <button class="tab-btn" data-tab="b">B: Layout-Refresh<span class="rec">Empfohlen</span></button>
+  <button class="tab-btn" data-tab="c">C: Komplett-Redesign</button>
+</div>
+
+<!-- ============ APPROACH A ============ -->
+<div class="preview-frame">
+  <div id="tab-a" class="tab-content active">
+    <div class="a-shell">
+      <nav class="a-nav">
+        <div class="a-nav-logo">FoodPlanner</div>
+        <button class="a-nav-item active">Wochenplan</button>
+        <button class="a-nav-item">Rezepte</button>
+        <button class="a-nav-item">Einkaufsliste</button>
+        <button class="a-nav-item">Vorratskammer</button>
+        <button class="a-nav-item">Kochhistorie</button>
+      </nav>
+      <div class="a-content">
+        <div class="a-section-title">Rezepte</div>
+
+        <div class="a-card">
+          <div class="a-card-header">
+            <div class="a-card-title">Spaghetti Carbonara</div>
+            <div class="a-heart">&hearts;</div>
+          </div>
+          <div class="a-card-meta">
+            <span class="a-badge cat">Hauptgericht</span>
+            <span class="a-badge">schnell</span>
+            <span class="a-badge">4 Portionen</span>
+          </div>
+          <div class="a-ingredients">
+            <span>Zutaten:</span> Spaghetti 400g, Speck 200g, Eier 4 Stk, Parmesan 100g
+          </div>
+        </div>
+
+        <div style="font-size: 14px; font-weight: 600; color: #495057; margin-bottom: 12px;">Buttons</div>
+        <div class="a-btn-row">
+          <button class="a-btn a-btn-primary">Rezept speichern</button>
+          <button class="a-btn a-btn-secondary">Abbrechen</button>
+          <button class="a-btn a-btn-destructive">Loeschen</button>
+        </div>
+
+        <div style="height: 1px; background: #E9ECEF; margin: 24px 0;"></div>
+
+        <div class="a-section-title" style="font-size: 18px;">Einkaufsliste</div>
+        <div class="a-shop-section">
+          <div class="a-shop-dept">&#x1F33E; Trockenware & Pasta</div>
+          <div class="a-shop-item">
+            <input type="checkbox"> Spaghetti <span class="amount">400 g</span>
+          </div>
+          <div class="a-shop-item">
+            <input type="checkbox"> Parmesan <span class="amount">100 g</span>
+          </div>
+          <div class="a-shop-dept" style="margin-top: 16px;">&#x1F969; Fleisch & Fisch</div>
+          <div class="a-shop-item">
+            <input type="checkbox"> Speck <span class="amount">200 g</span>
+          </div>
+          <div class="a-shop-dept" style="margin-top: 16px;">&#x1F95A; Eier</div>
+          <div class="a-shop-item">
+            <input type="checkbox"> Eier <span class="amount">4 Stk</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ APPROACH B ============ -->
+  <div id="tab-b" class="tab-content">
+    <div class="b-shell">
+      <nav class="b-sidebar">
+        <div class="b-sidebar-logo">F</div>
+        <button class="b-sidebar-item" title="Wochenplan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="4" x2="9" y2="10"/><line x1="15" y1="4" x2="15" y2="10"/></svg>
+        </button>
+        <button class="b-sidebar-item active" title="Rezepte">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        </button>
+        <button class="b-sidebar-item" title="Einkaufsliste">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        </button>
+        <button class="b-sidebar-item" title="Vorratskammer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        </button>
+      </nav>
+      <div class="b-content">
+        <div class="b-page-title">Rezepte</div>
+        <div class="b-page-sub">12 Rezepte in deiner Sammlung</div>
+
+        <div class="b-card">
+          <div class="b-card-header">
+            <div class="b-card-title">Spaghetti Carbonara</div>
+            <div class="b-heart">&hearts;</div>
+          </div>
+          <div class="b-card-meta">
+            <span class="b-badge accent">Hauptgericht</span>
+            <span class="b-badge">schnell</span>
+            <span class="b-badge">4 Portionen</span>
+            <span class="b-badge">25 Min</span>
+          </div>
+          <div class="b-ingredients">
+            <strong>Spaghetti</strong> 400g &middot; <strong>Speck</strong> 200g &middot; <strong>Eier</strong> 4 Stk &middot; <strong>Parmesan</strong> 100g
+          </div>
+        </div>
+
+        <div style="font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px;">Aktionen</div>
+        <div class="b-btn-row">
+          <button class="b-btn b-btn-primary">Rezept speichern</button>
+          <button class="b-btn b-btn-secondary">Abbrechen</button>
+          <button class="b-btn b-btn-destructive">Loeschen</button>
+        </div>
+
+        <div class="b-divider"></div>
+
+        <div class="b-shop-title">Einkaufsliste</div>
+        <div class="b-shop-dept">Trockenware & Pasta</div>
+        <div class="b-shop-item">
+          <input type="checkbox"> Spaghetti <span class="amount">400 g</span>
+        </div>
+        <div class="b-shop-item">
+          <input type="checkbox"> Parmesan <span class="amount">100 g</span>
+        </div>
+        <div class="b-shop-dept">Fleisch & Fisch</div>
+        <div class="b-shop-item">
+          <input type="checkbox"> Speck <span class="amount">200 g</span>
+        </div>
+        <div class="b-shop-dept">Eier</div>
+        <div class="b-shop-item">
+          <input type="checkbox"> Eier <span class="amount">4 Stk</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ APPROACH C ============ -->
+  <div id="tab-c" class="tab-content">
+    <div class="c-shell">
+      <nav class="c-sidebar">
+        <div class="c-sidebar-logo">food<span>.</span></div>
+        <div class="c-sidebar-section">Planen</div>
+        <button class="c-sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Wochenplan
+        </button>
+        <button class="c-sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          Einkaufsliste
+        </button>
+        <div class="c-sidebar-section">Verwalten</div>
+        <button class="c-sidebar-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+          Rezepte
+        </button>
+        <button class="c-sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+          Vorratskammer
+        </button>
+        <button class="c-sidebar-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Kochhistorie
+        </button>
+      </nav>
+      <div class="c-content">
+        <div class="c-topbar">
+          <div class="c-page-title">Rezepte</div>
+          <div class="c-topbar-actions">
+            <button class="c-btn c-btn-secondary" style="padding: 8px 16px; font-size: 13px;">Filter</button>
+            <button class="c-btn c-btn-primary" style="padding: 8px 16px; font-size: 13px;">+ Neu</button>
+          </div>
+        </div>
+
+        <div class="c-card">
+          <div class="c-card-header">
+            <div class="c-card-title">Spaghetti Carbonara</div>
+            <div class="c-heart">&hearts;</div>
+          </div>
+          <div class="c-card-meta">
+            <span class="c-badge accent">Hauptgericht</span>
+            <span class="c-badge">schnell</span>
+            <span class="c-badge">4 Portionen</span>
+            <span class="c-badge">25 Min</span>
+          </div>
+          <div class="c-ingredients">
+            Spaghetti 400g &middot; Speck 200g &middot; Eier 4 Stk &middot; Parmesan 100g
+          </div>
+        </div>
+
+        <div style="font-size: 12px; font-weight: 600; color: #BBB; margin-bottom: 14px; letter-spacing: 0.02em;">Buttons</div>
+        <div class="c-btn-row">
+          <button class="c-btn c-btn-primary">Rezept speichern</button>
+          <button class="c-btn c-btn-secondary">Abbrechen</button>
+          <button class="c-btn c-btn-destructive">Loeschen</button>
+        </div>
+
+        <div class="c-divider"></div>
+
+        <div class="c-shop-title">Einkaufsliste</div>
+        <div class="c-shop-dept">Trockenware & Pasta</div>
+        <div class="c-shop-item">
+          <input type="checkbox"> Spaghetti <span class="amount">400 g</span>
+        </div>
+        <div class="c-shop-item">
+          <input type="checkbox"> Parmesan <span class="amount">100 g</span>
+        </div>
+        <div class="c-shop-dept">Fleisch & Fisch</div>
+        <div class="c-shop-item">
+          <input type="checkbox"> Speck <span class="amount">200 g</span>
+        </div>
+        <div class="c-shop-dept">Eier</div>
+        <div class="c-shop-item">
+          <input type="checkbox"> Eier <span class="amount">4 Stk</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Prompt output -->
+<div class="prompt-area">
+  <label>Design-Briefing (kopieren & weiterverwenden)</label>
+  <div class="prompt-text" id="prompt-output"></div>
+  <button class="copy-btn" id="copy-btn">Kopieren</button>
+</div>
+
+<script>
+const state = { tab: 'a' };
+
+const prompts = {
+  a: `Ansatz A — Token-Konsolidierung: Das bestehende ac-mint Farbsystem (#3A8569) konsequent in allen Views nutzen. Einheitliche CSS-Utility-Klassen fuer Cards (weisser Hintergrund, 12px Radius, subtiler Shadow), Buttons (Primary=ac-mint, Secondary=gray, Destructive=ac-peach), und Badges (ac-mint-Hintergrund mit dunklerem Text). Standard-Tailwind-Farben (blue-500, green-600 etc.) durch die Custom-Palette ersetzen. Navigation bleibt als horizontale Tab-Bar. Aenderungsumfang: mittel — hauptsaechlich Klassen-Austausch, kein Layout-Umbau.`,
+
+  b: `Ansatz B (Empfohlen) — Design-System + Layout-Refresh: Komplett neues Raumgefuehl mit deutlich mehr Whitespace (48px Content-Padding, 32px Abstaende zwischen Sektionen). Navigation wird zur schmalen Icon-Sidebar (64px) links. Farbgebung fast monochrom — Primaer-Buttons in Schwarz (#111), Akzente nur fuer Kategorien (ac-mint als dezenter Badge-Hintergrund). Cards mit 1px Border statt Shadow, 16px Radius, 28px Padding. Typografie groesser und mit negativem Letter-Spacing fuer Headlines (-0.02em). Section-Labels als Uppercase-Micro-Text (11px, #999). Einkaufsliste mit cleanen Zeilen ohne sichtbare Borders. Inspiration: Notion, Linear. Aenderungsumfang: gross — alle Views, Navigation, Spacing-System.`,
+
+  c: `Ansatz C — Komplett-Redesign: Neue Font-Family (DM Sans statt Inter), benannte Sidebar-Navigation mit Icon+Label und Sektions-Gruppierung (Planen / Verwalten). Logo-Konzept als Wortmarke ("food.") statt Icon. Cards nur mit 1px Border, kein Shadow. Badge-Stil mit Border statt Hintergrund-Farbe. Favoriten-Button als eigene Box (32x32, Border, Hover-Effekt) statt inline Herz. Top-Bar mit Page-Title links und Action-Buttons rechts. Durchgehend monochrom mit einem einzigen Akzent (#3A8569) nur fuer Kategorie-Badges. Aenderungsumfang: sehr gross — quasi Rewrite aller Views, neue Komponentenbibliothek, neue Font.`
+};
+
+function updatePrompt() {
+  document.getElementById('prompt-output').textContent = prompts[state.tab];
+}
+
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    state.tab = btn.dataset.tab;
+    document.getElementById('tab-' + state.tab).classList.add('active');
+    updatePrompt();
+  });
+});
+
+// Copy button
+document.getElementById('copy-btn').addEventListener('click', () => {
+  navigator.clipboard.writeText(prompts[state.tab]).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Kopiert!';
+    setTimeout(() => btn.textContent = 'Kopieren', 1500);
+  });
+});
+
+// Init
+updatePrompt();
+</script>
+</body>
+</html>
