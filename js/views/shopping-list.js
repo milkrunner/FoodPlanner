@@ -190,8 +190,8 @@ export const ShoppingListView = {
 
                 ${this.renderCategorizedList()}
 
-                <div class="bg-blue-50 border border-ds-border rounded-lg p-4">
-                    <p class="text-sm text-blue-800">
+                <div class="bg-ds-accent-bg border border-ds-border rounded-ds p-4">
+                    <p class="text-sm text-ds-text-body">
                         <strong>Tipp:</strong> Klicke auf einen Artikel, um ihn als erledigt zu markieren.
                         Du kannst die Liste exportieren oder in die Zwischenablage kopieren.
                     </p>
@@ -210,11 +210,11 @@ export const ShoppingListView = {
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-2">
                             <span class="ds-section-title">Budget</span>
-                            <span id="budget-display" class="text-2xl font-bold text-green-600">${this.budgetAmount} €</span>
+                            <span id="budget-display" class="text-2xl font-bold text-ds-accent">${this.budgetAmount} €</span>
                         </div>
                         <input type="range" id="budget-slider"
                                min="10" max="200" step="5" value="${this.budgetAmount}"
-                               class="w-full h-2 bg-ds-bg-subtle rounded-lg appearance-none cursor-pointer accent-green-500">
+                               class="w-full h-2 bg-ds-bg-subtle rounded-lg appearance-none cursor-pointer accent-[#3A8569]">
                         <div class="flex justify-between text-xs text-ds-text-muted mt-1">
                             <span>10 €</span>
                             <span>200 €</span>
@@ -224,12 +224,12 @@ export const ShoppingListView = {
                     <div class="flex flex-col gap-2">
                         <div class="flex items-center gap-2">
                             <input type="checkbox" id="pref-seasonal" ${this.preferences.prioritizeSeasonal ? 'checked' : ''}
-                                   class="w-4 h-4 accent-green-500 cursor-pointer">
+                                   class="w-4 h-4 accent-[#3A8569] cursor-pointer">
                             <label for="pref-seasonal" class="text-sm text-ds-text-body cursor-pointer">Saisonal bevorzugen</label>
                         </div>
                         <div class="flex items-center gap-2">
                             <input type="checkbox" id="pref-brands" ${this.preferences.avoidBrands ? 'checked' : ''}
-                                   class="w-4 h-4 accent-green-500 cursor-pointer">
+                                   class="w-4 h-4 accent-[#3A8569] cursor-pointer">
                             <label for="pref-brands" class="text-sm text-ds-text-body cursor-pointer">Eigenmarken bevorzugen</label>
                         </div>
                     </div>
@@ -263,18 +263,18 @@ export const ShoppingListView = {
             <div class="ds-card p-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-ds-text-sec" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                         </svg>
                         <span class="text-sm font-medium text-ds-text-body">Vorräte berücksichtigen</span>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="pantry-toggle" class="sr-only peer" ${this.usePantry ? 'checked' : ''}>
-                        <div class="w-11 h-6 bg-ds-bg-subtle peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                        <div class="w-11 h-6 bg-ds-bg-subtle peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ds-accent/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-ds-border-hover after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ds-accent"></div>
                     </label>
                 </div>
                 ${hasDeductions ? `
-                    <div class="mt-3 flex items-center gap-2 text-sm text-green-700 bg-green-50 rounded-lg p-2">
+                    <div class="mt-3 flex items-center gap-2 text-sm text-ds-accent bg-ds-accent-bg rounded-ds p-2">
                         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
@@ -294,7 +294,7 @@ export const ShoppingListView = {
         return `
             <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-ds-border rounded-lg p-4">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="ds-section-title text-green-800 flex items-center gap-2">
+                    <h3 class="ds-section-title text-ds-text-body flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
@@ -314,7 +314,7 @@ export const ShoppingListView = {
                     </div>
                     <div class="bg-ds-bg rounded-lg p-3 text-center">
                         <p class="text-sm text-ds-text-muted">Optimiert</p>
-                        <p class="text-xl font-bold text-green-600">${result.optimizedEstimate?.toFixed(2) || '?'} €</p>
+                        <p class="text-xl font-bold text-ds-accent">${result.optimizedEstimate?.toFixed(2) || '?'} €</p>
                     </div>
                     <div class="bg-ds-bg rounded-lg p-3 text-center">
                         <p class="text-sm text-ds-text-muted">Ersparnis</p>
@@ -330,13 +330,13 @@ export const ShoppingListView = {
                                 <div class="flex items-center justify-between bg-ds-bg rounded p-2 text-sm">
                                     <span class="text-ds-text-sec">
                                         <span class="line-through">${escapeHtml(sub.original)}</span>
-                                        → <span class="text-green-600 font-medium">${escapeHtml(sub.substitute)}</span>
+                                        → <span class="text-ds-accent font-medium">${escapeHtml(sub.substitute)}</span>
                                     </span>
-                                    <span class="text-green-600 text-xs">-${sub.savingsPercent}%</span>
+                                    <span class="text-ds-accent text-xs">-${sub.savingsPercent}%</span>
                                 </div>
                             `).join('')}
                             ${result.substitutions.length > 3 ? `
-                                <button id="show-all-substitutions" class="text-purple-600 text-sm hover:underline">
+                                <button id="show-all-substitutions" class="text-ds-accent text-sm hover:underline">
                                     + ${result.substitutions.length - 3} weitere anzeigen
                                 </button>
                             ` : ''}
@@ -383,7 +383,7 @@ export const ShoppingListView = {
                                             </span>
                                         </div>
                                         <p class="text-sm text-ds-text-sec">${escapeHtml(sub.reason)}</p>
-                                        <button class="save-substitution-btn mt-2 text-sm text-purple-600 hover:underline"
+                                        <button class="save-substitution-btn mt-2 text-sm text-ds-accent hover:underline"
                                                 data-original="${escapeHtml(sub.original)}"
                                                 data-substitute="${escapeHtml(sub.substitute)}"
                                                 data-reason="${escapeHtml(sub.reason)}"
@@ -402,7 +402,7 @@ export const ShoppingListView = {
                             <div class="space-y-2">
                                 ${result.seasonalTips.map(tip => `
                                     <div class="flex items-center gap-2 text-sm">
-                                        <span class="${tip.isInSeason ? 'text-green-600' : 'text-orange-600'}">
+                                        <span class="${tip.isInSeason ? 'text-ds-accent' : 'text-ds-danger'}">
                                             ${tip.isInSeason ? '✓' : '⚠'}
                                         </span>
                                         <span class="font-medium text-ds-text-body">${escapeHtml(tip.ingredient)}:</span>
@@ -418,10 +418,10 @@ export const ShoppingListView = {
                             <h4 class="ds-section-title mb-3">Mengen-Optimierung</h4>
                             <div class="space-y-2">
                                 ${result.quantityTips.map(tip => `
-                                    <div class="bg-blue-50 rounded p-2 text-sm">
-                                        <span class="font-medium text-blue-800">${escapeHtml(tip.ingredient)}:</span>
-                                        <span class="text-blue-700">${escapeHtml(tip.tip)}</span>
-                                        ${tip.savingsPercent ? `<span class="text-green-600 ml-2">(-${tip.savingsPercent}%)</span>` : ''}
+                                    <div class="bg-ds-accent-bg rounded-ds p-2 text-sm">
+                                        <span class="font-medium text-ds-text-body">${escapeHtml(tip.ingredient)}:</span>
+                                        <span class="text-ds-text-sec">${escapeHtml(tip.tip)}</span>
+                                        ${tip.savingsPercent ? `<span class="text-ds-accent ml-2">(-${tip.savingsPercent}%)</span>` : ''}
                                     </div>
                                 `).join('')}
                             </div>
@@ -509,7 +509,7 @@ export const ShoppingListView = {
         const strikeClass = isFullyAvailable ? 'line-through text-ds-text-muted' : '';
 
         return `
-            <div class="p-3 sm:p-4 hover:bg-ds-bg-muted transition-colors ${item.checked || isFullyAvailable ? 'bg-ds-bg-muted' : ''} ${item.isManual ? 'border-l-4 border-green-500' : ''} ${isFullyAvailable ? 'opacity-60' : ''}">
+            <div class="p-3 sm:p-4 hover:bg-ds-bg-muted transition-colors ${item.checked || isFullyAvailable ? 'bg-ds-bg-muted' : ''} ${item.isManual ? 'border-l-4 border-ds-accent' : ''} ${isFullyAvailable ? 'opacity-60' : ''}">
                 <div class="flex items-center gap-3 sm:gap-4">
                     <label class="relative flex items-center justify-center cursor-pointer">
                         <input type="checkbox" ${item.checked ? 'checked' : ''}
@@ -524,7 +524,7 @@ export const ShoppingListView = {
                                 ${isFullyAvailable ? '<span class="ml-2 text-xs ds-badge px-2 py-0.5 rounded">Im Vorrat</span>' : ''}
                             </p>
                             ${item.isManual ? `
-                                <button class="delete-manual-item-btn p-2 -mr-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                                <button class="delete-manual-item-btn p-2 -mr-2 text-ds-danger hover:text-ds-danger hover:bg-ds-danger-bg rounded transition-colors"
                                         data-item-id="${item.id}"
                                         aria-label="Artikel löschen">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -534,7 +534,7 @@ export const ShoppingListView = {
                             ` : ''}
                         </div>
                         ${isPartial && pantryInfo.pantryAmount > 0 ? `
-                            <p class="text-xs text-amber-600 mt-0.5">
+                            <p class="text-xs text-ds-text-sec mt-0.5">
                                 ${pantryInfo.pantryAmount} ${pantryInfo.pantryUnit || item.unit} im Vorrat
                             </p>
                         ` : ''}

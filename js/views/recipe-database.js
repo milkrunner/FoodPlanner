@@ -221,7 +221,7 @@ export const RecipeDatabaseView = {
                 ${AppState.recipes.length > 0 && this.categoryFilter !== null ? `
                     <!-- Breadcrumb -->
                     <nav class="flex items-center gap-2 text-sm text-ds-text-muted">
-                        <button id="back-to-categories-btn" class="hover:text-blue-600 transition-colors">Kategorien</button>
+                        <button id="back-to-categories-btn" class="hover:text-ds-accent transition-colors">Kategorien</button>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         <span class="text-ds-text font-medium">${this.categoryFilter === '__all__' ? 'Alle Rezepte' : escapeHtml(this.categoryFilter)}</span>
                     </nav>
@@ -239,11 +239,11 @@ export const RecipeDatabaseView = {
                                     class="ds-input w-full px-4 py-3 sm:py-2 pl-10 ${this.searchQuery && !this.aiSearchActive ? 'pr-10' : ''} rounded-lg text-base"
                                     aria-label="Rezepte durchsuchen"
                                 />
-                                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-ds-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
                                 ${this.searchQuery && !this.aiSearchActive ? `
-                                    <button id="clear-search-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600">
+                                    <button id="clear-search-btn" class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-ds-text-muted hover:text-ds-text-sec">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                         </svg>
@@ -252,7 +252,7 @@ export const RecipeDatabaseView = {
                             </div>
                             <button
                                 id="ai-search-toggle-btn"
-                                class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.aiSearchActive ? 'bg-purple-100 border-purple-300 text-purple-700' : 'bg-ds-bg-subtle border-ds-border text-ds-text-sec hover:bg-purple-50 hover:border-purple-200'}"
+                                class="flex items-center gap-2 px-3 py-2 rounded-ds border transition-colors ${this.aiSearchActive ? 'bg-ds-accent-bg border-ds-accent text-ds-accent' : 'bg-ds-bg-subtle border-ds-border text-ds-text-sec hover:bg-ds-accent-bg hover:border-ds-accent'}"
                                 title="${this.aiSearchActive ? 'KI-Suche deaktivieren' : 'KI-Suche aktivieren - Suche mit natürlicher Sprache'}"
                             >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,7 +263,7 @@ export const RecipeDatabaseView = {
                             ${this.aiSearchActive ? `
                                 <button
                                     id="ai-search-btn"
-                                    class="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    class="ds-btn ds-btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     ${!this.searchQuery.trim() || this.isAiSearching ? 'disabled' : ''}
                                 >
                                     ${this.isAiSearching ? `
@@ -281,22 +281,22 @@ export const RecipeDatabaseView = {
                             ` : ''}
                         </div>
                         ${this.aiSearchActive && this.aiSearchInfo ? `
-                            <div class="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                            <div class="mt-3 p-3 bg-ds-accent-bg rounded-ds border border-ds-border">
                                 <div class="flex items-start gap-2">
-                                    <svg class="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-5 h-5 text-ds-accent flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                     </svg>
                                     <div class="flex-1 min-w-0">
-                                        <p class="text-sm text-purple-800">
+                                        <p class="text-sm text-ds-text-body">
                                             ${this.aiSearchInfo.interpretation || 'KI-Suche aktiv'}
                                         </p>
-                                        <p class="text-xs text-purple-600 mt-1">
+                                        <p class="text-xs text-ds-accent mt-1">
                                             ${this.aiSearchInfo.matchCount} Ergebnis${this.aiSearchInfo.matchCount !== 1 ? 'se' : ''} gefunden
                                             ${this.aiSearchInfo.aiPowered ? '' : ' (Klassische Suche)'}
                                             ${this.aiSearchInfo.duration ? ` in ${(this.aiSearchInfo.duration / 1000).toFixed(1)}s` : ''}
                                         </p>
                                     </div>
-                                    <button id="clear-ai-search-btn" class="p-1 text-purple-400 hover:text-purple-600">
+                                    <button id="clear-ai-search-btn" class="p-1 text-ds-text-muted hover:text-ds-accent">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                         </svg>
@@ -306,7 +306,7 @@ export const RecipeDatabaseView = {
                         ` : ''}
                         <div class="flex flex-wrap items-center gap-2 mt-3 text-sm">
                             ${favoriteCount > 0 ? `
-                                <button id="favorites-filter-btn" class="favorites-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showFavoritesOnly ? 'bg-red-50 border-red-200 text-red-600' : 'bg-ds-bg-subtle border-ds-border text-ds-text-sec hover:bg-gray-200'}" aria-pressed="${this.showFavoritesOnly}">
+                                <button id="favorites-filter-btn" class="favorites-filter-btn flex items-center gap-2 px-3 py-2 rounded-ds border transition-colors ${this.showFavoritesOnly ? 'bg-ds-danger-bg border-ds-danger-border text-ds-danger' : 'bg-ds-bg-subtle border-ds-border text-ds-text-sec hover:bg-ds-border'}" aria-pressed="${this.showFavoritesOnly}">
                                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
                                     </svg>
@@ -315,14 +315,14 @@ export const RecipeDatabaseView = {
                                 </button>
                             ` : ''}
                             ${seasonalCount > 0 ? `
-                                <button id="seasonal-filter-btn" class="seasonal-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showSeasonalOnly ? 'bg-green-50 border-green-200 text-green-600' : 'bg-ds-bg-subtle border-ds-border text-ds-text-sec hover:bg-gray-200'}" aria-pressed="${this.showSeasonalOnly}" title="Rezepte mit saisonalen Zutaten (${seasonName})">
+                                <button id="seasonal-filter-btn" class="seasonal-filter-btn flex items-center gap-2 px-3 py-2 rounded-ds border transition-colors ${this.showSeasonalOnly ? 'bg-ds-accent-bg border-ds-accent text-ds-accent' : 'bg-ds-bg-subtle border-ds-border text-ds-text-sec hover:bg-ds-border'}" aria-pressed="${this.showSeasonalOnly}" title="Rezepte mit saisonalen Zutaten (${seasonName})">
                                     <span class="text-base">${seasonIcon}</span>
                                     <span class="hidden sm:inline">${this.showSeasonalOnly ? 'Alle' : seasonName}</span>
                                     <span class="sm:hidden">${seasonalCount}</span>
                                 </button>
                             ` : ''}
                             ${mealPrepCount > 0 ? `
-                                <button id="meal-prep-filter-btn" class="meal-prep-filter-btn flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${this.showMealPrepOnly ? 'bg-teal-50 border-teal-200 text-teal-600' : 'bg-ds-bg-subtle border-ds-border text-ds-text-sec hover:bg-gray-200'}" aria-pressed="${this.showMealPrepOnly}" title="Meal-Prep geeignete Rezepte">
+                                <button id="meal-prep-filter-btn" class="meal-prep-filter-btn flex items-center gap-2 px-3 py-2 rounded-ds border transition-colors ${this.showMealPrepOnly ? 'bg-ds-accent-bg border-ds-accent text-ds-accent' : 'bg-ds-bg-subtle border-ds-border text-ds-text-sec hover:bg-ds-border'}" aria-pressed="${this.showMealPrepOnly}" title="Meal-Prep geeignete Rezepte">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
@@ -360,16 +360,16 @@ export const RecipeDatabaseView = {
 
                 ${AppState.recipes.length === 0 ? `
                     <div class="ds-card p-8 text-center transition-colors duration-200">
-                        <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-16 h-16 mx-auto text-ds-border-hover mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                         </svg>
                         <p class="text-ds-text-muted">Noch keine Rezepte vorhanden.</p>
-                        <p class="text-gray-400 text-sm mt-2">Erstelle dein erstes Rezept!</p>
+                        <p class="text-ds-text-muted text-sm mt-2">Erstelle dein erstes Rezept!</p>
                     </div>
                 ` : filteredRecipes.length === 0 ? `
                     <div class="ds-card p-8 text-center transition-colors duration-200">
                         <p class="text-ds-text-muted">Keine Rezepte gefunden.</p>
-                        <p class="text-gray-400 text-sm mt-2">Versuche einen anderen Suchbegriff.</p>
+                        <p class="text-ds-text-muted text-sm mt-2">Versuche einen anderen Suchbegriff.</p>
                     </div>
                 ` : `
                     <!-- Responsive grid: 1 col on mobile, 2 on tablet, 3 on desktop -->
@@ -416,16 +416,16 @@ export const RecipeDatabaseView = {
                                                 ${tag}
                                             </span>
                                         `).join('')}
-                                        ${recipe.tags.length > 3 ? `<span class="text-xs text-gray-400">+${recipe.tags.length - 3}</span>` : ''}
+                                        ${recipe.tags.length > 3 ? `<span class="text-xs text-ds-text-muted">+${recipe.tags.length - 3}</span>` : ''}
                                     </div>
                                 ` : ''}
                                 ${recipe._searchReason ? `
-                                    <div class="flex items-center gap-2 mb-2 p-2 bg-purple-50 rounded-lg border border-purple-200">
-                                        <svg class="w-4 h-4 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="flex items-center gap-2 mb-2 p-2 bg-ds-accent-bg rounded-ds border border-ds-border">
+                                        <svg class="w-4 h-4 text-ds-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                         </svg>
-                                        <span class="text-xs text-purple-700">${recipe._searchReason}</span>
-                                        ${recipe._searchScore ? `<span class="ml-auto text-xs font-medium text-purple-600">${recipe._searchScore}%</span>` : ''}
+                                        <span class="text-xs text-ds-text-body">${recipe._searchReason}</span>
+                                        ${recipe._searchScore ? `<span class="ml-auto text-xs font-medium text-ds-accent">${recipe._searchScore}%</span>` : ''}
                                     </div>
                                 ` : ''}
                                 <div class="flex items-center flex-wrap gap-2 text-xs sm:text-sm text-ds-text-sec mb-3">
@@ -646,12 +646,12 @@ export const RecipeDatabaseView = {
 
                         <!-- Meal-Prep Info -->
                         ${recipe.is_meal_prep_suitable ? `
-                            <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+                            <div class="bg-ds-accent-bg border border-ds-border rounded-ds-lg p-4 mb-6">
                                 <div class="flex items-center gap-2 mb-3">
-                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-5 h-5 text-ds-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    <h4 class="font-semibold text-green-800">Meal-Prep geeignet</h4>
+                                    <h4 class="font-semibold text-ds-text">Meal-Prep geeignet</h4>
                                 </div>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                                     ${recipe.meal_prep_fridge_days ? `
@@ -668,16 +668,16 @@ export const RecipeDatabaseView = {
                                     ` : ''}
                                 </div>
                                 ${recipe.meal_prep_reheat_tips ? `
-                                    <div class="mt-3 pt-3 border-t border-green-200">
+                                    <div class="mt-3 pt-3 border-t border-ds-border">
                                         <p class="text-sm text-ds-text-body">
-                                            <strong class="text-green-800">Aufwärm-Tipps:</strong> ${recipe.meal_prep_reheat_tips}
+                                            <strong class="text-ds-text-body">Aufwärm-Tipps:</strong> ${recipe.meal_prep_reheat_tips}
                                         </p>
                                     </div>
                                 ` : ''}
                                 ${recipe.meal_prep_batch_notes ? `
-                                    <div class="mt-3 ${recipe.meal_prep_reheat_tips ? '' : 'pt-3 border-t border-green-200'}">
+                                    <div class="mt-3 ${recipe.meal_prep_reheat_tips ? '' : 'pt-3 border-t border-ds-border'}">
                                         <p class="text-sm text-ds-text-body">
-                                            <strong class="text-green-800">Batch-Cooking Tipps:</strong> ${recipe.meal_prep_batch_notes}
+                                            <strong class="text-ds-text-body">Batch-Cooking Tipps:</strong> ${recipe.meal_prep_batch_notes}
                                         </p>
                                     </div>
                                 ` : ''}
@@ -688,7 +688,7 @@ export const RecipeDatabaseView = {
                             <!-- Ingredients -->
                             <div>
                                 <h3 class="text-lg font-semibold text-ds-text mb-4 flex items-center gap-2">
-                                    <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-5 h-5 text-ds-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                                     </svg>
                                     Zutaten
@@ -705,10 +705,10 @@ export const RecipeDatabaseView = {
                                                         const onShoppingList = shoppingSet.has(ingKey);
                                                         return `
                                                         <li class="flex items-center gap-3 text-ds-text-body group">
-                                                            <span class="w-2 h-2 ${inPantry ? 'bg-green-500' : 'bg-blue-500'} rounded-full flex-shrink-0"></span>
+                                                            <span class="w-2 h-2 ${inPantry ? 'bg-ds-accent' : 'bg-ds-text-muted'} rounded-full flex-shrink-0"></span>
                                                             <span class="font-medium">${escapeHtml(ing.amount || '')} ${escapeHtml(ing.unit || '')}</span>
                                                             <span class="flex-1">${escapeHtml(ing.name)}${inPantry ? `<span class="ml-2 ds-badge" title="${inPantry.amount} ${inPantry.unit} im Vorrat">Im Vorrat</span>` : ''}${onShoppingList ? '<span class="ml-1 ds-badge ds-badge-accent">Auf Liste</span>' : ''}</span>
-                                                            <button class="add-ing-to-shopping-btn p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors opacity-60 group-hover:opacity-100"
+                                                            <button class="add-ing-to-shopping-btn p-1.5 text-ds-text-muted hover:text-ds-accent hover:bg-ds-accent-bg rounded transition-colors opacity-60 group-hover:opacity-100"
                                                                     data-ing-name="${escapeHtml(ing.name)}"
                                                                     data-ing-amount="${escapeHtml(ing.amount || '1')}"
                                                                     data-ing-unit="${escapeHtml(ing.unit || 'x')}"
@@ -725,7 +725,7 @@ export const RecipeDatabaseView = {
                                         `).join('')}
                                     </div>
                                     <button id="add-all-ingredients-btn"
-                                            class="mt-4 w-full px-4 py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2 text-sm font-medium"
+                                            class="mt-4 w-full px-4 py-2.5 bg-ds-accent-bg text-ds-accent border border-ds-border rounded-ds hover:bg-ds-border transition-colors flex items-center justify-center gap-2 text-sm font-medium"
                                             data-recipe-id="${recipe.id}">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"></path>
@@ -740,7 +740,7 @@ export const RecipeDatabaseView = {
                             <!-- Instructions -->
                             <div>
                                 <h3 class="text-lg font-semibold text-ds-text mb-4 flex items-center gap-2">
-                                    <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-5 h-5 text-ds-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
                                     </svg>
                                     Zubereitung
@@ -796,7 +796,7 @@ export const RecipeDatabaseView = {
                             </svg>
                             Als gekocht markieren
                         </button>
-                        <button id="favorite-from-detail" class="px-4 py-2.5 ${recipe.is_favorite ? 'bg-red-500 text-white' : 'bg-ds-bg-subtle text-ds-text-body'} rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+                        <button id="favorite-from-detail" class="px-4 py-2.5 ${recipe.is_favorite ? 'bg-ds-danger text-white' : 'bg-ds-bg-subtle text-ds-text-body'} rounded-ds hover:opacity-90 transition-colors flex items-center justify-center gap-2"
                                 data-recipe-id="${recipe.id}">
                             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="${recipe.is_favorite ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
                                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
@@ -870,7 +870,7 @@ export const RecipeDatabaseView = {
                                 <div class="flex items-center gap-3 mb-4">
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" id="recipe-meal-prep-suitable"
-                                               class="w-5 h-5 rounded border-gray-300 text-green-500">
+                                               class="w-5 h-5 rounded border-ds-border-hover accent-[#3A8569]">
                                         <span class="text-sm font-medium text-ds-text-body">Meal-Prep geeignet</span>
                                     </label>
                                 </div>
@@ -903,7 +903,7 @@ export const RecipeDatabaseView = {
                             <div>
                                 <div class="flex justify-between items-center mb-2">
                                     <label class="block text-sm font-medium text-ds-text-body">Zutaten</label>
-                                    <button type="button" id="add-ingredient-btn" class="text-sm text-blue-600 hover:text-blue-700">
+                                    <button type="button" id="add-ingredient-btn" class="text-sm text-ds-accent hover:text-ds-accent">
                                         + Zutat hinzufügen
                                     </button>
                                 </div>
@@ -916,7 +916,7 @@ export const RecipeDatabaseView = {
                                     ${this.tags.map(tag => `
                                         <span class="inline-flex items-center gap-1 px-3 py-1 ds-badge ds-badge-accent rounded-full text-sm">
                                             ${tag}
-                                            <button type="button" class="remove-tag-btn hover:text-blue-600" data-tag="${tag}">✕</button>
+                                            <button type="button" class="remove-tag-btn hover:text-ds-accent" data-tag="${tag}">✕</button>
                                         </span>
                                     `).join('')}
                                 </div>
@@ -1185,7 +1185,7 @@ export const RecipeDatabaseView = {
                 try {
                     const result = await StorageService.addIngredientsToShoppingList([ing]);
                     // Visual feedback: swap icon to checkmark
-                    button.innerHTML = '<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                    button.innerHTML = '<svg class="w-4 h-4 text-ds-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
                     button.disabled = true;
                     button.classList.add('opacity-100');
                     const verb = result.merged > 0 ? 'aktualisiert' : 'hinzugefügt';
@@ -1211,12 +1211,12 @@ export const RecipeDatabaseView = {
                     const result = await StorageService.addIngredientsToShoppingList(ingredients);
                     // Mark all individual buttons as done
                     document.querySelectorAll('.add-ing-to-shopping-btn').forEach(btn => {
-                        btn.innerHTML = '<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                        btn.innerHTML = '<svg class="w-4 h-4 text-ds-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
                         btn.disabled = true;
                         btn.classList.add('opacity-100');
                     });
                     addAllIngredientsBtn.innerHTML = `
-                        <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 text-ds-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
                         ${result.added} hinzugefügt${result.merged > 0 ? `, ${result.merged} Mengen addiert` : ''}
@@ -1542,7 +1542,7 @@ export const RecipeDatabaseView = {
                         <option value="${escapeHtml(cat)}" ${(ing.category || 'Sonstiges') === cat ? 'selected' : ''}>${escapeHtml(cat)}</option>
                     `).join('')}
                 </select>
-                <button type="button" class="remove-ingredient-btn px-3 py-2 text-red-600 hover:text-red-700" data-index="${index}">
+                <button type="button" class="remove-ingredient-btn px-3 py-2 text-ds-danger hover:text-ds-danger" data-index="${index}">
                     ✕
                 </button>
             </div>
@@ -1660,8 +1660,8 @@ export const RecipeDatabaseView = {
                     </div>
                     <div class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
                         <div class="space-y-6">
-                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <p class="text-sm text-blue-800">
+                            <div class="bg-ds-accent-bg border border-ds-border rounded-ds p-4">
+                                <p class="text-sm text-ds-text-body">
                                     Original: <strong>${this.scalingRecipe.servings} Portionen</strong>
                                 </p>
                                 <div class="mt-3">
@@ -1687,17 +1687,17 @@ export const RecipeDatabaseView = {
                                         ${this.scaledIngredients.map(ing => `
                                             <div class="flex justify-between items-center py-2 border-b border-ds-border last:border-0">
                                                 <span class="text-ds-text">${escapeHtml(ing.name)}</span>
-                                                <span class="font-medium text-green-600">
+                                                <span class="font-medium text-ds-accent">
                                                     ${escapeHtml(String(ing.amount || ''))} ${escapeHtml(ing.unit || '')}
                                                 </span>
                                             </div>
                                         `).join('')}
                                     </div>
-                                    <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                                        <p class="text-sm text-green-800">
+                                    <div class="mt-4 p-4 bg-ds-accent-bg border border-ds-border rounded-ds">
+                                        <p class="text-sm text-ds-text-body">
                                             ✓ Die Mengen wurden intelligent gerundet und optimiert.
                                         </p>
-                                        <p class="text-xs text-green-700 mt-1">
+                                        <p class="text-xs text-ds-accent mt-1">
                                             Hinweis: Die Original-Portionen bleiben in der Datenbank gespeichert.
                                         </p>
                                     </div>
@@ -1822,7 +1822,7 @@ export const RecipeDatabaseView = {
             selectedTagsContainer.innerHTML = this.tags.map(tag => `
                 <span class="inline-flex items-center gap-1 px-3 py-1 ds-badge ds-badge-accent rounded-full text-sm">
                     ${escapeHtml(tag)}
-                    <button type="button" class="remove-tag-btn hover:text-blue-600" data-tag="${escapeHtml(tag)}">✕</button>
+                    <button type="button" class="remove-tag-btn hover:text-ds-accent" data-tag="${escapeHtml(tag)}">✕</button>
                 </span>
             `).join('');
         }
@@ -2126,11 +2126,11 @@ export const RecipeDatabaseView = {
                             <div class="text-xs text-ds-text-muted">Geschmack</div>
                         </div>
                         <div class="text-center">
-                            <div class="text-2xl font-bold text-green-600">${this.analysisData.overallRating?.health || '-'}/5</div>
+                            <div class="text-2xl font-bold text-ds-accent">${this.analysisData.overallRating?.health || '-'}/5</div>
                             <div class="text-xs text-ds-text-muted">Gesundheit</div>
                         </div>
                         <div class="text-center">
-                            <div class="text-2xl font-bold text-orange-600">${this.analysisData.overallRating?.difficulty || '-'}/5</div>
+                            <div class="text-2xl font-bold text-ds-text-sec">${this.analysisData.overallRating?.difficulty || '-'}/5</div>
                             <div class="text-xs text-ds-text-muted">Schwierigkeit</div>
                         </div>
                     </div>
@@ -2142,23 +2142,13 @@ export const RecipeDatabaseView = {
                     ${(this.analysisData.suggestions || []).map(suggestion => `
                         <div class="bg-ds-bg rounded-lg p-4 border border-ds-border">
                             <div class="flex items-start gap-3">
-                                <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                                    suggestion.icon === 'taste' ? 'bg-pink-100 text-pink-600' :
-                                    suggestion.icon === 'health' ? 'bg-green-100 text-green-600' :
-                                    suggestion.icon === 'time' ? 'bg-blue-100 text-blue-600' :
-                                    'bg-amber-100 text-amber-600'
-                                }">
+                                <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-ds-accent-bg text-ds-accent">
                                     ${this.getAnalysisIcon(suggestion.icon)}
                                 </div>
                                 <div class="flex-1">
                                     <div class="flex items-center gap-2 mb-1">
-                                        <span class="text-xs font-medium px-2 py-0.5 rounded-full ${
-                                            suggestion.icon === 'taste' ? 'bg-pink-100 text-pink-700' :
-                                            suggestion.icon === 'health' ? 'bg-green-100 text-green-700' :
-                                            suggestion.icon === 'time' ? 'bg-blue-100 text-blue-700' :
-                                            'bg-amber-100 text-amber-700'
-                                        }">${suggestion.category}</span>
-                                        ${suggestion.impact === 'high' ? '<span class="text-xs text-green-600 font-medium">Hoher Einfluss</span>' : ''}
+                                        <span class="ds-badge ds-badge-accent">${suggestion.category}</span>
+                                        ${suggestion.impact === 'high' ? '<span class="text-xs text-ds-accent font-medium">Hoher Einfluss</span>' : ''}
                                     </div>
                                     <h5 class="font-medium text-ds-text">${suggestion.title}</h5>
                                     <p class="text-sm text-ds-text-sec mt-1">${suggestion.description}</p>
@@ -2245,7 +2235,7 @@ export const RecipeDatabaseView = {
                     <ul class="space-y-1">
                         ${(this.variantData.changes || []).map(change => `
                             <li class="flex items-start gap-2 text-sm text-ds-text-sec">
-                                <span class="text-green-500 mt-0.5">✓</span>
+                                <span class="text-ds-accent mt-0.5">✓</span>
                                 ${change}
                             </li>
                         `).join('')}
@@ -2256,7 +2246,7 @@ export const RecipeDatabaseView = {
                     <h5 class="font-medium text-ds-text mb-2">Zutaten (${this.variantData.ingredients?.length || 0}):</h5>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
                         ${(this.variantData.ingredients || []).map(ing => `
-                            <div class="flex items-center gap-2 text-sm ${ing.isNew ? 'text-green-600' : 'text-ds-text-sec'}">
+                            <div class="flex items-center gap-2 text-sm ${ing.isNew ? 'text-ds-accent' : 'text-ds-text-sec'}">
                                 ${ing.isNew ? '<span class="text-xs ds-badge px-1.5 py-0.5 rounded">Neu</span>' : ''}
                                 <span>${escapeHtml(ing.amount || '')} ${escapeHtml(ing.unit || '')} ${escapeHtml(ing.name)}</span>
                             </div>

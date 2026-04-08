@@ -11,8 +11,8 @@ export const AdminUsersView = {
 
     render() {
         if (Auth.getUser()?.role !== 'admin') {
-            return `<div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                <p class="text-red-700 font-medium">Kein Zugriff. Administratorrechte erforderlich.</p>
+            return `<div class="bg-ds-danger-bg border border-ds-danger-border rounded-ds p-6 text-center">
+                <p class="text-ds-danger font-medium">Kein Zugriff. Administratorrechte erforderlich.</p>
             </div>`;
         }
 
@@ -77,12 +77,12 @@ export const AdminUsersView = {
                 <table class="w-full text-sm">
                     <thead class="bg-ds-bg-muted">
                         <tr>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-blue-600" data-field="name">Name${sortIcon('name')}</th>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-blue-600" data-field="email">E-Mail${sortIcon('email')}</th>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-blue-600" data-field="role">Rolle${sortIcon('role')}</th>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-blue-600" data-field="is_active">Status${sortIcon('is_active')}</th>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-blue-600" data-field="created_at">Erstellt${sortIcon('created_at')}</th>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-blue-600" data-field="last_login_at">Letzter Login${sortIcon('last_login_at')}</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="name">Name${sortIcon('name')}</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="email">E-Mail${sortIcon('email')}</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="role">Rolle${sortIcon('role')}</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="is_active">Status${sortIcon('is_active')}</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="created_at">Erstellt${sortIcon('created_at')}</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="last_login_at">Letzter Login${sortIcon('last_login_at')}</th>
                             <th class="px-4 py-3 text-left font-medium text-ds-text-sec">Aktionen</th>
                         </tr>
                     </thead>
@@ -109,8 +109,8 @@ export const AdminUsersView = {
         const formatDate = (d) => d ? new Date(d).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
         return `
-            <tr class="hover:bg-ds-bg-muted ${isSelf ? 'bg-blue-50/50' : ''}">
-                <td class="px-4 py-3 text-ds-text">${escapeHtml(user.name || '—')}${isSelf ? ' <span class="text-xs text-blue-500">(Du)</span>' : ''}</td>
+            <tr class="hover:bg-ds-bg-muted ${isSelf ? 'bg-ds-accent-bg/50' : ''}">
+                <td class="px-4 py-3 text-ds-text">${escapeHtml(user.name || '—')}${isSelf ? ' <span class="text-xs text-ds-accent">(Du)</span>' : ''}</td>
                 <td class="px-4 py-3 text-ds-text-body">${escapeHtml(user.email)}${mustChangeBadge}</td>
                 <td class="px-4 py-3">${roleBadge}</td>
                 <td class="px-4 py-3">${statusBadge}</td>
@@ -118,17 +118,17 @@ export const AdminUsersView = {
                 <td class="px-4 py-3 text-ds-text-muted text-xs">${formatDate(user.last_login_at)}</td>
                 <td class="px-4 py-3">
                     <div class="flex gap-1 flex-wrap">
-                        ${isSelf ? '<span class="text-xs text-gray-400">—</span>' : `
+                        ${isSelf ? '<span class="text-xs text-ds-text-disabled">—</span>' : `
                             <button class="admin-toggle-role ds-badge ds-badge-accent cursor-pointer hover:opacity-80 transition-opacity" data-id="${user.id}" data-current-role="${user.role}">
                                 ${user.role === 'admin' ? '→ User' : '→ Admin'}
                             </button>
-                            <button class="admin-toggle-status ds-badge cursor-pointer hover:opacity-80 transition-opacity ${user.is_active ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}" data-id="${user.id}" data-active="${user.is_active}">
+                            <button class="admin-toggle-status ds-badge cursor-pointer hover:opacity-80 transition-opacity ${user.is_active ? 'bg-ds-danger-bg text-ds-danger' : 'bg-ds-accent-bg text-ds-accent'}" data-id="${user.id}" data-active="${user.is_active}">
                                 ${user.is_active ? 'Deaktivieren' : 'Aktivieren'}
                             </button>
                             <button class="admin-reset-pw ds-badge ds-badge-accent cursor-pointer hover:opacity-80 transition-opacity" data-id="${user.id}" data-email="${escapeHtml(user.email)}">
                                 Passwort
                             </button>
-                            <button class="admin-delete-user ds-badge cursor-pointer hover:opacity-80 transition-opacity bg-red-100 text-red-700" data-id="${user.id}" data-email="${escapeHtml(user.email)}">
+                            <button class="admin-delete-user ds-badge cursor-pointer hover:opacity-80 transition-opacity bg-ds-danger-bg text-ds-danger" data-id="${user.id}" data-email="${escapeHtml(user.email)}">
                                 Löschen
                             </button>
                         `}
@@ -154,7 +154,7 @@ export const AdminUsersView = {
                             <option value="user">User</option>
                             <option value="admin">Admin</option>
                         </select>
-                        <div id="admin-create-error" class="text-sm text-red-500 hidden"></div>
+                        <div id="admin-create-error" class="text-sm text-ds-danger hidden"></div>
                         <div class="flex gap-2 justify-end pt-2">
                             <button type="button" id="admin-create-cancel" class="ds-btn ds-btn-secondary ds-btn-sm">Abbrechen</button>
                             <button type="submit" class="ds-btn ds-btn-primary ds-btn-sm">Anlegen</button>
@@ -177,7 +177,7 @@ export const AdminUsersView = {
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                         </button>
                     </div>
-                    <p class="text-xs text-yellow-600 mb-4">Der Benutzer muss dieses Passwort beim ersten Login ändern. Notiere es jetzt — es wird nicht erneut angezeigt.</p>
+                    <p class="text-xs text-ds-text-sec mb-4">Der Benutzer muss dieses Passwort beim ersten Login ändern. Notiere es jetzt -- es wird nicht erneut angezeigt.</p>
                     <div class="flex justify-end">
                         <button id="admin-temppw-close" class="ds-btn ds-btn-secondary ds-btn-sm">Schließen</button>
                     </div>

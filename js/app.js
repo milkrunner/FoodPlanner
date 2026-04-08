@@ -193,9 +193,9 @@ export const App = {
             const viewContainer = document.getElementById('view-container');
             if (viewContainer) {
                 viewContainer.innerHTML = `
-                    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
-                        <p class="text-red-700 dark:text-red-300 font-medium">Fehler beim Laden der Ansicht.</p>
-                        <button onclick="window.location.reload()" class="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                    <div class="bg-ds-danger-bg border border-ds-danger-border rounded-ds p-6 text-center">
+                        <p class="text-ds-danger font-medium">Fehler beim Laden der Ansicht.</p>
+                        <button onclick="window.location.reload()" class="ds-btn ds-btn-primary mt-3">
                             Seite neu laden
                         </button>
                     </div>`;
@@ -204,42 +204,33 @@ export const App = {
     },
 
     _renderAuthScreen() {
-        const isDark = document.documentElement.classList.contains('dark');
         return `
-            <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4">
+            <div class="min-h-screen flex items-center justify-center bg-ds-bg-muted px-4">
                 <div class="w-full max-w-md">
                     <div class="text-center mb-8">
-                        <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-2">Food Planner</h1>
-                        <p class="text-gray-600 dark:text-gray-400">Dein persönlicher Essenswochenplaner</p>
+                        <h1 class="text-4xl font-bold text-ds-text mb-2">Food Planner</h1>
+                        <p class="text-ds-text-sec">Dein persönlicher Essenswochenplaner</p>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-                        <div id="auth-screen-tabs" class="flex mb-6 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                    <div class="ds-card">
+                        <div id="auth-screen-tabs" class="flex mb-6 bg-ds-bg-subtle rounded-ds p-1">
                             <button class="auth-tab flex-1 py-2 text-sm font-medium rounded-md transition-colors active" data-mode="login">Anmelden</button>
                             <button class="auth-tab flex-1 py-2 text-sm font-medium rounded-md transition-colors" data-mode="register">Registrieren</button>
                         </div>
                         <form id="auth-screen-form" class="space-y-4">
                             <div id="auth-name-field" class="hidden">
                                 <input id="auth-screen-name" type="text" placeholder="Name (optional)"
-                                    class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                                    class="ds-input"/>
                             </div>
                             <input id="auth-screen-email" type="email" placeholder="E-Mail" required
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                                class="ds-input"/>
                             <input id="auth-screen-password" type="password" placeholder="Passwort (Groß-/Kleinbuchstaben + Zahl)" required minlength="8"
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-                            <div id="auth-screen-error" class="text-sm text-red-500 hidden"></div>
+                                class="ds-input"/>
+                            <div id="auth-screen-error" class="text-sm text-ds-danger hidden"></div>
                             <button type="submit" id="auth-screen-submit"
-                                class="w-full py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">
+                                class="ds-btn ds-btn-primary w-full">
                                 Anmelden
                             </button>
                         </form>
-                    </div>
-                    <div class="flex justify-center mt-4">
-                        <button id="auth-dark-toggle" class="p-2 rounded-lg bg-white/50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-600 transition-colors" title="Dark Mode">
-                            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path class="${isDark ? 'hidden' : ''}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                                <path class="${isDark ? '' : 'hidden'}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-                            </svg>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -266,7 +257,7 @@ export const App = {
 
         // Style active tab
         const style = document.createElement('style');
-        style.textContent = '.auth-tab.active { background: white; color: #1d4ed8; box-shadow: 0 1px 2px rgba(0,0,0,0.1); } .dark .auth-tab.active { background: #374151; color: #60a5fa; }';
+        style.textContent = '.auth-tab.active { background: white; color: #111; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }';
         document.head.appendChild(style);
 
         form.addEventListener('submit', async (e) => {
@@ -293,38 +284,33 @@ export const App = {
             }
         });
 
-        document.getElementById('auth-dark-toggle')?.addEventListener('click', () => {
-            DarkMode.toggle();
-            this.render();
-        });
-
         document.getElementById('auth-screen-email')?.focus();
     },
 
     _renderChangePasswordScreen() {
         return `
-            <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4">
+            <div class="min-h-screen flex items-center justify-center bg-ds-bg-muted px-4">
                 <div class="w-full max-w-md">
                     <div class="text-center mb-8">
-                        <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-2">Food Planner</h1>
-                        <p class="text-gray-600 dark:text-gray-400">Passwort muss geändert werden</p>
+                        <h1 class="text-4xl font-bold text-ds-text mb-2">Food Planner</h1>
+                        <p class="text-ds-text-sec">Passwort muss geändert werden</p>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-                        <div class="flex items-center gap-3 mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                            <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="ds-card">
+                        <div class="flex items-center gap-3 mb-4 p-3 bg-ds-accent-bg border border-ds-border rounded-ds">
+                            <svg class="w-5 h-5 text-ds-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                             </svg>
-                            <p class="text-sm text-yellow-700 dark:text-yellow-300">Du verwendest ein temporäres Passwort. Bitte vergib ein neues eigenes Passwort.</p>
+                            <p class="text-sm text-ds-text-body">Du verwendest ein temporäres Passwort. Bitte vergib ein neues eigenes Passwort.</p>
                         </div>
                         <form id="change-pw-form" class="space-y-4">
                             <input id="change-pw-current" type="password" placeholder="Temporäres Passwort" required
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                                class="ds-input"/>
                             <input id="change-pw-new" type="password" placeholder="Neues Passwort (Groß-/Kleinbuchstaben + Zahl)" required minlength="8"
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                                class="ds-input"/>
                             <input id="change-pw-confirm" type="password" placeholder="Neues Passwort bestätigen" required minlength="8"
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-                            <div id="change-pw-error" class="text-sm text-red-500 hidden"></div>
-                            <button type="submit" class="w-full py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">
+                                class="ds-input"/>
+                            <div id="change-pw-error" class="text-sm text-ds-danger hidden"></div>
+                            <button type="submit" class="ds-btn ds-btn-primary w-full">
                                 Passwort ändern
                             </button>
                         </form>
@@ -374,15 +360,15 @@ export const App = {
     _renderLoadingPlaceholder() {
         return `
             <div class="space-y-4 animate-pulse">
-                <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
-                <div class="h-48 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                <div class="h-8 skeleton rounded w-48"></div>
+                <div class="h-48 skeleton rounded"></div>
             </div>
         `;
     },
 
     renderPullToRefresh() {
         return `
-            <div class="pull-to-refresh bg-blue-500 dark:bg-blue-600 text-white">
+            <div class="pull-to-refresh bg-ds-accent text-white">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>

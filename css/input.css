@@ -311,15 +311,7 @@ input[type="checkbox"], input[type="radio"] {
 
 #toast-notification { transition: opacity 0.2s ease-out; }
 
-/* ===== Favorite heart ===== */
-.favorite-heart {
-    color: #CED4DA;
-    transition: transform 0.2s ease, color 0.2s ease;
-}
-.favorite-heart:hover { transform: scale(1.1); }
-.favorite-heart.is-favorite { color: #CC6B6B; }
-.dark .favorite-heart { color: #343A40; }
-.dark .favorite-heart.is-favorite { color: #DE8888; }
+/* ===== Favorite heart animate ===== */
 .favorite-heart-animate { animation: heartBounce 0.35s ease-in-out; }
 @keyframes heartBounce {
     0%   { transform: scale(1);   }
@@ -372,10 +364,6 @@ input[type="checkbox"], input[type="radio"] {
     background-size: 200% 100%;
     animation: skeleton-loading 1.5s infinite;
 }
-.dark .skeleton {
-    background: linear-gradient(90deg, #131417 25%, #18191D 50%, #131417 75%);
-    background-size: 200% 100%;
-}
 @keyframes skeleton-loading {
     0%   { background-position: 200% 0; }
     100% { background-position: -200% 0; }
@@ -393,11 +381,6 @@ input[type="checkbox"], input[type="radio"] {
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     padding: 1.5rem;
 }
-.dark .recipe-instructions {
-    background: #131417;
-    border-color: #1E2024;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-}
 .recipe-instructions h1, .recipe-instructions h2, .recipe-instructions h3 {
     font-weight: 600; margin: 1.25rem 0 0.75rem;
 }
@@ -407,31 +390,21 @@ input[type="checkbox"], input[type="radio"] {
     font-size: 0.875rem; font-weight: 600; letter-spacing: 0.025em;
     background: rgba(58, 133, 105, 0.08); color: #2C6952;
 }
-.dark .recipe-instructions h2 { background: rgba(58,133,105,0.12); color: #7DC2A7; }
 .recipe-instructions h3 { font-size: 0.9rem; color: #3A8569; }
-.dark .recipe-instructions h3 { color: #4EA083; }
 .recipe-instructions p { margin: 0.5rem 0; line-height: 1.75; color: #212529; font-size: 0.9rem; }
-.dark .recipe-instructions p { color: #E9ECEF; }
 .recipe-instructions strong { font-weight: 600; color: #141A1F; }
-.dark .recipe-instructions strong { color: #F8F9FA; }
 .recipe-instructions em { font-style: italic; color: #495057; }
-.dark .recipe-instructions em { color: #ADB5BD; }
 .recipe-instructions blockquote {
     margin: 0.75rem 0; padding: 0.75rem 1rem;
     border-left: 2px solid #B5DCCB; border-radius: 0 0.375rem 0.375rem 0;
     background: rgba(58,133,105,0.04); color: #343A40; font-size: 0.9rem;
 }
-.dark .recipe-instructions blockquote {
-    background: rgba(58,133,105,0.08); color: #DEE2E6; border-left-color: #3A8569;
-}
 .recipe-instructions hr { border: none; height: 1px; margin: 1.25rem 0; background: #E9ECEF; }
-.dark .recipe-instructions hr { background: #1E2024; }
 .recipe-instructions code {
     font-family: 'SF Mono', 'Fira Code', monospace;
     background: #F1F3F5; border-radius: 0.25rem;
     padding: 0.1rem 0.35rem; font-size: 0.82em; color: #495057;
 }
-.dark .recipe-instructions code { background: #18191D; color: #ADB5BD; }
 .recipe-instructions ol { counter-reset: step; list-style: none; margin: 1rem 0; padding: 0; }
 .recipe-instructions ol > li {
     position: relative; counter-increment: step;
@@ -440,9 +413,7 @@ input[type="checkbox"], input[type="radio"] {
     background: #FAFAFA; font-size: 0.9rem;
     transition: border-color 0.15s ease;
 }
-.dark .recipe-instructions ol > li { background: #18191D; border-color: #1E2024; }
 .recipe-instructions ol > li:hover { border-color: #B5DCCB; }
-.dark .recipe-instructions ol > li:hover { border-color: #2C6952; }
 .recipe-instructions ol > li::before {
     content: counter(step); position: absolute;
     left: 0.875rem; top: 50%; transform: translateY(-50%);
@@ -457,7 +428,6 @@ input[type="checkbox"], input[type="radio"] {
     padding-left: 1.5rem; line-height: 1.7;
     color: #212529; font-size: 0.9rem;
 }
-.dark .recipe-instructions ul > li { color: #E9ECEF; }
 .recipe-instructions ul > li::before {
     content: ''; position: absolute; left: 0.5rem; top: 0.6rem;
     width: 0.375rem; height: 0.375rem; border-radius: 9999px;
@@ -478,7 +448,6 @@ input[type="checkbox"], input[type="radio"] {
 :focus-visible {
     outline: 2px solid #111; outline-offset: 2px; border-radius: 3px;
 }
-.dark :focus-visible { outline-color: #4EA083; }
 :focus:not(:focus-visible) { outline: none; }
 
 /* ===== Reduced motion ===== */
@@ -503,5 +472,3 @@ input[type="checkbox"], input[type="radio"] {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #DEE2E6; border-radius: 9999px; }
 ::-webkit-scrollbar-thumb:hover { background: #CED4DA; }
-.dark ::-webkit-scrollbar-thumb { background: #1E2024; }
-.dark ::-webkit-scrollbar-thumb:hover { background: #343A40; }

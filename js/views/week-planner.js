@@ -54,11 +54,11 @@ export const WeekPlannerView = {
                 </div>
                 <div class="flex gap-3 overflow-x-auto pb-1">
                     ${recommendations.map(recipe => `
-                        <div class="seasonal-recipe-card flex-shrink-0 min-w-[180px] max-w-[200px] px-4 py-3 rounded-lg border border-green-200 bg-white text-left transition-colors hover:bg-green-50 cursor-pointer" data-recipe-id="${recipe.id}">
+                        <div class="seasonal-recipe-card flex-shrink-0 min-w-[180px] max-w-[200px] px-4 py-3 rounded-ds border border-ds-border bg-ds-bg text-left transition-colors hover:bg-ds-accent-bg cursor-pointer" data-recipe-id="${recipe.id}">
                             <div class="flex items-start justify-between gap-2 mb-1">
                                 <span class="font-medium text-ds-text text-sm line-clamp-2">${escapeHtml(recipe.name)}</span>
                                 ${recipe.is_favorite ? `
-                                    <svg class="w-4 h-4 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                                    <svg class="w-4 h-4 text-ds-danger flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
                                     </svg>
                                 ` : ''}
@@ -70,7 +70,7 @@ export const WeekPlannerView = {
                                 </span>
                             </div>
                             ${recipe.seasonalIngredients && recipe.seasonalIngredients.length > 0 ? `
-                                <p class="text-xs text-green-600 mt-2 line-clamp-1" title="${recipe.seasonalIngredients.join(', ')}">
+                                <p class="text-xs text-ds-accent mt-2 line-clamp-1" title="${recipe.seasonalIngredients.join(', ')}">
                                     ${seasonIcon} ${recipe.seasonalIngredients.slice(0, 2).join(', ')}${recipe.seasonalIngredients.length > 2 ? '...' : ''}
                                 </p>
                             ` : ''}
@@ -142,7 +142,7 @@ export const WeekPlannerView = {
                 <!-- Week Navigation -->
                 <div class="ds-card transition-colors duration-200">
                     <div class="flex items-center justify-between">
-                        <button id="prev-week-btn" class="p-3 sm:p-2 rounded-lg bg-ds-bg-subtle hover:bg-gray-200 transition-colors active:scale-95" title="Vorherige Woche">
+                        <button id="prev-week-btn" class="p-3 sm:p-2 rounded-lg bg-ds-bg-subtle hover:bg-ds-border-hover transition-colors active:scale-95" title="Vorherige Woche">
                             <svg class="w-6 h-6 text-ds-text-body" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
@@ -150,12 +150,12 @@ export const WeekPlannerView = {
                         <div class="text-center flex-1 mx-2">
                             <h3 class="text-base sm:text-xl font-semibold text-ds-text">${weekRange}</h3>
                             ${!isCurrentWeek ? `
-                                <button id="go-to-current-week-btn" class="mt-1 text-sm text-blue-500 hover:text-blue-600 transition-colors">
+                                <button id="go-to-current-week-btn" class="mt-1 text-sm text-ds-accent hover:underline transition-colors">
                                     Zur aktuellen Woche
                                 </button>
-                            ` : '<span class="mt-1 text-sm text-green-600 block">Aktuelle Woche</span>'}
+                            ` : '<span class="mt-1 text-sm text-ds-accent block">Aktuelle Woche</span>'}
                         </div>
-                        <button id="next-week-btn" class="p-3 sm:p-2 rounded-lg bg-ds-bg-subtle hover:bg-gray-200 transition-colors active:scale-95" title="Nächste Woche">
+                        <button id="next-week-btn" class="p-3 sm:p-2 rounded-lg bg-ds-bg-subtle hover:bg-ds-border-hover transition-colors active:scale-95" title="Nächste Woche">
                             <svg class="w-6 h-6 text-ds-text-body" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
@@ -166,7 +166,7 @@ export const WeekPlannerView = {
                 <!-- Mobile Day Selector -->
                 <div class="sm:hidden">
                     <div class="flex items-center justify-between mb-3">
-                        <button id="prev-day-btn" class="p-2 rounded-lg bg-ds-bg-subtle hover:bg-gray-200 transition-colors active:scale-95 ${this.mobileViewDay <= 0 ? 'opacity-50' : ''}" ${this.mobileViewDay <= 0 ? 'disabled' : ''}>
+                        <button id="prev-day-btn" class="p-2 rounded-lg bg-ds-bg-subtle hover:bg-ds-border-hover transition-colors active:scale-95 ${this.mobileViewDay <= 0 ? 'opacity-50' : ''}" ${this.mobileViewDay <= 0 ? 'disabled' : ''}>
                             <svg class="w-5 h-5 text-ds-text-body" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
@@ -179,9 +179,9 @@ export const WeekPlannerView = {
                                 return `
                                     <button class="day-selector-btn flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                                         this.mobileViewDay === index
-                                            ? 'bg-blue-500 text-white'
+                                            ? 'bg-ds-text text-white'
                                             : isToday
-                                                ? 'bg-blue-100 text-blue-600'
+                                                ? 'bg-ds-accent-bg text-ds-accent'
                                                 : 'bg-ds-bg-subtle text-ds-text-body'
                                     }" data-day-index="${index}">
                                         ${dayName}
@@ -189,7 +189,7 @@ export const WeekPlannerView = {
                                 `;
                             }).join('')}
                         </div>
-                        <button id="next-day-btn" class="p-2 rounded-lg bg-ds-bg-subtle hover:bg-gray-200 transition-colors active:scale-95 ${this.mobileViewDay >= 6 ? 'opacity-50' : ''}" ${this.mobileViewDay >= 6 ? 'disabled' : ''}>
+                        <button id="next-day-btn" class="p-2 rounded-lg bg-ds-bg-subtle hover:bg-ds-border-hover transition-colors active:scale-95 ${this.mobileViewDay >= 6 ? 'opacity-50' : ''}" ${this.mobileViewDay >= 6 ? 'disabled' : ''}>
                             <svg class="w-5 h-5 text-ds-text-body" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
@@ -224,7 +224,7 @@ export const WeekPlannerView = {
         const isPast = DateUtils.isPast(dayDate);
 
         return `
-            <div class="ds-card transition-colors duration-200 ${isToday ? 'ring-2 ring-blue-500' : ''} ${isPast && !isMobileView ? 'opacity-75' : ''}">
+            <div class="ds-card transition-colors duration-200 ${isToday ? 'ring-2 ring-ds-accent' : ''} ${isPast && !isMobileView ? 'opacity-75' : ''}">
                 <div class="flex items-center justify-between gap-2 mb-3">
                     <div class="flex items-center gap-2">
                         <h3 class="ds-section-title text-lg sm:text-xl">${formattedDate}</h3>
@@ -240,7 +240,7 @@ export const WeekPlannerView = {
                                 <div class="flex justify-between items-center mb-2">
                                     <h4 class="font-medium text-ds-text-body text-sm sm:text-base">${mealType}</h4>
                                     ${meal ? `
-                                        <button class="remove-meal-btn p-2 -mr-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                                        <button class="remove-meal-btn p-2 -mr-1 text-ds-danger hover:text-ds-danger hover:bg-ds-danger-bg rounded transition-colors"
                                                 data-day="${dayIndex}"
                                                 data-meal="${mealType}"
                                                 aria-label="Mahlzeit entfernen">
@@ -251,8 +251,8 @@ export const WeekPlannerView = {
                                     ` : ''}
                                 </div>
                                 ${meal ? `
-                                    <div class="bg-blue-50 p-3 rounded-lg">
-                                        <p class="text-sm text-ds-text font-medium ${meal.recipeId ? 'cursor-pointer hover:text-blue-600 hover:underline open-recipe-btn' : ''}"
+                                    <div class="bg-ds-accent-bg p-3 rounded-ds">
+                                        <p class="text-sm text-ds-text font-medium ${meal.recipeId ? 'cursor-pointer hover:text-ds-accent hover:underline open-recipe-btn' : ''}"
                                            ${meal.recipeId ? `data-recipe-id="${meal.recipeId}"` : ''}>${escapeHtml(meal.recipeName)}</p>
                                         <button class="mark-cooked-btn mt-3 w-full ds-btn ds-btn-secondary flex items-center justify-center gap-2 active:scale-98"
                                                 data-recipe-id="${meal.recipeId}"
@@ -264,7 +264,7 @@ export const WeekPlannerView = {
                                         </button>
                                     </div>
                                 ` : `
-                                    <button class="add-meal-btn w-full py-4 sm:py-3 border-2 border-dashed border-ds-border rounded-lg text-ds-text-muted hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 active:scale-98"
+                                    <button class="add-meal-btn w-full py-4 sm:py-3 border-2 border-dashed border-ds-border rounded-ds text-ds-text-muted hover:border-ds-accent hover:text-ds-accent hover:bg-ds-accent-bg transition-colors flex items-center justify-center gap-2 active:scale-98"
                                             data-day="${dayIndex}"
                                             data-meal="${mealType}">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,7 +360,7 @@ export const WeekPlannerView = {
                         ` : `
                             <div class="grid gap-2">
                                 ${AppState.recipes.map(recipe => `
-                                    <button class="select-recipe-btn text-left p-3 border border-ds-border rounded hover:bg-blue-50 hover:border-blue-400 transition-colors"
+                                    <button class="select-recipe-btn text-left p-3 border border-ds-border rounded hover:bg-ds-accent-bg hover:border-ds-accent transition-colors"
                                             data-recipe-id="${recipe.id}">
                                         <p class="font-medium text-ds-text">${escapeHtml(recipe.name)}</p>
                                         ${recipe.category ? `<p class="text-sm text-ds-text-sec">${escapeHtml(recipe.category)}</p>` : ''}
@@ -380,7 +380,7 @@ export const WeekPlannerView = {
                 <div class="ds-card max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="ds-section-title text-xl flex items-center gap-2">
-                            <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-6 h-6 text-ds-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                             </svg>
                             KI-Wochenplan generieren
@@ -391,8 +391,8 @@ export const WeekPlannerView = {
                     </div>
 
                     ${this.aiError ? `
-                        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <p class="text-red-700 text-sm">${this.aiError}</p>
+                        <div class="mb-4 p-3 bg-ds-danger-bg border border-ds-danger-border rounded-ds">
+                            <p class="text-ds-danger text-sm">${this.aiError}</p>
                         </div>
                     ` : ''}
 
@@ -403,17 +403,17 @@ export const WeekPlannerView = {
                             </label>
                             <div class="space-y-2">
                                 <label class="flex items-center gap-3 p-3 border border-ds-border rounded-lg cursor-pointer hover:bg-ds-bg-muted transition-colors">
-                                    <input type="checkbox" id="ai-meal-breakfast" value="Frühstück" class="w-5 h-5 text-purple-500 rounded focus:ring-purple-500">
+                                    <input type="checkbox" id="ai-meal-breakfast" value="Frühstück" class="w-5 h-5 accent-color-[#3A8569] rounded">
                                     <span class="text-ds-text">Frühstück</span>
                                     <span class="text-ds-text-muted text-sm ml-auto">Schnelle, einfache Gerichte</span>
                                 </label>
                                 <label class="flex items-center gap-3 p-3 border border-ds-border rounded-lg cursor-pointer hover:bg-ds-bg-muted transition-colors">
-                                    <input type="checkbox" id="ai-meal-lunch" value="Mittagessen" class="w-5 h-5 text-purple-500 rounded focus:ring-purple-500">
+                                    <input type="checkbox" id="ai-meal-lunch" value="Mittagessen" class="w-5 h-5 accent-color-[#3A8569] rounded">
                                     <span class="text-ds-text">Mittagessen</span>
                                     <span class="text-ds-text-muted text-sm ml-auto">Meal-Prep geeignet</span>
                                 </label>
                                 <label class="flex items-center gap-3 p-3 border border-ds-border rounded-lg cursor-pointer hover:bg-ds-bg-muted transition-colors">
-                                    <input type="checkbox" id="ai-meal-dinner" value="Abendessen" checked class="w-5 h-5 text-purple-500 rounded focus:ring-purple-500">
+                                    <input type="checkbox" id="ai-meal-dinner" value="Abendessen" checked class="w-5 h-5 accent-color-[#3A8569] rounded">
                                     <span class="text-ds-text">Abendessen</span>
                                     <span class="text-ds-text-muted text-sm ml-auto">Hauptmahlzeit des Tages</span>
                                 </label>
@@ -482,8 +482,8 @@ export const WeekPlannerView = {
                                    placeholder="z.B. Nüsse, Sellerie, Meeresfrüchte">
                         </div>
 
-                        <div class="bg-purple-50 p-3 rounded-lg">
-                            <p class="text-sm text-purple-700">
+                        <div class="bg-ds-accent-bg p-3 rounded-ds">
+                            <p class="text-sm text-ds-accent">
                                 <strong>Hinweis:</strong> Die KI erstellt Vorschläge für die gesamte angezeigte Woche.
                                 Bestehende Mahlzeiten werden überschrieben.
                             </p>

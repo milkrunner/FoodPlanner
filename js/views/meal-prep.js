@@ -54,9 +54,9 @@ export const MealPrepView = {
 
         if (eligibleRecipes.length === 0) {
             return `
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <h3 class="font-medium text-yellow-800">Keine Meal-Prep geeigneten Rezepte gefunden</h3>
-                    <p class="mt-1 text-sm text-yellow-700">
+                <div class="bg-ds-accent-bg border border-ds-border rounded-ds p-4">
+                    <h3 class="font-medium text-ds-text-body">Keine Meal-Prep geeigneten Rezepte gefunden</h3>
+                    <p class="mt-1 text-sm text-ds-text-sec">
                         Markiere Rezepte in der Rezeptdatenbank als "Meal-Prep geeignet", um sie hier zu sehen.
                     </p>
                 </div>
@@ -108,7 +108,7 @@ export const MealPrepView = {
         const notesValue = escapeHtml(isSelected?.notes || '');
 
         return `
-            <div class="p-3 rounded-lg border border-ds-border ${isSelected ? 'bg-green-50 border-green-200' : 'bg-ds-bg'}">
+            <div class="p-3 rounded-ds border border-ds-border ${isSelected ? 'bg-ds-accent-bg border-ds-accent' : 'bg-ds-bg'}">
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex-1">
                         <h4 class="font-medium text-ds-text">${recipeNameSafe}</h4>
@@ -177,7 +177,7 @@ export const MealPrepView = {
                             ${targetDates.slice(0, 2).map((date) => `<span class="ds-badge ds-badge-accent">📆 ${date}</span>`).join('')}
                         </div>
                     </div>
-                    <button class="remove-meal-prep-item text-red-500 hover:text-red-700" data-recipe-id="${escapeHtml(String(item.recipeId))}">✕</button>
+                    <button class="remove-meal-prep-item text-ds-danger hover:text-ds-danger" data-recipe-id="${escapeHtml(String(item.recipeId))}">✕</button>
                 </div>
 
                 <dl class="mt-3 grid gap-2 text-sm text-ds-text-body">
@@ -212,7 +212,7 @@ export const MealPrepView = {
                     <div>
                         <h3 class="ds-section-title flex items-center gap-2">
                             <span>KI Meal-Prep Hilfe</span>
-                            ${this.aiLoading ? '<span class="text-xs text-purple-500">Lädt...</span>' : ''}
+                            ${this.aiLoading ? '<span class="text-xs text-ds-accent">Lädt...</span>' : ''}
                         </h3>
                         <p class="text-sm text-ds-text-muted">
                             Lass dir Sessions, Zeitplan und Einkaufshinweise für deine Meal-Prep Rezepte generieren.
@@ -232,13 +232,13 @@ export const MealPrepView = {
                 </div>
 
                 ${this.aiError ? `
-                    <div class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p class="text-sm text-red-700">${escapeHtml(this.aiError)}</p>
+                    <div class="mt-3 p-3 bg-ds-danger-bg border border-ds-danger-border rounded-ds">
+                        <p class="text-sm text-ds-danger">${escapeHtml(this.aiError)}</p>
                     </div>
                 ` : ''}
 
                 ${aiData ? this.renderAiContent(aiData) : `
-                    <div class="mt-4 p-4 border-2 border-dashed border-purple-200 rounded-lg text-center text-purple-600">
+                    <div class="mt-4 p-4 border-2 border-dashed border-ds-border rounded-ds text-center text-ds-text-sec">
                         <p class="font-medium">Noch keine Vorschläge</p>
                         <p class="text-sm mt-1">Sobald du Rezepte ausgewählt hast, klicke auf "Vorschläge aktualisieren".</p>
                     </div>

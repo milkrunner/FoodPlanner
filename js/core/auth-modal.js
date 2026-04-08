@@ -25,7 +25,7 @@ export const AuthModal = {
                     ${!isLogin ? '<input id="auth-name" type="text" placeholder="Name (optional)" class="ds-input"/>' : ''}
                     <input id="auth-email" type="email" placeholder="E-Mail" required class="ds-input"/>
                     <input id="auth-password" type="password" placeholder="Passwort" required minlength="8" class="ds-input"/>
-                    <div id="auth-error" class="text-xs text-red-500 hidden"></div>
+                    <div id="auth-error" class="text-xs text-ds-danger hidden"></div>
                     <button type="submit" class="ds-btn ds-btn-primary w-full">${isLogin ? 'Anmelden' : 'Registrieren'}</button>
                 </form>
                 <p class="text-xs text-center text-[#999] mt-3">

@@ -66,7 +66,7 @@ export const PantryView = {
                 ${(expiringCount > 0 || expiredCount > 0) ? `
                     <div class="flex flex-wrap gap-2">
                         ${expiredCount > 0 ? `
-                            <div class="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                            <div class="flex items-center gap-1.5 px-3 py-1.5 bg-ds-danger-bg border border-ds-danger-border rounded-ds text-sm text-ds-danger">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
                                 </svg>
@@ -74,7 +74,7 @@ export const PantryView = {
                             </div>
                         ` : ''}
                         ${expiringCount > 0 ? `
-                            <div class="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+                            <div class="flex items-center gap-1.5 px-3 py-1.5 bg-ds-accent-bg border border-ds-border rounded-ds text-sm text-ds-text-body">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
@@ -109,7 +109,7 @@ export const PantryView = {
                 <!-- Item List -->
                 ${sorted.length === 0 && !this.showForm ? `
                     <div class="ds-card p-10 text-center">
-                        <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-12 h-12 mx-auto text-ds-border-hover mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
                         </svg>
                         <p class="text-ds-text-muted font-medium">Keine Lebensmittel vorhanden</p>
@@ -135,17 +135,17 @@ export const PantryView = {
             const dateStr = expiryDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
             if (diffDays < 0) {
-                expiryClass = 'text-red-600 font-medium';
+                expiryClass = 'text-ds-danger font-medium';
                 expiryLabel = `Abgelaufen (${dateStr})`;
-                rowHighlight = 'bg-red-50/50';
+                rowHighlight = 'bg-ds-danger-bg/50';
             } else if (diffDays === 0) {
-                expiryClass = 'text-red-600 font-medium';
+                expiryClass = 'text-ds-danger font-medium';
                 expiryLabel = `Heute ablaufend`;
-                rowHighlight = 'bg-red-50/50';
+                rowHighlight = 'bg-ds-danger-bg/50';
             } else if (diffDays <= 3) {
-                expiryClass = 'text-amber-600 font-medium';
+                expiryClass = 'text-ds-text-sec font-medium';
                 expiryLabel = `Läuft ab in ${diffDays} Tag${diffDays === 1 ? '' : 'en'} (${dateStr})`;
-                rowHighlight = 'bg-amber-50/30';
+                rowHighlight = 'bg-ds-accent-bg/30';
             } else {
                 expiryLabel = `MHD: ${dateStr}`;
             }
@@ -170,12 +170,12 @@ export const PantryView = {
                     </div>
                 </div>
                 <div class="flex items-center gap-1 shrink-0">
-                    <button class="pantry-edit-btn p-2 text-gray-400 hover:text-blue-600 rounded transition-colors" data-id="${item.id}" title="Bearbeiten">
+                    <button class="pantry-edit-btn p-2 text-ds-text-muted hover:text-ds-accent rounded transition-colors" data-id="${item.id}" title="Bearbeiten">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
                     </button>
-                    <button class="pantry-delete-btn p-2 text-gray-400 hover:text-red-600 rounded transition-colors" data-id="${item.id}" title="Löschen">
+                    <button class="pantry-delete-btn p-2 text-ds-text-muted hover:text-ds-danger rounded transition-colors" data-id="${item.id}" title="Löschen">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>

@@ -27,10 +27,10 @@ export const RecipeParserView = {
                     <div class="ds-card p-6">
                         <!-- Tab Navigation -->
                         <div class="flex border-b border-ds-border mb-4">
-                            <button id="tab-text" class="px-4 py-2 font-medium transition-colors ${this.activeTab === 'text' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-ds-text-muted hover:text-ds-text-body'}">
+                            <button id="tab-text" class="px-4 py-2 font-medium transition-colors ${this.activeTab === 'text' ? 'text-ds-accent border-b-2 border-ds-accent' : 'text-ds-text-muted hover:text-ds-text-body'}">
                                 📝 Text / URL
                             </button>
-                            <button id="tab-video" class="px-4 py-2 font-medium transition-colors ${this.activeTab === 'video' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-ds-text-muted hover:text-ds-text-body'}">
+                            <button id="tab-video" class="px-4 py-2 font-medium transition-colors ${this.activeTab === 'video' ? 'text-ds-accent border-b-2 border-ds-accent' : 'text-ds-text-muted hover:text-ds-text-body'}">
                                 🎬 Video
                             </button>
                         </div>
@@ -129,8 +129,8 @@ export const RecipeParserView = {
                 Importiere Rezepte aus TikTok, Instagram Reels, Pinterest oder YouTube Shorts
             </p>
 
-            <div class="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                <p class="text-sm text-purple-700">
+            <div class="mb-4 p-3 bg-ds-accent-bg border border-ds-border rounded-ds">
+                <p class="text-sm text-ds-accent">
                     <strong>Unterstützte Plattformen:</strong><br>
                     TikTok, Instagram Reels, Pinterest Pins, YouTube Shorts
                 </p>
@@ -144,10 +144,10 @@ export const RecipeParserView = {
                 value="${this.videoUrl}"
             />
 
-            <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div class="mt-4 p-3 bg-ds-accent-bg border border-ds-border rounded-ds">
                 <label class="flex items-start gap-2 cursor-pointer">
-                    <input type="checkbox" id="disclaimer-checkbox" class="mt-1 w-4 h-4 accent-amber-500" ${this.disclaimerAccepted ? 'checked' : ''}>
-                    <span class="text-sm text-amber-800">
+                    <input type="checkbox" id="disclaimer-checkbox" class="mt-1 w-4 h-4 accent-[#3A8569]" ${this.disclaimerAccepted ? 'checked' : ''}>
+                    <span class="text-sm text-ds-text-body">
                         Ich bestätige, dass ich berechtigt bin, dieses Video zu nutzen und respektiere die Urheberrechte des Erstellers.
                     </span>
                 </label>

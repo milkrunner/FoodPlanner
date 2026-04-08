@@ -13,9 +13,9 @@ export const Toast = {
         if (existingToast) existingToast.remove();
 
         // Determine background color based on type
-        let bgColor = 'bg-gray-800 dark:bg-gray-700';
-        if (type === 'success') bgColor = 'bg-green-600 dark:bg-green-700';
-        if (type === 'error') bgColor = 'bg-red-600 dark:bg-red-700';
+        let bgColor = 'bg-ds-text';
+        if (type === 'success') bgColor = 'bg-ds-accent';
+        if (type === 'error') bgColor = 'bg-ds-danger';
 
         // Create toast with ARIA live region for accessibility
         const toast = document.createElement('div');
@@ -35,7 +35,7 @@ export const Toast = {
         if (showUndo) {
             const undoBtn = document.createElement('button');
             undoBtn.id = 'toast-undo-btn';
-            undoBtn.className = 'px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded transition-colors font-medium';
+            undoBtn.className = 'px-4 py-2 bg-white/20 hover:bg-white/30 rounded transition-colors font-medium';
             undoBtn.textContent = 'Rückgängig';
             toast.appendChild(undoBtn);
         }
@@ -43,7 +43,7 @@ export const Toast = {
         // Add close button
         const closeBtnEl = document.createElement('button');
         closeBtnEl.id = 'toast-close-btn';
-        closeBtnEl.className = 'text-gray-200 hover:text-white text-xl';
+        closeBtnEl.className = 'text-white/70 hover:text-white text-xl';
         closeBtnEl.textContent = '✕';
         toast.appendChild(closeBtnEl);
 

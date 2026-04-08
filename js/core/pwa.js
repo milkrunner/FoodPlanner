@@ -69,7 +69,7 @@ export const PWA = {
             if (!indicator) {
                 indicator = document.createElement('div');
                 indicator.id = 'offline-indicator';
-                indicator.className = 'fixed top-0 left-0 right-0 bg-yellow-500 text-yellow-900 text-center py-1 text-sm font-medium z-50';
+                indicator.className = 'fixed top-0 left-0 right-0 bg-ds-accent text-white text-center py-1 text-sm font-medium z-50';
                 indicator.textContent = 'Offline - Daten werden lokal gespeichert';
                 document.body.prepend(indicator);
             }

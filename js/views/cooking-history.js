@@ -75,7 +75,7 @@ export const CookingHistoryView = {
                                 </p>
                                 ${entry.notes ? `<p class="text-sm text-ds-text-body mt-1">${this.escapeHtml(entry.notes)}</p>` : ''}
                             </div>
-                            <button class="delete-history-btn text-red-500 hover:text-red-700 p-2"
+                            <button class="delete-history-btn text-ds-danger hover:text-ds-danger p-2"
                                     data-id="${entry.id}" title="Eintrag löschen">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -170,7 +170,7 @@ export const CookingHistoryView = {
                     ${topRecipes.map((stat, index) => `
                         <div class="p-4 flex justify-between items-center">
                             <div class="flex items-center gap-3">
-                                <span class="w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold text-sm">
+                                <span class="w-8 h-8 flex items-center justify-center rounded-full bg-ds-accent-bg text-ds-accent font-bold text-sm">
                                     ${index + 1}
                                 </span>
                                 <div>

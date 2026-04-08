@@ -20,9 +20,9 @@ export const AIRecipeGeneratorView = {
     render() {
         return `
             <div class="space-y-6">
-                <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
+                <div class="bg-ds-accent rounded-ds-lg p-6 text-white">
                     <h2 class="text-3xl font-bold mb-2">KI Rezept-Generator</h2>
-                    <p class="text-blue-100">Gib deine verfügbaren Zutaten ein und lass die KI kreative Rezepte für dich generieren!</p>
+                    <p class="text-white/80">Gib deine verfügbaren Zutaten ein und lass die KI kreative Rezepte für dich generieren!</p>
                 </div>
 
                 <div class="ds-card p-6 transition-colors duration-200">
@@ -37,7 +37,7 @@ export const AIRecipeGeneratorView = {
                                        data-index="${index}"
                                        class="ai-ingredient-input ds-input flex-1 px-4 py-2">
                                 ${this.ingredients.length > 1 ? `
-                                    <button type="button" class="remove-ai-ingredient-btn px-3 py-2 text-red-600 hover:text-red-700" data-index="${index}">
+                                    <button type="button" class="remove-ai-ingredient-btn px-3 py-2 text-ds-danger hover:text-ds-danger" data-index="${index}">
                                         ✕
                                     </button>
                                 ` : ''}
