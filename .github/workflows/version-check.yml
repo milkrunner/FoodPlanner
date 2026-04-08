@@ -1,0 +1,38 @@
+name: Version Bump Check
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  check-version:
+    name: Check Version Bump
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Get PR version
+        id: pr
+        run: echo "version=$(node -p "require('./backend/package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Get base branch version
+        id: base
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          BASE_VERSION=$(git show origin/${{ github.base_ref }}:backend/package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).version")
+          echo "version=$BASE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Compare versions
+        run: |
+          echo "Base version: ${{ steps.base.outputs.version }}"
+          echo "PR version:   ${{ steps.pr.outputs.version }}"
+          if [[ "${{ steps.pr.outputs.version }}" == "${{ steps.base.outputs.version }}" ]]; then
+            echo "::error::Version in backend/package.json wurde nicht erhoeht! Bitte Version bumpen vor dem Merge."
+            exit 1
+          fi
+          echo "Version wurde von ${{ steps.base.outputs.version }} auf ${{ steps.pr.outputs.version }} erhoeht."
