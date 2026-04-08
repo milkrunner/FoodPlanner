@@ -2,6 +2,216 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+    /* ===== Card ===== */
+    .ds-card {
+        background: #FFFFFF;
+        border: 1px solid #F0F0F0;
+        border-radius: 16px;
+        padding: 28px;
+        transition: border-color 0.15s ease;
+    }
+    .ds-card:hover { border-color: #E0E0E0; }
+    @media (max-width: 640px) { .ds-card { padding: 20px; } }
+
+    /* ===== Buttons ===== */
+    .ds-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 11px 24px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        min-height: 44px;
+        cursor: pointer;
+        border: none;
+        transition: background 0.15s ease, color 0.15s ease;
+    }
+    .ds-btn-primary { background: #111; color: #fff; }
+    .ds-btn-primary:hover { background: #333; }
+    .ds-btn-secondary { background: #F5F5F5; color: #333; }
+    .ds-btn-secondary:hover { background: #EBEBEB; }
+    .ds-btn-destructive { background: #fff; color: #CC6B6B; border: 1px solid #F0E0E0; }
+    .ds-btn-destructive:hover { background: #FDF5F3; }
+    .ds-btn-sm { padding: 8px 16px; font-size: 13px; }
+
+    /* ===== Badge ===== */
+    .ds-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 12px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 500;
+        background: #F5F5F5;
+        color: #666;
+    }
+    .ds-badge-accent { background: #F0F7F4; color: #3A8569; }
+
+    /* ===== Typography ===== */
+    .ds-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #999;
+    }
+    .ds-page-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #111;
+        letter-spacing: -0.02em;
+    }
+    @media (max-width: 640px) { .ds-page-title { font-size: 22px; } }
+    .ds-page-sub {
+        font-size: 15px;
+        color: #999;
+        margin-top: 8px;
+    }
+    .ds-section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #111;
+        letter-spacing: -0.01em;
+    }
+    .ds-card-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #111;
+        letter-spacing: -0.01em;
+    }
+    @media (max-width: 640px) { .ds-card-title { font-size: 17px; } }
+
+    /* ===== Divider ===== */
+    .ds-divider {
+        height: 1px;
+        background: #F0F0F0;
+        margin: 32px 0;
+    }
+
+    /* ===== Input ===== */
+    .ds-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #E0E0E0;
+        border-radius: 10px;
+        font-size: 15px;
+        transition: border-color 0.15s ease;
+    }
+    .ds-input:focus { border: 2px solid #111; outline: none; }
+    .ds-input::placeholder { color: #BBB; }
+
+    /* ===== Shopping list ===== */
+    .ds-shop-dept {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #999;
+        margin-top: 24px;
+        margin-bottom: 12px;
+    }
+    .ds-shop-dept:first-child { margin-top: 0; }
+    .ds-shop-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 0;
+        font-size: 15px;
+        color: #333;
+    }
+    .ds-shop-item input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        accent-color: #111;
+    }
+    .ds-shop-amount {
+        color: #BBB;
+        margin-left: auto;
+        font-size: 14px;
+    }
+
+    /* ===== Sidebar ===== */
+    .ds-sidebar {
+        width: 64px;
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        background: #FAFAFA;
+        border-right: 1px solid #EBEBEB;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        z-index: 40;
+    }
+    .ds-sidebar-logo {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #3A8569;
+        color: #fff;
+        font-weight: 700;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 24px;
+    }
+    .ds-sidebar-item {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+        transition: background 0.15s ease, color 0.15s ease;
+    }
+    .ds-sidebar-item:hover { background: #F0F0F0; color: #555; }
+    .ds-sidebar-item.active { background: #F0F0F0; color: #212529; }
+
+    /* ===== Bottom nav ===== */
+    .ds-bottomnav {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 56px;
+        background: #fff;
+        border-top: 1px solid #F0F0F0;
+        z-index: 40;
+        align-items: center;
+        justify-content: space-around;
+    }
+    @media (max-width: 640px) { .ds-bottomnav { display: flex; } }
+    .ds-bottomnav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        color: #999;
+    }
+    .ds-bottomnav-item.active { color: #111; }
+    .ds-bottomnav-item svg { width: 22px; height: 22px; }
+    .ds-bottomnav-item span { font-size: 10px; }
+
+    /* ===== Heart ===== */
+    .ds-heart {
+        width: 22px;
+        height: 22px;
+        color: #E8A0A0;
+        transition: color 0.15s ease;
+    }
+    .ds-heart:hover { color: #CC6B6B; }
+    .ds-heart.is-favorite { color: #CC6B6B; }
+}
+
 /* ===== Base resets ===== */
 *, *::before, *::after {
     box-sizing: border-box;
@@ -170,7 +380,7 @@ input[type="checkbox"], input[type="radio"] {
 }
 
 /* ===== Checkboxes ===== */
-.touch-checkbox { width: 20px !important; height: 20px !important; cursor: pointer; accent-color: #3A8569; }
+.touch-checkbox { width: 20px !important; height: 20px !important; cursor: pointer; accent-color: #111; }
 @media (max-width: 640px) { .touch-checkbox { width: 24px !important; height: 24px !important; } }
 
 /* ===== Recipe instructions (markdown) ===== */
@@ -264,7 +474,7 @@ input[type="checkbox"], input[type="radio"] {
 
 /* ===== Focus ===== */
 :focus-visible {
-    outline: 2px solid #3A8569; outline-offset: 2px; border-radius: 3px;
+    outline: 2px solid #111; outline-offset: 2px; border-radius: 3px;
 }
 .dark :focus-visible { outline-color: #4EA083; }
 :focus:not(:focus-visible) { outline: none; }
