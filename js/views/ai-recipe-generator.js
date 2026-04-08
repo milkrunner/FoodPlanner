@@ -25,8 +25,8 @@ export const AIRecipeGeneratorView = {
                     <p class="text-blue-100">Gib deine verfügbaren Zutaten ein und lass die KI kreative Rezepte für dich generieren!</p>
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-6 transition-colors duration-200">
-                    <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Verfügbare Zutaten</h3>
+                <div class="ds-card p-6 transition-colors duration-200">
+                    <h3 class="ds-section-title mb-4">Verfügbare Zutaten</h3>
 
                     <div id="ai-ingredients-container" class="space-y-2 mb-4">
                         ${this.ingredients.map((ing, index) => `
@@ -35,9 +35,9 @@ export const AIRecipeGeneratorView = {
                                        placeholder="z.B. Tomaten, Nudeln, Hähnchen..."
                                        value="${ing}"
                                        data-index="${index}"
-                                       class="ai-ingredient-input flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                                       class="ai-ingredient-input ds-input flex-1 px-4 py-2">
                                 ${this.ingredients.length > 1 ? `
-                                    <button type="button" class="remove-ai-ingredient-btn px-3 py-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300" data-index="${index}">
+                                    <button type="button" class="remove-ai-ingredient-btn px-3 py-2 text-red-600 hover:text-red-700" data-index="${index}">
                                         ✕
                                     </button>
                                 ` : ''}
@@ -45,18 +45,18 @@ export const AIRecipeGeneratorView = {
                         `).join('')}
                     </div>
 
-                    <button id="add-ai-ingredient-btn" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    <button id="add-ai-ingredient-btn" class="ds-btn ds-btn-secondary">
                         + Zutat hinzufügen
                     </button>
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-6 transition-colors duration-200">
-                    <h3 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Präferenzen (optional)</h3>
+                <div class="ds-card p-6 transition-colors duration-200">
+                    <h3 class="ds-section-title mb-4">Präferenzen (optional)</h3>
 
                     <div class="grid md:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Ernährungsweise</label>
-                            <select id="ai-dietary" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                            <label class="block text-sm font-medium text-ds-text-body mb-2">Ernährungsweise</label>
+                            <select id="ai-dietary" class="ds-input w-full px-4 py-2">
                                 <option value="">Keine Einschränkung</option>
                                 <option value="vegetarisch">Vegetarisch</option>
                                 <option value="vegan">Vegan</option>
@@ -66,8 +66,8 @@ export const AIRecipeGeneratorView = {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Kochzeit</label>
-                            <select id="ai-cooking-time" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                            <label class="block text-sm font-medium text-ds-text-body mb-2">Kochzeit</label>
+                            <select id="ai-cooking-time" class="ds-input w-full px-4 py-2">
                                 <option value="">Egal</option>
                                 <option value="15">Bis 15 Min</option>
                                 <option value="30">Bis 30 Min</option>
@@ -76,8 +76,8 @@ export const AIRecipeGeneratorView = {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Schwierigkeit</label>
-                            <select id="ai-difficulty" class="w-full px-4 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400">
+                            <label class="block text-sm font-medium text-ds-text-body mb-2">Schwierigkeit</label>
+                            <select id="ai-difficulty" class="ds-input w-full px-4 py-2">
                                 <option value="">Egal</option>
                                 <option value="einfach">Einfach</option>
                                 <option value="mittel">Mittel</option>
@@ -95,27 +95,27 @@ export const AIRecipeGeneratorView = {
 
                 ${this.generatedRecipes.length > 0 ? `
                     <div class="space-y-4">
-                        <h3 class="text-2xl font-bold text-gray-800 dark:text-white">Generierte Rezepte</h3>
+                        <h3 class="ds-page-title">Generierte Rezepte</h3>
 
                         ${this.generatedRecipes.map((recipe, index) => `
-                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg dark:shadow-gray-900 p-6 transition-colors duration-200">
+                            <div class="ds-card p-6 transition-colors duration-200">
                                 <div class="flex justify-between items-start mb-4">
                                     <div>
-                                        <h4 class="text-xl font-semibold text-gray-800 dark:text-white">${escapeHtml(recipe.name)}</h4>
+                                        <h4 class="ds-section-title">${escapeHtml(recipe.name)}</h4>
                                         <div class="flex gap-2 mt-2">
                                             ${recipe.category ? `
-                                                <span class="inline-block px-2 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-xs rounded">
+                                                <span class="ds-badge ds-badge-accent">
                                                     ${escapeHtml(recipe.category)}
                                                 </span>
                                             ` : ''}
                                             ${recipe.servings ? `
-                                                <span class="inline-block px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs rounded">
+                                                <span class="ds-badge ds-badge-accent">
                                                     ${recipe.servings} Portionen
                                                 </span>
                                             ` : ''}
                                         </div>
                                     </div>
-                                    <button class="save-ai-recipe-btn px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
+                                    <button class="save-ai-recipe-btn ds-btn ds-btn-primary"
                                             data-recipe-index="${index}">
                                         💾 Speichern
                                     </button>
@@ -123,8 +123,8 @@ export const AIRecipeGeneratorView = {
 
                                 <div class="grid md:grid-cols-2 gap-6">
                                     <div>
-                                        <h5 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Zutaten:</h5>
-                                        <ul class="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
+                                        <h5 class="font-semibold text-ds-text-body mb-2">Zutaten:</h5>
+                                        <ul class="list-disc list-inside space-y-1 text-ds-text-sec">
                                             ${recipe.ingredients.map(ing => `
                                                 <li>${escapeHtml(ing.amount || '')} ${escapeHtml(ing.unit || '')} ${escapeHtml(ing.name)}</li>
                                             `).join('')}
@@ -132,8 +132,8 @@ export const AIRecipeGeneratorView = {
                                     </div>
 
                                     <div>
-                                        <h5 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">Zubereitung:</h5>
-                                        <p class="text-gray-600 dark:text-gray-400 whitespace-pre-line">${escapeHtml(recipe.instructions)}</p>
+                                        <h5 class="font-semibold text-ds-text-body mb-2">Zubereitung:</h5>
+                                        <p class="text-ds-text-sec whitespace-pre-line">${escapeHtml(recipe.instructions)}</p>
                                     </div>
                                 </div>
                             </div>
