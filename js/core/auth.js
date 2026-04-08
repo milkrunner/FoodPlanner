@@ -101,12 +101,12 @@ export const Auth = {
         }
     },
 
-    async login(email, password) {
+    async login(username, password) {
         const res = await fetch('/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ username, password })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Anmeldung fehlgeschlagen');
@@ -114,12 +114,12 @@ export const Auth = {
         return data.user;
     },
 
-    async register(email, password, name) {
+    async register(username, password, name) {
         const res = await fetch('/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ email, password, name })
+            body: JSON.stringify({ username, password, name })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Registrierung fehlgeschlagen');
