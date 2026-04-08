@@ -21,15 +21,15 @@ export const CookingHistoryView = {
     render() {
         if (!this.historyData) {
             this.loadData().then(() => App.render());
-            return '<div class="text-gray-800 dark:text-gray-200">Lade Kochverlauf...</div>';
+            return '<div class="text-ds-text">Lade Kochverlauf...</div>';
         }
 
         return `
             <div class="space-y-6">
                 <div class="flex justify-between items-center flex-wrap gap-3">
-                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Kochverlauf</h2>
+                    <h2 class="ds-page-title">Kochverlauf</h2>
                     <div class="flex gap-2">
-                        <select id="history-filter" class="px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white">
+                        <select id="history-filter" class="ds-input px-3 py-2">
                             <option value="0" ${this.filterDays === 0 ? 'selected' : ''}>Alle Rezepte</option>
                             <option value="30" ${this.filterDays === 30 ? 'selected' : ''}>Lange nicht gekocht (30+ Tage)</option>
                             <option value="60" ${this.filterDays === 60 ? 'selected' : ''}>Lange nicht gekocht (60+ Tage)</option>
@@ -48,9 +48,9 @@ export const CookingHistoryView = {
 
         if (history.length === 0) {
             return `
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-                    <p class="text-gray-500 dark:text-gray-400">Noch keine Einträge im Kochverlauf.</p>
-                    <p class="text-sm text-gray-400 dark:text-gray-500 mt-2">
+                <div class="ds-card p-8 text-center">
+                    <p class="text-ds-text-muted">Noch keine Einträge im Kochverlauf.</p>
+                    <p class="text-sm text-ds-text-muted mt-2">
                         Markiere Rezepte im Wochenplan als "Gekocht", um sie hier zu sehen.
                     </p>
                 </div>
@@ -58,24 +58,24 @@ export const CookingHistoryView = {
         }
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900">
-                <div class="p-4 border-b dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-800 dark:text-white">
+            <div class="ds-card">
+                <div class="p-4 border-b border-ds-border">
+                    <h3 class="font-semibold text-ds-text">
                         ${total} Einträge insgesamt
                     </h3>
                 </div>
-                <div class="divide-y dark:divide-gray-700">
+                <div class="divide-y divide-ds-border">
                     ${history.map(entry => `
-                        <div class="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <div class="p-4 flex justify-between items-center hover:bg-ds-bg-muted transition-colors">
                             <div>
-                                <p class="font-medium text-gray-800 dark:text-white">${this.escapeHtml(entry.recipe_name)}</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                <p class="font-medium text-ds-text">${this.escapeHtml(entry.recipe_name)}</p>
+                                <p class="text-sm text-ds-text-muted">
                                     ${this.formatDate(entry.cooked_at)}
                                     ${entry.servings ? ` • ${entry.servings} Portionen` : ''}
                                 </p>
-                                ${entry.notes ? `<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">${this.escapeHtml(entry.notes)}</p>` : ''}
+                                ${entry.notes ? `<p class="text-sm text-ds-text-body mt-1">${this.escapeHtml(entry.notes)}</p>` : ''}
                             </div>
-                            <button class="delete-history-btn text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 p-2"
+                            <button class="delete-history-btn text-ds-danger hover:text-ds-danger p-2"
                                     data-id="${entry.id}" title="Eintrag löschen">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -85,15 +85,15 @@ export const CookingHistoryView = {
                     `).join('')}
                 </div>
                 ${totalPages > 1 ? `
-                    <div class="p-4 border-t dark:border-gray-700 flex justify-center gap-2">
-                        <button id="prev-page-btn" class="px-4 py-2 border dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 dark:text-gray-300"
+                    <div class="p-4 border-t border-ds-border flex justify-center gap-2">
+                        <button id="prev-page-btn" class="ds-btn ds-btn-secondary"
                                 ${page <= 1 ? 'disabled' : ''}>
                             Zurück
                         </button>
-                        <span class="px-4 py-2 text-gray-600 dark:text-gray-400">
+                        <span class="px-4 py-2 text-ds-text-sec">
                             Seite ${page} von ${totalPages}
                         </span>
-                        <button id="next-page-btn" class="px-4 py-2 border dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 dark:text-gray-300"
+                        <button id="next-page-btn" class="ds-btn ds-btn-secondary"
                                 ${page >= totalPages ? 'disabled' : ''}>
                             Weiter
                         </button>
@@ -111,13 +111,13 @@ export const CookingHistoryView = {
                 this.notCookedData = data;
                 App.render();
             });
-            return '<div class="text-gray-500 dark:text-gray-400">Lade Daten...</div>';
+            return '<div class="text-ds-text-muted">Lade Daten...</div>';
         }
 
         if (this.notCookedData.length === 0) {
             return `
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-                    <p class="text-gray-500 dark:text-gray-400">
+                <div class="ds-card p-8 text-center">
+                    <p class="text-ds-text-muted">
                         Alle Rezepte wurden in den letzten ${this.filterDays} Tagen gekocht!
                     </p>
                 </div>
@@ -125,24 +125,24 @@ export const CookingHistoryView = {
         }
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900">
-                <div class="p-4 border-b dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-800 dark:text-white">
+            <div class="ds-card">
+                <div class="p-4 border-b border-ds-border">
+                    <h3 class="font-semibold text-ds-text">
                         ${this.notCookedData.length} Rezepte seit ${this.filterDays}+ Tagen nicht gekocht
                     </h3>
                 </div>
-                <div class="divide-y dark:divide-gray-700">
+                <div class="divide-y divide-ds-border">
                     ${this.notCookedData.map(recipe => `
-                        <div class="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <div class="p-4 flex justify-between items-center hover:bg-ds-bg-muted transition-colors">
                             <div>
-                                <p class="font-medium text-gray-800 dark:text-white">${this.escapeHtml(recipe.recipe_name)}</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                <p class="font-medium text-ds-text">${this.escapeHtml(recipe.recipe_name)}</p>
+                                <p class="text-sm text-ds-text-muted">
                                     ${recipe.last_cooked_at
                                         ? `Zuletzt gekocht: ${this.formatDate(recipe.last_cooked_at)} (${Math.round(recipe.days_since_last_cooked)} Tage her)`
                                         : 'Noch nie gekocht'}
                                 </p>
                             </div>
-                            <button class="quick-cook-btn px-3 py-1 bg-green-500 dark:bg-green-600 text-white text-sm rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors"
+                            <button class="quick-cook-btn ds-btn ds-btn-primary ds-btn-sm"
                                     data-recipe-id="${recipe.recipe_id}"
                                     data-recipe-name="${this.escapeHtml(recipe.recipe_name)}">
                                 Jetzt kochen
@@ -162,20 +162,20 @@ export const CookingHistoryView = {
         const topRecipes = this.statsData.slice(0, 5);
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 mt-6">
-                <div class="p-4 border-b dark:border-gray-700">
-                    <h3 class="font-semibold text-gray-800 dark:text-white">Top 5 häufig gekochte Rezepte</h3>
+            <div class="ds-card mt-6">
+                <div class="p-4 border-b border-ds-border">
+                    <h3 class="font-semibold text-ds-text">Top 5 häufig gekochte Rezepte</h3>
                 </div>
-                <div class="divide-y dark:divide-gray-700">
+                <div class="divide-y divide-ds-border">
                     ${topRecipes.map((stat, index) => `
                         <div class="p-4 flex justify-between items-center">
                             <div class="flex items-center gap-3">
-                                <span class="w-8 h-8 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 font-bold text-sm">
+                                <span class="w-8 h-8 flex items-center justify-center rounded-full bg-ds-accent-bg text-ds-accent font-bold text-sm">
                                     ${index + 1}
                                 </span>
                                 <div>
-                                    <p class="font-medium text-gray-800 dark:text-white">${this.escapeHtml(stat.recipe_name)}</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    <p class="font-medium text-ds-text">${this.escapeHtml(stat.recipe_name)}</p>
+                                    <p class="text-sm text-ds-text-muted">
                                         ${stat.times_cooked}x gekocht
                                         ${stat.last_cooked_at ? ` • Zuletzt: ${this.formatDate(stat.last_cooked_at)}` : ''}
                                     </p>

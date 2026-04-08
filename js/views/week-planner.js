@@ -42,35 +42,35 @@ export const WeekPlannerView = {
         const seasonIcon = this.getSeasonIcon(seasonKey);
 
         return `
-            <section class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
+            <section class="ds-card bg-gradient-to-r from-green-50 to-emerald-50 transition-colors duration-200">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-xl">${seasonIcon}</span>
-                        <h3 class="text-base font-semibold text-gray-800 dark:text-white">Saisonale Empfehlungen (${season})</h3>
+                        <h3 class="text-base font-semibold text-ds-text">Saisonale Empfehlungen (${season})</h3>
                     </div>
-                    <span class="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-2 py-1 rounded-full">
+                    <span class="ds-badge ds-badge-accent rounded-full">
                         ${topSeasonalIngredients.slice(0, 3).join(', ')}...
                     </span>
                 </div>
                 <div class="flex gap-3 overflow-x-auto pb-1">
                     ${recommendations.map(recipe => `
-                        <div class="seasonal-recipe-card flex-shrink-0 min-w-[180px] max-w-[200px] px-4 py-3 rounded-lg border border-green-200 dark:border-green-800 bg-white dark:bg-gray-800 text-left transition-colors hover:bg-green-50 dark:hover:bg-green-900/30 cursor-pointer" data-recipe-id="${recipe.id}">
+                        <div class="seasonal-recipe-card flex-shrink-0 min-w-[180px] max-w-[200px] px-4 py-3 rounded-ds border border-ds-border bg-ds-bg text-left transition-colors hover:bg-ds-accent-bg cursor-pointer" data-recipe-id="${recipe.id}">
                             <div class="flex items-start justify-between gap-2 mb-1">
-                                <span class="font-medium text-gray-800 dark:text-white text-sm line-clamp-2">${escapeHtml(recipe.name)}</span>
+                                <span class="font-medium text-ds-text text-sm line-clamp-2">${escapeHtml(recipe.name)}</span>
                                 ${recipe.is_favorite ? `
-                                    <svg class="w-4 h-4 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                                    <svg class="w-4 h-4 text-ds-danger flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path>
                                     </svg>
                                 ` : ''}
                             </div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">${escapeHtml(recipe.category || 'Rezept')}</p>
+                            <p class="text-xs text-ds-text-muted mb-2">${escapeHtml(recipe.category || 'Rezept')}</p>
                             <div class="flex items-center gap-2">
-                                <span class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+                                <span class="ds-badge ds-badge-accent rounded-full">
                                     ${recipe.seasonalScore}% saisonal
                                 </span>
                             </div>
                             ${recipe.seasonalIngredients && recipe.seasonalIngredients.length > 0 ? `
-                                <p class="text-xs text-green-600 dark:text-green-400 mt-2 line-clamp-1" title="${recipe.seasonalIngredients.join(', ')}">
+                                <p class="text-xs text-ds-accent mt-2 line-clamp-1" title="${recipe.seasonalIngredients.join(', ')}">
                                     ${seasonIcon} ${recipe.seasonalIngredients.slice(0, 2).join(', ')}${recipe.seasonalIngredients.length > 2 ? '...' : ''}
                                 </p>
                             ` : ''}
@@ -83,7 +83,7 @@ export const WeekPlannerView = {
 
     render() {
         if (!AppState.weekPlan || !AppState.currentWeekStart) {
-            return '<div class="text-gray-800 dark:text-gray-200">Lade Wochenplan...</div>';
+            return '<div class="text-ds-text">Lade Wochenplan...</div>';
         }
 
         // Load seasonal recommendations if not loaded
@@ -110,9 +110,9 @@ export const WeekPlannerView = {
             <div class="space-y-4 sm:space-y-6">
                 <!-- Header with responsive buttons -->
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Wochenplan</h2>
+                    <h2 class="ds-page-title">Wochenplan</h2>
                     <div class="flex gap-2 flex-wrap">
-                        <button id="ai-generate-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-purple-500 dark:bg-purple-600 text-white rounded hover:bg-purple-600 dark:hover:bg-purple-700 transition-colors text-sm sm:text-base flex items-center justify-center gap-2" ${this.aiGenerating ? 'disabled' : ''}>
+                        <button id="ai-generate-btn" class="flex-1 sm:flex-none ds-btn ds-btn-primary flex items-center justify-center gap-2" ${this.aiGenerating ? 'disabled' : ''}>
                             <svg class="w-4 h-4 ${this.aiGenerating ? 'animate-spin' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 ${this.aiGenerating
                                     ? '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>'
@@ -122,15 +122,15 @@ export const WeekPlannerView = {
                             <span class="hidden sm:inline">${this.aiGenerating ? 'Generiere...' : 'KI-Vorschläge'}</span>
                             <span class="sm:hidden">${this.aiGenerating ? '...' : 'KI'}</span>
                         </button>
-                        <button id="save-template-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors text-sm sm:text-base">
+                        <button id="save-template-btn" class="flex-1 sm:flex-none ds-btn ds-btn-secondary">
                             <span class="hidden sm:inline">Als Vorlage speichern</span>
                             <span class="sm:hidden">Speichern</span>
                         </button>
-                        <button id="load-template-btn" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors text-sm sm:text-base">
+                        <button id="load-template-btn" class="flex-1 sm:flex-none ds-btn ds-btn-secondary">
                             <span class="hidden sm:inline">Aus Vorlage laden</span>
                             <span class="sm:hidden">Laden</span>
                         </button>
-                        <button id="reset-week-btn" class="px-3 sm:px-4 py-2 bg-red-500 dark:bg-red-600 text-white rounded hover:bg-red-600 dark:hover:bg-red-700 transition-colors text-sm sm:text-base">
+                        <button id="reset-week-btn" class="ds-btn ds-btn-destructive">
                             <span class="hidden sm:inline">Zurücksetzen</span>
                             <span class="sm:hidden">Reset</span>
                         </button>
@@ -140,23 +140,23 @@ export const WeekPlannerView = {
                 ${this.renderSeasonalRecommendations()}
 
                 <!-- Week Navigation -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200">
+                <div class="ds-card transition-colors duration-200">
                     <div class="flex items-center justify-between">
-                        <button id="prev-week-btn" class="p-3 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95" title="Vorherige Woche">
-                            <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button id="prev-week-btn" class="p-3 sm:p-2 rounded-lg bg-ds-bg-subtle hover:bg-ds-border-hover transition-colors active:scale-95" title="Vorherige Woche">
+                            <svg class="w-6 h-6 text-ds-text-body" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
                         </button>
                         <div class="text-center flex-1 mx-2">
-                            <h3 class="text-base sm:text-xl font-semibold text-gray-800 dark:text-white">${weekRange}</h3>
+                            <h3 class="text-base sm:text-xl font-semibold text-ds-text">${weekRange}</h3>
                             ${!isCurrentWeek ? `
-                                <button id="go-to-current-week-btn" class="mt-1 text-sm text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-500 transition-colors">
+                                <button id="go-to-current-week-btn" class="mt-1 text-sm text-ds-accent hover:underline transition-colors">
                                     Zur aktuellen Woche
                                 </button>
-                            ` : '<span class="mt-1 text-sm text-green-600 dark:text-green-400 block">Aktuelle Woche</span>'}
+                            ` : '<span class="mt-1 text-sm text-ds-accent block">Aktuelle Woche</span>'}
                         </div>
-                        <button id="next-week-btn" class="p-3 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95" title="Nächste Woche">
-                            <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button id="next-week-btn" class="p-3 sm:p-2 rounded-lg bg-ds-bg-subtle hover:bg-ds-border-hover transition-colors active:scale-95" title="Nächste Woche">
+                            <svg class="w-6 h-6 text-ds-text-body" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
                         </button>
@@ -166,8 +166,8 @@ export const WeekPlannerView = {
                 <!-- Mobile Day Selector -->
                 <div class="sm:hidden">
                     <div class="flex items-center justify-between mb-3">
-                        <button id="prev-day-btn" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95 ${this.mobileViewDay <= 0 ? 'opacity-50' : ''}" ${this.mobileViewDay <= 0 ? 'disabled' : ''}>
-                            <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button id="prev-day-btn" class="p-2 rounded-lg bg-ds-bg-subtle hover:bg-ds-border-hover transition-colors active:scale-95 ${this.mobileViewDay <= 0 ? 'opacity-50' : ''}" ${this.mobileViewDay <= 0 ? 'disabled' : ''}>
+                            <svg class="w-5 h-5 text-ds-text-body" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
                         </button>
@@ -179,24 +179,24 @@ export const WeekPlannerView = {
                                 return `
                                     <button class="day-selector-btn flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                                         this.mobileViewDay === index
-                                            ? 'bg-blue-500 text-white'
+                                            ? 'bg-ds-text text-white'
                                             : isToday
-                                                ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
-                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                                ? 'bg-ds-accent-bg text-ds-accent'
+                                                : 'bg-ds-bg-subtle text-ds-text-body'
                                     }" data-day-index="${index}">
                                         ${dayName}
                                     </button>
                                 `;
                             }).join('')}
                         </div>
-                        <button id="next-day-btn" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors active:scale-95 ${this.mobileViewDay >= 6 ? 'opacity-50' : ''}" ${this.mobileViewDay >= 6 ? 'disabled' : ''}>
-                            <svg class="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button id="next-day-btn" class="p-2 rounded-lg bg-ds-bg-subtle hover:bg-ds-border-hover transition-colors active:scale-95 ${this.mobileViewDay >= 6 ? 'opacity-50' : ''}" ${this.mobileViewDay >= 6 ? 'disabled' : ''}>
+                            <svg class="w-5 h-5 text-ds-text-body" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                             </svg>
                         </button>
                     </div>
                     <!-- Swipe hint -->
-                    <p class="text-xs text-center text-gray-400 dark:text-gray-500 mb-2">← Wischen für Tageswechsel →</p>
+                    <p class="text-xs text-center text-ds-text-muted mb-2">← Wischen für Tageswechsel →</p>
                 </div>
 
                 <!-- Mobile view: Single day with swipe -->
@@ -224,23 +224,23 @@ export const WeekPlannerView = {
         const isPast = DateUtils.isPast(dayDate);
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-3 sm:p-4 transition-colors duration-200 ${isToday ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''} ${isPast && !isMobileView ? 'opacity-75' : ''}">
+            <div class="ds-card transition-colors duration-200 ${isToday ? 'ring-2 ring-ds-accent' : ''} ${isPast && !isMobileView ? 'opacity-75' : ''}">
                 <div class="flex items-center justify-between gap-2 mb-3">
                     <div class="flex items-center gap-2">
-                        <h3 class="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white">${formattedDate}</h3>
-                        ${isToday ? '<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">Heute</span>' : ''}
+                        <h3 class="ds-section-title text-lg sm:text-xl">${formattedDate}</h3>
+                        ${isToday ? '<span class="ds-badge rounded-full">Heute</span>' : ''}
                     </div>
-                    ${isPast ? '<span class="text-xs text-gray-400 dark:text-gray-500">Vergangen</span>' : ''}
+                    ${isPast ? '<span class="text-xs text-ds-text-muted">Vergangen</span>' : ''}
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     ${mealTypes.map(mealType => {
                         const meal = day.meals[mealType];
                         return `
-                            <div class="border dark:border-gray-700 rounded-lg p-3 sm:p-3">
+                            <div class="border border-ds-border rounded-lg p-3 sm:p-3">
                                 <div class="flex justify-between items-center mb-2">
-                                    <h4 class="font-medium text-gray-700 dark:text-gray-300 text-sm sm:text-base">${mealType}</h4>
+                                    <h4 class="font-medium text-ds-text-body text-sm sm:text-base">${mealType}</h4>
                                     ${meal ? `
-                                        <button class="remove-meal-btn p-2 -mr-1 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                        <button class="remove-meal-btn p-2 -mr-1 text-ds-danger hover:text-ds-danger hover:bg-ds-danger-bg rounded transition-colors"
                                                 data-day="${dayIndex}"
                                                 data-meal="${mealType}"
                                                 aria-label="Mahlzeit entfernen">
@@ -251,10 +251,10 @@ export const WeekPlannerView = {
                                     ` : ''}
                                 </div>
                                 ${meal ? `
-                                    <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
-                                        <p class="text-sm text-gray-800 dark:text-gray-200 font-medium ${meal.recipeId ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline open-recipe-btn' : ''}"
+                                    <div class="bg-ds-accent-bg p-3 rounded-ds">
+                                        <p class="text-sm text-ds-text font-medium ${meal.recipeId ? 'cursor-pointer hover:text-ds-accent hover:underline open-recipe-btn' : ''}"
                                            ${meal.recipeId ? `data-recipe-id="${meal.recipeId}"` : ''}>${escapeHtml(meal.recipeName)}</p>
-                                        <button class="mark-cooked-btn mt-3 w-full py-2.5 text-sm bg-green-500 dark:bg-green-600 text-white rounded-lg hover:bg-green-600 dark:hover:bg-green-700 transition-colors flex items-center justify-center gap-2 active:scale-98"
+                                        <button class="mark-cooked-btn mt-3 w-full ds-btn ds-btn-secondary flex items-center justify-center gap-2 active:scale-98"
                                                 data-recipe-id="${meal.recipeId}"
                                                 data-recipe-name="${escapeHtml(meal.recipeName)}">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -264,7 +264,7 @@ export const WeekPlannerView = {
                                         </button>
                                     </div>
                                 ` : `
-                                    <button class="add-meal-btn w-full py-4 sm:py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-center gap-2 active:scale-98"
+                                    <button class="add-meal-btn w-full py-4 sm:py-3 border-2 border-dashed border-ds-border rounded-ds text-ds-text-muted hover:border-ds-accent hover:text-ds-accent hover:bg-ds-accent-bg transition-colors flex items-center justify-center gap-2 active:scale-98"
                                             data-day="${dayIndex}"
                                             data-meal="${mealType}">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -284,37 +284,37 @@ export const WeekPlannerView = {
     renderSaveTemplateModal() {
         return `
             <div id="save-template-modal" class="modal">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+                <div class="ds-card max-w-md w-full p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Vorlage speichern</h3>
-                        <button id="close-save-template" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                        <h3 class="ds-section-title text-xl">Vorlage speichern</h3>
+                        <button id="close-save-template" class="text-ds-text-muted hover:text-ds-text text-2xl">
                             ✕
                         </button>
                     </div>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-ds-text-body mb-1">
                                 Name der Vorlage *
                             </label>
                             <input type="text" id="template-name-input"
-                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                   class="ds-input"
                                    placeholder="z.B. Standardwoche, Sommerwoche..."
                                    required>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-ds-text-body mb-1">
                                 Beschreibung (optional)
                             </label>
                             <textarea id="template-description-input"
-                                      class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                      class="ds-input"
                                       rows="3"
                                       placeholder="Beschreibe diese Vorlage..."></textarea>
                         </div>
                         <div class="flex gap-2 justify-end">
-                            <button id="cancel-save-template" class="px-4 py-2 border dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <button id="cancel-save-template" class="ds-btn border border-ds-border text-ds-text-body hover:bg-ds-bg-subtle transition-colors">
                                 Abbrechen
                             </button>
-                            <button id="confirm-save-template" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                            <button id="confirm-save-template" class="ds-btn ds-btn-secondary">
                                 Speichern
                             </button>
                         </div>
@@ -327,15 +327,15 @@ export const WeekPlannerView = {
     renderLoadTemplateModal() {
         return `
             <div id="load-template-modal" class="modal">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
-                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Vorlage laden</h3>
-                        <button id="close-load-template" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                <div class="ds-card max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                    <div class="p-4 border-b border-ds-border flex justify-between items-center">
+                        <h3 class="ds-section-title text-xl">Vorlage laden</h3>
+                        <button id="close-load-template" class="text-ds-text-muted hover:text-ds-text text-2xl">
                             ✕
                         </button>
                     </div>
                     <div id="templates-list" class="p-4 overflow-y-auto max-h-[60vh]">
-                        <p class="text-gray-500 dark:text-gray-400 text-center py-8">Lade Vorlagen...</p>
+                        <p class="text-ds-text-muted text-center py-8">Lade Vorlagen...</p>
                     </div>
                 </div>
             </div>
@@ -345,25 +345,25 @@ export const WeekPlannerView = {
     renderRecipeSelector() {
         return `
             <div id="recipe-selector-modal" class="modal">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
-                    <div class="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Rezept auswählen</h3>
-                        <button id="close-recipe-selector" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                <div class="ds-card max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                    <div class="p-4 border-b border-ds-border flex justify-between items-center">
+                        <h3 class="ds-section-title text-xl">Rezept auswählen</h3>
+                        <button id="close-recipe-selector" class="text-ds-text-muted hover:text-ds-text text-2xl">
                             ✕
                         </button>
                     </div>
                     <div class="p-4 overflow-y-auto max-h-[60vh]">
                         ${AppState.recipes.length === 0 ? `
-                            <p class="text-gray-500 dark:text-gray-400 text-center py-8">
+                            <p class="text-ds-text-muted text-center py-8">
                                 Noch keine Rezepte vorhanden. Erstelle zuerst Rezepte in der Rezeptdatenbank.
                             </p>
                         ` : `
                             <div class="grid gap-2">
                                 ${AppState.recipes.map(recipe => `
-                                    <button class="select-recipe-btn text-left p-3 border dark:border-gray-700 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                                    <button class="select-recipe-btn text-left p-3 border border-ds-border rounded hover:bg-ds-accent-bg hover:border-ds-accent transition-colors"
                                             data-recipe-id="${recipe.id}">
-                                        <p class="font-medium text-gray-800 dark:text-white">${escapeHtml(recipe.name)}</p>
-                                        ${recipe.category ? `<p class="text-sm text-gray-600 dark:text-gray-400">${escapeHtml(recipe.category)}</p>` : ''}
+                                        <p class="font-medium text-ds-text">${escapeHtml(recipe.name)}</p>
+                                        ${recipe.category ? `<p class="text-sm text-ds-text-sec">${escapeHtml(recipe.category)}</p>` : ''}
                                     </button>
                                 `).join('')}
                             </div>
@@ -377,54 +377,54 @@ export const WeekPlannerView = {
     renderAIGenerateModal() {
         return `
             <div id="ai-generate-modal" class="modal">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+                <div class="ds-card max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-                            <svg class="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <h3 class="ds-section-title text-xl flex items-center gap-2">
+                            <svg class="w-6 h-6 text-ds-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                             </svg>
                             KI-Wochenplan generieren
                         </h3>
-                        <button id="close-ai-generate" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                        <button id="close-ai-generate" class="text-ds-text-muted hover:text-ds-text text-2xl">
                             ✕
                         </button>
                     </div>
 
                     ${this.aiError ? `
-                        <div class="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
-                            <p class="text-red-700 dark:text-red-300 text-sm">${this.aiError}</p>
+                        <div class="mb-4 p-3 bg-ds-danger-bg border border-ds-danger-border rounded-ds">
+                            <p class="text-ds-danger text-sm">${this.aiError}</p>
                         </div>
                     ` : ''}
 
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-ds-text-body mb-2">
                                 Für welche Mahlzeiten soll die KI Vorschläge erstellen?
                             </label>
                             <div class="space-y-2">
-                                <label class="flex items-center gap-3 p-3 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                    <input type="checkbox" id="ai-meal-breakfast" value="Frühstück" class="w-5 h-5 text-purple-500 rounded focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600">
-                                    <span class="text-gray-800 dark:text-gray-200">Frühstück</span>
-                                    <span class="text-gray-500 dark:text-gray-400 text-sm ml-auto">Schnelle, einfache Gerichte</span>
+                                <label class="flex items-center gap-3 p-3 border border-ds-border rounded-lg cursor-pointer hover:bg-ds-bg-muted transition-colors">
+                                    <input type="checkbox" id="ai-meal-breakfast" value="Frühstück" class="w-5 h-5 accent-color-[#3A8569] rounded">
+                                    <span class="text-ds-text">Frühstück</span>
+                                    <span class="text-ds-text-muted text-sm ml-auto">Schnelle, einfache Gerichte</span>
                                 </label>
-                                <label class="flex items-center gap-3 p-3 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                    <input type="checkbox" id="ai-meal-lunch" value="Mittagessen" class="w-5 h-5 text-purple-500 rounded focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600">
-                                    <span class="text-gray-800 dark:text-gray-200">Mittagessen</span>
-                                    <span class="text-gray-500 dark:text-gray-400 text-sm ml-auto">Meal-Prep geeignet</span>
+                                <label class="flex items-center gap-3 p-3 border border-ds-border rounded-lg cursor-pointer hover:bg-ds-bg-muted transition-colors">
+                                    <input type="checkbox" id="ai-meal-lunch" value="Mittagessen" class="w-5 h-5 accent-color-[#3A8569] rounded">
+                                    <span class="text-ds-text">Mittagessen</span>
+                                    <span class="text-ds-text-muted text-sm ml-auto">Meal-Prep geeignet</span>
                                 </label>
-                                <label class="flex items-center gap-3 p-3 border dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                    <input type="checkbox" id="ai-meal-dinner" value="Abendessen" checked class="w-5 h-5 text-purple-500 rounded focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600">
-                                    <span class="text-gray-800 dark:text-gray-200">Abendessen</span>
-                                    <span class="text-gray-500 dark:text-gray-400 text-sm ml-auto">Hauptmahlzeit des Tages</span>
+                                <label class="flex items-center gap-3 p-3 border border-ds-border rounded-lg cursor-pointer hover:bg-ds-bg-muted transition-colors">
+                                    <input type="checkbox" id="ai-meal-dinner" value="Abendessen" checked class="w-5 h-5 accent-color-[#3A8569] rounded">
+                                    <span class="text-ds-text">Abendessen</span>
+                                    <span class="text-ds-text-muted text-sm ml-auto">Hauptmahlzeit des Tages</span>
                                 </label>
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-ds-text-body mb-2">
                                 Ernährungspräferenzen (optional)
                             </label>
-                            <select id="ai-dietary-preference" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                            <select id="ai-dietary-preference" class="ds-input">
                                 <option value="">Keine Einschränkungen</option>
                                 <option value="vegetarisch">Vegetarisch</option>
                                 <option value="vegan">Vegan</option>
@@ -436,10 +436,10 @@ export const WeekPlannerView = {
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label class="block text-sm font-medium text-ds-text-body mb-2">
                                     Kochzeit pro Mahlzeit
                                 </label>
-                                <select id="ai-cooking-time" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                                <select id="ai-cooking-time" class="ds-input">
                                     <option value="">Egal</option>
                                     <option value="schnell">Schnell (&lt; 30 Min)</option>
                                     <option value="mittel">Mittel (30-60 Min)</option>
@@ -447,10 +447,10 @@ export const WeekPlannerView = {
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                <label class="block text-sm font-medium text-ds-text-body mb-2">
                                     Budget
                                 </label>
-                                <select id="ai-budget" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                                <select id="ai-budget" class="ds-input">
                                     <option value="">Egal</option>
                                     <option value="günstig">Günstig</option>
                                     <option value="mittel">Mittel</option>
@@ -460,10 +460,10 @@ export const WeekPlannerView = {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-ds-text-body mb-2">
                                 Bevorzugte Küche (optional)
                             </label>
-                            <select id="ai-cuisine" class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white">
+                            <select id="ai-cuisine" class="ds-input">
                                 <option value="">Gemischt / Keine Präferenz</option>
                                 <option value="deutsch">Deutsche Küche</option>
                                 <option value="italienisch">Italienisch</option>
@@ -474,26 +474,26 @@ export const WeekPlannerView = {
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <label class="block text-sm font-medium text-ds-text-body mb-2">
                                 Zutaten vermeiden (optional)
                             </label>
                             <input type="text" id="ai-avoid-ingredients"
-                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                                   class="ds-input"
                                    placeholder="z.B. Nüsse, Sellerie, Meeresfrüchte">
                         </div>
 
-                        <div class="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
-                            <p class="text-sm text-purple-700 dark:text-purple-300">
+                        <div class="bg-ds-accent-bg p-3 rounded-ds">
+                            <p class="text-sm text-ds-accent">
                                 <strong>Hinweis:</strong> Die KI erstellt Vorschläge für die gesamte angezeigte Woche.
                                 Bestehende Mahlzeiten werden überschrieben.
                             </p>
                         </div>
 
                         <div class="flex gap-2 justify-end pt-2">
-                            <button id="cancel-ai-generate" class="px-4 py-2 border dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <button id="cancel-ai-generate" class="ds-btn border border-ds-border text-ds-text-body hover:bg-ds-bg-subtle transition-colors">
                                 Abbrechen
                             </button>
-                            <button id="confirm-ai-generate" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center gap-2">
+                            <button id="confirm-ai-generate" class="ds-btn ds-btn-primary flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                                 </svg>
@@ -877,7 +877,7 @@ export const WeekPlannerView = {
 
         if (!templates || templates.length === 0) {
             templatesList.innerHTML = `
-                <p class="text-gray-500 dark:text-gray-400 text-center py-8">
+                <p class="text-ds-text-muted text-center py-8">
                     Noch keine Vorlagen vorhanden.<br>
                     Speichere deinen aktuellen Wochenplan als Vorlage!
                 </p>
@@ -888,23 +888,23 @@ export const WeekPlannerView = {
         templatesList.innerHTML = `
             <div class="space-y-3">
                 ${templates.map(template => `
-                    <div class="border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <div class="border border-ds-border rounded-lg p-4 hover:bg-ds-bg-muted transition-colors">
                         <div class="flex justify-between items-start mb-2">
                             <div class="flex-1">
-                                <h4 class="font-semibold text-gray-800 dark:text-white">${escapeHtml(template.name)}</h4>
+                                <h4 class="font-semibold text-ds-text">${escapeHtml(template.name)}</h4>
                                 ${template.description ? `
-                                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">${escapeHtml(template.description)}</p>
+                                    <p class="text-sm text-ds-text-sec mt-1">${escapeHtml(template.description)}</p>
                                 ` : ''}
-                                <p class="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                                <p class="text-xs text-ds-text-muted mt-2">
                                     Erstellt: ${new Date(template.createdAt).toLocaleDateString('de-DE')}
                                 </p>
                             </div>
                             <div class="flex gap-2">
-                                <button class="load-template-btn px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors text-sm"
+                                <button class="load-template-btn ds-btn ds-btn-sm ds-btn-secondary"
                                         data-template-id="${template.id}">
                                     Laden
                                 </button>
-                                <button class="delete-template-btn px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
+                                <button class="delete-template-btn ds-btn ds-btn-sm ds-btn-destructive"
                                         data-template-id="${template.id}">
                                     Löschen
                                 </button>

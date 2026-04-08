@@ -92,30 +92,30 @@ export const OnboardingManager = {
         overlay.innerHTML = `
             <div class="absolute inset-0 bg-black/60"></div>
             <div id="onboarding-spotlight" class="absolute rounded-lg transition-all duration-300" style="box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);"></div>
-            <div id="onboarding-tooltip" class="absolute bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm z-10 transform transition-all duration-300">
+            <div id="onboarding-tooltip" class="absolute bg-ds-bg rounded-ds-lg shadow-2xl p-6 max-w-sm z-10 transform transition-all duration-300">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-lg font-bold text-gray-800 dark:text-white">${step.title}</h3>
-                    <span class="text-sm text-gray-500 dark:text-gray-400">${this.currentStep + 1}/${this.steps.length}</span>
+                    <h3 class="text-lg font-bold text-ds-text">${step.title}</h3>
+                    <span class="text-sm text-ds-text-muted">${this.currentStep + 1}/${this.steps.length}</span>
                 </div>
-                <p class="text-gray-600 dark:text-gray-300 mb-6">${step.content}</p>
+                <p class="text-ds-text-sec mb-6">${step.content}</p>
                 <div class="flex items-center justify-between">
-                    <button id="onboarding-skip" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                    <button id="onboarding-skip" class="text-sm text-ds-text-muted hover:text-ds-text-body">
                         Tour überspringen
                     </button>
                     <div class="flex gap-2">
                         ${this.currentStep > 0 ? `
-                            <button id="onboarding-prev" class="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                            <button id="onboarding-prev" class="ds-btn ds-btn-secondary ds-btn-sm">
                                 Zurück
                             </button>
                         ` : ''}
-                        <button id="onboarding-next" class="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                        <button id="onboarding-next" class="ds-btn ds-btn-primary ds-btn-sm">
                             ${this.currentStep === this.steps.length - 1 ? 'Fertig' : 'Weiter'}
                         </button>
                     </div>
                 </div>
                 <div class="flex justify-center gap-1 mt-4">
                     ${this.steps.map((_, i) => `
-                        <div class="w-2 h-2 rounded-full transition-colors ${i === this.currentStep ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}"></div>
+                        <div class="w-2 h-2 rounded-full transition-colors ${i === this.currentStep ? 'bg-ds-accent' : 'bg-ds-border'}"></div>
                     `).join('')}
                 </div>
             </div>

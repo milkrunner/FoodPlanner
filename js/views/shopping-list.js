@@ -109,9 +109,9 @@ export const ShoppingListView = {
 
         if (!AppState.weekPlan) {
             return `
-                <div class="bg-white rounded-lg shadow p-8 text-center">
-                    <p class="text-gray-500">Kein Wochenplan vorhanden.</p>
-                    <p class="text-gray-400 text-sm mt-2">
+                <div class="ds-card p-8 text-center">
+                    <p class="text-ds-text-muted">Kein Wochenplan vorhanden.</p>
+                    <p class="text-ds-text-muted text-sm mt-2">
                         Erstelle zuerst einen Wochenplan, um eine Einkaufsliste zu generieren.
                     </p>
                 </div>
@@ -122,15 +122,15 @@ export const ShoppingListView = {
             return `
                 <div class="space-y-6">
                     <div class="flex justify-between items-center flex-wrap gap-3">
-                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Einkaufsliste</h2>
-                        <button id="add-manual-item-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors">
+                        <h2 class="ds-page-title">Einkaufsliste</h2>
+                        <button id="add-manual-item-btn" class="ds-btn ds-btn-primary px-4 py-2">
                             + Artikel hinzufügen
                         </button>
                     </div>
 
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-8 text-center transition-colors duration-200">
-                        <p class="text-gray-500 dark:text-gray-400">Keine Zutaten im Wochenplan.</p>
-                        <p class="text-gray-400 dark:text-gray-500 text-sm mt-2">
+                    <div class="ds-card p-8 text-center">
+                        <p class="text-ds-text-muted">Keine Zutaten im Wochenplan.</p>
+                        <p class="text-ds-text-muted text-sm mt-2">
                             Füge Rezepte zu deinem Wochenplan hinzu oder klicke auf "Artikel hinzufügen", um manuelle Einträge zu erstellen.
                         </p>
                     </div>
@@ -147,26 +147,26 @@ export const ShoppingListView = {
             <div class="space-y-6">
                 <div class="flex justify-between items-center flex-wrap gap-3">
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Einkaufsliste</h2>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        <h2 class="ds-page-title">Einkaufsliste</h2>
+                        <p class="ds-page-sub mt-1">
                             ${checkedCount} von ${this.shoppingList.length} Artikel${this.shoppingList.length !== 1 ? 'n' : ''} abgehakt
                         </p>
                     </div>
                     <div class="flex gap-2 flex-wrap">
-                        <button id="toggle-sort-btn" class="px-4 py-2 ${this.sortMode === 'supermarket' ? 'bg-emerald-500 dark:bg-emerald-600 hover:bg-emerald-600 dark:hover:bg-emerald-700' : 'bg-indigo-500 dark:bg-indigo-600 hover:bg-indigo-600 dark:hover:bg-indigo-700'} text-white rounded transition-colors" title="${this.sortMode === 'supermarket' ? 'Aktuell: Supermarkt-Reihenfolge' : 'Aktuell: Alphabetisch'}">
+                        <button id="toggle-sort-btn" class="ds-btn ds-btn-secondary px-4 py-2" title="${this.sortMode === 'supermarket' ? 'Aktuell: Supermarkt-Reihenfolge' : 'Aktuell: Alphabetisch'}">
                             ${this.sortMode === 'supermarket' ? '🏪 Supermarkt' : '🔤 Alphabetisch'}
                         </button>
-                        <button id="add-manual-item-btn" class="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors">
+                        <button id="add-manual-item-btn" class="ds-btn ds-btn-primary px-4 py-2">
                             + Artikel hinzufügen
                         </button>
-                        <button id="copy-list-btn" class="px-4 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded hover:bg-gray-600 dark:hover:bg-gray-700 transition-colors">
+                        <button id="copy-list-btn" class="ds-btn ds-btn-secondary px-4 py-2">
                             Kopieren
                         </button>
-                        <button id="export-list-btn" class="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors">
+                        <button id="export-list-btn" class="ds-btn ds-btn-secondary px-4 py-2">
                             Exportieren
                         </button>
                         ${checkedCount > 0 ? `
-                            <button id="clear-checked-btn" class="px-4 py-2 bg-red-500 dark:bg-red-600 text-white rounded hover:bg-red-600 dark:hover:bg-red-700 transition-colors">
+                            <button id="clear-checked-btn" class="ds-btn ds-btn-destructive px-4 py-2">
                                 Abgehakte entfernen
                             </button>
                         ` : ''}
@@ -176,9 +176,9 @@ export const ShoppingListView = {
                 <!-- Budget Panel -->
                 ${this.renderBudgetPanel()}
 
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                        <div class="bg-green-500 dark:bg-green-600 h-3 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
+                <div class="ds-card p-4">
+                    <div class="w-full bg-ds-bg-subtle rounded-full h-2">
+                        <div class="bg-ds-text h-2 rounded-full transition-all duration-300" style="width: ${progress}%"></div>
                     </div>
                 </div>
 
@@ -190,8 +190,8 @@ export const ShoppingListView = {
 
                 ${this.renderCategorizedList()}
 
-                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 transition-colors duration-200">
-                    <p class="text-sm text-blue-800 dark:text-blue-300">
+                <div class="bg-ds-accent-bg border border-ds-border rounded-ds p-4">
+                    <p class="text-sm text-ds-text-body">
                         <strong>Tipp:</strong> Klicke auf einen Artikel, um ihn als erledigt zu markieren.
                         Du kannst die Liste exportieren oder in die Zwischenablage kopieren.
                     </p>
@@ -205,17 +205,17 @@ export const ShoppingListView = {
 
     renderBudgetPanel() {
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+            <div class="ds-card p-4">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="text-lg font-semibold text-gray-800 dark:text-white">Budget</span>
-                            <span id="budget-display" class="text-2xl font-bold text-green-600 dark:text-green-400">${this.budgetAmount} €</span>
+                            <span class="ds-section-title">Budget</span>
+                            <span id="budget-display" class="text-2xl font-bold text-ds-accent">${this.budgetAmount} €</span>
                         </div>
                         <input type="range" id="budget-slider"
                                min="10" max="200" step="5" value="${this.budgetAmount}"
-                               class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-500">
-                        <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                               class="w-full h-2 bg-ds-bg-subtle rounded-lg appearance-none cursor-pointer accent-[#3A8569]">
+                        <div class="flex justify-between text-xs text-ds-text-muted mt-1">
                             <span>10 €</span>
                             <span>200 €</span>
                         </div>
@@ -224,18 +224,18 @@ export const ShoppingListView = {
                     <div class="flex flex-col gap-2">
                         <div class="flex items-center gap-2">
                             <input type="checkbox" id="pref-seasonal" ${this.preferences.prioritizeSeasonal ? 'checked' : ''}
-                                   class="w-4 h-4 accent-green-500 cursor-pointer">
-                            <label for="pref-seasonal" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">Saisonal bevorzugen</label>
+                                   class="w-4 h-4 accent-[#3A8569] cursor-pointer">
+                            <label for="pref-seasonal" class="text-sm text-ds-text-body cursor-pointer">Saisonal bevorzugen</label>
                         </div>
                         <div class="flex items-center gap-2">
                             <input type="checkbox" id="pref-brands" ${this.preferences.avoidBrands ? 'checked' : ''}
-                                   class="w-4 h-4 accent-green-500 cursor-pointer">
-                            <label for="pref-brands" class="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">Eigenmarken bevorzugen</label>
+                                   class="w-4 h-4 accent-[#3A8569] cursor-pointer">
+                            <label for="pref-brands" class="text-sm text-ds-text-body cursor-pointer">Eigenmarken bevorzugen</label>
                         </div>
                     </div>
 
                     <button id="optimize-shopping-btn"
-                            class="px-6 py-3 bg-purple-500 dark:bg-purple-600 text-white rounded-lg hover:bg-purple-600 dark:hover:bg-purple-700 transition-colors flex items-center gap-2 font-medium ${this.isOptimizing ? 'opacity-50 cursor-not-allowed' : ''}"
+                            class="ds-btn ds-btn-secondary px-6 py-3 rounded-lg flex items-center gap-2 font-medium ${this.isOptimizing ? 'opacity-50 cursor-not-allowed' : ''}"
                             ${this.isOptimizing ? 'disabled' : ''}>
                         ${this.isOptimizing ? `
                             <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
@@ -260,21 +260,21 @@ export const ShoppingListView = {
         const hasDeductions = summary && (summary.fullyAvailable > 0 || summary.partiallyAvailable > 0);
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 p-4 transition-colors duration-200">
+            <div class="ds-card p-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-ds-text-sec" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                         </svg>
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Vorräte berücksichtigen</span>
+                        <span class="text-sm font-medium text-ds-text-body">Vorräte berücksichtigen</span>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="pantry-toggle" class="sr-only peer" ${this.usePantry ? 'checked' : ''}>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:after:border-gray-600 peer-checked:bg-amber-500"></div>
+                        <div class="w-11 h-6 bg-ds-bg-subtle peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ds-accent/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-ds-border-hover after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ds-accent"></div>
                     </label>
                 </div>
                 ${hasDeductions ? `
-                    <div class="mt-3 flex items-center gap-2 text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg p-2">
+                    <div class="mt-3 flex items-center gap-2 text-sm text-ds-accent bg-ds-accent-bg rounded-ds p-2">
                         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
@@ -292,15 +292,15 @@ export const ShoppingListView = {
         const savings = result.originalEstimate - result.optimizedEstimate;
 
         return `
-            <div class="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 transition-colors duration-200">
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-ds-border rounded-lg p-4">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-lg font-semibold text-green-800 dark:text-green-300 flex items-center gap-2">
+                    <h3 class="ds-section-title text-ds-text-body flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         Optimierungsvorschläge
                     </h3>
-                    <button id="close-optimization-result" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <button id="close-optimization-result" class="text-ds-text-muted hover:text-ds-text">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -308,35 +308,35 @@ export const ShoppingListView = {
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Originalkosten</p>
-                        <p class="text-xl font-bold text-gray-700 dark:text-gray-300">${result.originalEstimate?.toFixed(2) || '?'} €</p>
+                    <div class="bg-ds-bg rounded-lg p-3 text-center">
+                        <p class="text-sm text-ds-text-muted">Originalkosten</p>
+                        <p class="text-xl font-bold text-ds-text-body">${result.originalEstimate?.toFixed(2) || '?'} €</p>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Optimiert</p>
-                        <p class="text-xl font-bold text-green-600 dark:text-green-400">${result.optimizedEstimate?.toFixed(2) || '?'} €</p>
+                    <div class="bg-ds-bg rounded-lg p-3 text-center">
+                        <p class="text-sm text-ds-text-muted">Optimiert</p>
+                        <p class="text-xl font-bold text-ds-accent">${result.optimizedEstimate?.toFixed(2) || '?'} €</p>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Ersparnis</p>
-                        <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400">${savings?.toFixed(2) || '?'} € (${result.savingsPercent || 0}%)</p>
+                    <div class="bg-ds-bg rounded-lg p-3 text-center">
+                        <p class="text-sm text-ds-text-muted">Ersparnis</p>
+                        <p class="text-xl font-bold text-emerald-600">${savings?.toFixed(2) || '?'} € (${result.savingsPercent || 0}%)</p>
                     </div>
                 </div>
 
                 ${result.substitutions && result.substitutions.length > 0 ? `
                     <div class="mb-4">
-                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ersatz-Vorschläge:</h4>
+                        <h4 class="text-sm font-semibold text-ds-text-body mb-2">Ersatz-Vorschläge:</h4>
                         <div class="space-y-2">
                             ${result.substitutions.slice(0, 3).map(sub => `
-                                <div class="flex items-center justify-between bg-white dark:bg-gray-800 rounded p-2 text-sm">
-                                    <span class="text-gray-600 dark:text-gray-400">
+                                <div class="flex items-center justify-between bg-ds-bg rounded p-2 text-sm">
+                                    <span class="text-ds-text-sec">
                                         <span class="line-through">${escapeHtml(sub.original)}</span>
-                                        → <span class="text-green-600 dark:text-green-400 font-medium">${escapeHtml(sub.substitute)}</span>
+                                        → <span class="text-ds-accent font-medium">${escapeHtml(sub.substitute)}</span>
                                     </span>
-                                    <span class="text-green-600 dark:text-green-400 text-xs">-${sub.savingsPercent}%</span>
+                                    <span class="text-ds-accent text-xs">-${sub.savingsPercent}%</span>
                                 </div>
                             `).join('')}
                             ${result.substitutions.length > 3 ? `
-                                <button id="show-all-substitutions" class="text-purple-600 dark:text-purple-400 text-sm hover:underline">
+                                <button id="show-all-substitutions" class="text-ds-accent text-sm hover:underline">
                                     + ${result.substitutions.length - 3} weitere anzeigen
                                 </button>
                             ` : ''}
@@ -345,7 +345,7 @@ export const ShoppingListView = {
                 ` : ''}
 
                 ${result.generalTips && result.generalTips.length > 0 ? `
-                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                    <div class="text-sm text-ds-text-sec">
                         <strong>Tipps:</strong> ${escapeHtml(result.generalTips[0])}
                     </div>
                 ` : ''}
@@ -360,30 +360,30 @@ export const ShoppingListView = {
 
         return `
             <div id="optimization-modal" class="modal active">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+                <div class="bg-ds-bg rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Alle Optimierungsvorschläge</h3>
-                        <button id="close-optimization-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                        <h3 class="text-xl font-semibold text-ds-text">Alle Optimierungsvorschläge</h3>
+                        <button id="close-optimization-modal" class="text-ds-text-muted hover:text-ds-text text-2xl">
                             ✕
                         </button>
                     </div>
 
                     ${result.substitutions && result.substitutions.length > 0 ? `
                         <div class="mb-6">
-                            <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Ersatz-Vorschläge</h4>
+                            <h4 class="ds-section-title mb-3">Ersatz-Vorschläge</h4>
                             <div class="space-y-3">
                                 ${result.substitutions.map(sub => `
-                                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                                    <div class="bg-ds-bg-muted rounded-lg p-3">
                                         <div class="flex items-center justify-between mb-1">
-                                            <span class="font-medium text-gray-800 dark:text-white">
+                                            <span class="font-medium text-ds-text">
                                                 ${escapeHtml(sub.original)} → ${escapeHtml(sub.substitute)}
                                             </span>
-                                            <span class="bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-2 py-1 rounded text-sm">
+                                            <span class="ds-badge px-2 py-1 text-sm">
                                                 -${sub.savingsPercent}%
                                             </span>
                                         </div>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400">${escapeHtml(sub.reason)}</p>
-                                        <button class="save-substitution-btn mt-2 text-sm text-purple-600 dark:text-purple-400 hover:underline"
+                                        <p class="text-sm text-ds-text-sec">${escapeHtml(sub.reason)}</p>
+                                        <button class="save-substitution-btn mt-2 text-sm text-ds-accent hover:underline"
                                                 data-original="${escapeHtml(sub.original)}"
                                                 data-substitute="${escapeHtml(sub.substitute)}"
                                                 data-reason="${escapeHtml(sub.reason)}"
@@ -398,15 +398,15 @@ export const ShoppingListView = {
 
                     ${result.seasonalTips && result.seasonalTips.length > 0 ? `
                         <div class="mb-6">
-                            <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Saisonale Tipps</h4>
+                            <h4 class="ds-section-title mb-3">Saisonale Tipps</h4>
                             <div class="space-y-2">
                                 ${result.seasonalTips.map(tip => `
                                     <div class="flex items-center gap-2 text-sm">
-                                        <span class="${tip.isInSeason ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}">
+                                        <span class="${tip.isInSeason ? 'text-ds-accent' : 'text-ds-danger'}">
                                             ${tip.isInSeason ? '✓' : '⚠'}
                                         </span>
-                                        <span class="font-medium text-gray-700 dark:text-gray-300">${escapeHtml(tip.ingredient)}:</span>
-                                        <span class="text-gray-600 dark:text-gray-400">${escapeHtml(tip.tip)}</span>
+                                        <span class="font-medium text-ds-text-body">${escapeHtml(tip.ingredient)}:</span>
+                                        <span class="text-ds-text-sec">${escapeHtml(tip.tip)}</span>
                                     </div>
                                 `).join('')}
                             </div>
@@ -415,13 +415,13 @@ export const ShoppingListView = {
 
                     ${result.quantityTips && result.quantityTips.length > 0 ? `
                         <div class="mb-6">
-                            <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Mengen-Optimierung</h4>
+                            <h4 class="ds-section-title mb-3">Mengen-Optimierung</h4>
                             <div class="space-y-2">
                                 ${result.quantityTips.map(tip => `
-                                    <div class="bg-blue-50 dark:bg-blue-900/20 rounded p-2 text-sm">
-                                        <span class="font-medium text-blue-800 dark:text-blue-300">${escapeHtml(tip.ingredient)}:</span>
-                                        <span class="text-blue-700 dark:text-blue-400">${escapeHtml(tip.tip)}</span>
-                                        ${tip.savingsPercent ? `<span class="text-green-600 dark:text-green-400 ml-2">(-${tip.savingsPercent}%)</span>` : ''}
+                                    <div class="bg-ds-accent-bg rounded-ds p-2 text-sm">
+                                        <span class="font-medium text-ds-text-body">${escapeHtml(tip.ingredient)}:</span>
+                                        <span class="text-ds-text-sec">${escapeHtml(tip.tip)}</span>
+                                        ${tip.savingsPercent ? `<span class="text-ds-accent ml-2">(-${tip.savingsPercent}%)</span>` : ''}
                                     </div>
                                 `).join('')}
                             </div>
@@ -430,8 +430,8 @@ export const ShoppingListView = {
 
                     ${result.generalTips && result.generalTips.length > 0 ? `
                         <div>
-                            <h4 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Allgemeine Tipps</h4>
-                            <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                            <h4 class="ds-section-title mb-3">Allgemeine Tipps</h4>
+                            <ul class="list-disc list-inside space-y-1 text-sm text-ds-text-sec">
                                 ${result.generalTips.map(tip => `<li>${escapeHtml(tip)}</li>`).join('')}
                             </ul>
                         </div>
@@ -444,47 +444,47 @@ export const ShoppingListView = {
     renderAddManualItemModal() {
         return `
             <div id="add-manual-item-modal" class="modal">
-                <div class="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+                <div class="bg-ds-bg rounded-lg max-w-md w-full p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-xl font-semibold text-gray-800 dark:text-white">Artikel hinzufügen</h3>
-                        <button id="close-manual-item-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl">
+                        <h3 class="text-xl font-semibold text-ds-text">Artikel hinzufügen</h3>
+                        <button id="close-manual-item-modal" class="text-ds-text-muted hover:text-ds-text text-2xl">
                             ✕
                         </button>
                     </div>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-ds-text-body mb-1">
                                 Artikel *
                             </label>
                             <input type="text" id="manual-item-name"
-                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                                   class="ds-input w-full"
                                    placeholder="z.B. Toilettenpapier, Snacks..."
                                    required>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-ds-text-body mb-1">
                                 Menge
                             </label>
                             <input type="text" id="manual-item-amount"
-                                   class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                                   class="ds-input w-full"
                                    value="1">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label class="block text-sm font-medium text-ds-text-body mb-1">
                                 Kategorie
                             </label>
                             <select id="manual-item-category"
-                                    class="w-full px-3 py-2 border dark:border-gray-600 rounded focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white">
+                                    class="ds-input w-full">
                                 ${INGREDIENT_CATEGORIES.map(c =>
                                     `<option value="${c}"${c === 'Sonstiges' ? ' selected' : ''}>${c}</option>`
                                 ).join('\n                                ')}
                             </select>
                         </div>
                         <div class="flex gap-2 justify-end">
-                            <button id="cancel-manual-item" class="px-4 py-2 border dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <button id="cancel-manual-item" class="ds-btn ds-btn-secondary px-4 py-2">
                                 Abbrechen
                             </button>
-                            <button id="save-manual-item" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors">
+                            <button id="save-manual-item" class="ds-btn ds-btn-primary px-4 py-2">
                                 Hinzufügen
                             </button>
                         </div>
@@ -506,25 +506,25 @@ export const ShoppingListView = {
         const isFullyAvailable = pantryInfo?.fullyAvailable;
         const isPartial = pantryInfo?.partiallyAvailable;
         const displayAmount = pantryInfo ? pantryInfo.adjustedAmount : item.amount;
-        const strikeClass = isFullyAvailable ? 'line-through text-gray-400 dark:text-gray-500' : '';
+        const strikeClass = isFullyAvailable ? 'line-through text-ds-text-muted' : '';
 
         return `
-            <div class="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${item.checked || isFullyAvailable ? 'bg-gray-50 dark:bg-gray-700/50' : ''} ${item.isManual ? 'border-l-4 border-green-500 dark:border-green-600' : ''} ${isFullyAvailable ? 'opacity-60' : ''}">
+            <div class="p-3 sm:p-4 hover:bg-ds-bg-muted transition-colors ${item.checked || isFullyAvailable ? 'bg-ds-bg-muted' : ''} ${item.isManual ? 'border-l-4 border-ds-accent' : ''} ${isFullyAvailable ? 'opacity-60' : ''}">
                 <div class="flex items-center gap-3 sm:gap-4">
                     <label class="relative flex items-center justify-center cursor-pointer">
                         <input type="checkbox" ${item.checked ? 'checked' : ''}
-                               class="item-checkbox touch-checkbox w-7 h-7 sm:w-6 sm:h-6 cursor-pointer accent-blue-500 dark:accent-blue-400 rounded"
+                               class="item-checkbox touch-checkbox w-7 h-7 sm:w-6 sm:h-6 cursor-pointer rounded"
                                data-item-index="${item.index}">
                     </label>
                     <div class="flex-1 min-w-0 cursor-pointer py-1" data-item-index="${item.index}">
                         <div class="flex items-start justify-between gap-2">
-                            <p class="font-medium text-gray-800 dark:text-white text-sm sm:text-base ${item.checked ? 'line-through text-gray-500 dark:text-gray-400' : ''} ${strikeClass}">
+                            <p class="font-medium text-ds-text text-sm sm:text-base ${item.checked ? 'line-through text-ds-text-muted' : ''} ${strikeClass}">
                                 <span class="font-semibold">${isFullyAvailable ? item.amount : displayAmount}</span> ${item.unit} ${item.name}
-                                ${item.isManual ? '<span class="ml-2 text-xs bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-2 py-0.5 rounded">Manuell</span>' : ''}
-                                ${isFullyAvailable ? '<span class="ml-2 text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded">Im Vorrat</span>' : ''}
+                                ${item.isManual ? '<span class="ml-2 text-xs ds-badge px-2 py-0.5 rounded">Manuell</span>' : ''}
+                                ${isFullyAvailable ? '<span class="ml-2 text-xs ds-badge px-2 py-0.5 rounded">Im Vorrat</span>' : ''}
                             </p>
                             ${item.isManual ? `
-                                <button class="delete-manual-item-btn p-2 -mr-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                <button class="delete-manual-item-btn p-2 -mr-2 text-ds-danger hover:text-ds-danger hover:bg-ds-danger-bg rounded transition-colors"
                                         data-item-id="${item.id}"
                                         aria-label="Artikel löschen">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -534,12 +534,12 @@ export const ShoppingListView = {
                             ` : ''}
                         </div>
                         ${isPartial && pantryInfo.pantryAmount > 0 ? `
-                            <p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                            <p class="text-xs text-ds-text-sec mt-0.5">
                                 ${pantryInfo.pantryAmount} ${pantryInfo.pantryUnit || item.unit} im Vorrat
                             </p>
                         ` : ''}
                         ${item.recipeNames.length > 0 ? `
-                            <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
+                            <p class="text-xs sm:text-sm text-ds-text-muted mt-1 truncate">
                                 Für: ${item.recipeNames.join(', ')}
                             </p>
                         ` : ''}
@@ -555,21 +555,21 @@ export const ShoppingListView = {
         const checkedCount = items.filter(item => item.checked).length;
 
         return `
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900 transition-colors duration-200 mb-4">
-                <div class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            <div class="ds-card mb-4">
+                <div class="flex items-center justify-between p-4 cursor-pointer hover:bg-ds-bg-muted transition-colors"
                      data-category="${groupKey}">
                     <div class="flex items-center gap-3">
-                        <svg class="w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}"
+                        <svg class="w-5 h-5 text-ds-text-muted transition-transform ${isCollapsed ? '' : 'rotate-90'}"
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                         </svg>
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">${label}</h3>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">
+                        <h3 class="ds-section-title">${label}</h3>
+                        <span class="text-sm text-ds-text-muted">
                             (${checkedCount}/${items.length})
                         </span>
                     </div>
                 </div>
-                <div class="divide-y dark:divide-gray-700 ${isCollapsed ? 'hidden' : ''}">
+                <div class="divide-y divide-ds-border ${isCollapsed ? 'hidden' : ''}">
                     ${items.map(item => this.renderItemHtml(item)).join('')}
                 </div>
             </div>

@@ -5,9 +5,26 @@ import { ActionHistory } from './core/action-history.js';
 import { MobileUtils } from './core/mobile-utils.js';
 import { OnboardingManager } from './core/onboarding.js';
 import { Auth } from './core/auth.js';
-import { AuthModal } from './core/auth-modal.js';
-import { escapeHtml } from './core/utils.js';
-import { renderFavoritesQuickAccess } from './core/favorites.js';
+
+const NAV_ICONS = {
+    planner: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="4" x2="9" y2="10"/><line x1="15" y1="4" x2="15" y2="10"/></svg>',
+    recipes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>',
+    shopping: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>',
+    pantry: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>',
+    history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    'meal-prep': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+    'ai-recipes': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    parser: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+    admin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
+};
+
+const NAV_LABELS = {
+    planner: 'Planer', recipes: 'Rezepte', shopping: 'Einkauf',
+    pantry: 'Vorrat', history: 'Historie', 'meal-prep': 'Meal Prep',
+    'ai-recipes': 'AI Rezepte', parser: 'Import', admin: 'Admin',
+};
+
+const BOTTOM_NAV_VIEWS = ['planner', 'recipes', 'shopping', 'pantry', 'history'];
 
 // View module registry for lazy loading
 const VIEW_MODULES = {
@@ -36,7 +53,6 @@ const VIEW_EXPORT_NAMES = {
 
 // Main App
 export const App = {
-    mobileMenuOpen: false,
     _viewCache: {},
 
     async init() {
@@ -124,47 +140,7 @@ export const App = {
     },
 
     setupMobileFeatures() {
-        // Handle resize events
-        let resizeTimeout;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                if (!MobileUtils.isMobile() && this.mobileMenuOpen) {
-                    this.closeMobileMenu();
-                }
-            }, 100);
-        });
-
-        // Close mobile menu on escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.mobileMenuOpen) {
-                this.closeMobileMenu();
-            }
-        });
-    },
-
-    toggleMobileMenu() {
-        this.mobileMenuOpen = !this.mobileMenuOpen;
-        const overlay = document.querySelector('.mobile-nav-overlay');
-        const menu = document.querySelector('.mobile-nav-menu');
-
-        if (overlay && menu) {
-            overlay.classList.toggle('active', this.mobileMenuOpen);
-            menu.classList.toggle('active', this.mobileMenuOpen);
-            document.body.style.overflow = this.mobileMenuOpen ? 'hidden' : '';
-        }
-    },
-
-    closeMobileMenu() {
-        this.mobileMenuOpen = false;
-        const overlay = document.querySelector('.mobile-nav-overlay');
-        const menu = document.querySelector('.mobile-nav-menu');
-
-        if (overlay && menu) {
-            overlay.classList.remove('active');
-            menu.classList.remove('active');
-            document.body.style.overflow = '';
-        }
+        // Reserved for future mobile-specific features (pull-to-refresh, gestures, etc.)
     },
 
     async render() {
@@ -186,12 +162,19 @@ export const App = {
         // Render shell immediately (synchronous) with loading placeholder for view
         appElement.innerHTML = `
             ${this.renderPullToRefresh()}
-            ${this.renderHeader()}
-            ${this.renderMobileNavigation()}
-            ${this.renderNavigation()}
-            <main id="main-content" class="container mx-auto px-4 py-4 sm:py-6 pb-safe" role="main" aria-label="Hauptinhalt">
-                <div id="view-container" aria-live="polite">${this._renderLoadingPlaceholder()}</div>
+            <nav class="ds-sidebar" aria-label="Hauptnavigation">
+                <div class="ds-sidebar-logo" aria-hidden="true">F</div>
+                ${this._renderSidebarItems()}
+            </nav>
+            <nav class="ds-bottomnav" aria-label="Hauptnavigation">
+                ${this._renderBottomNavItems()}
+            </nav>
+            <main id="main-content" class="sm:ml-[64px] pb-[72px] sm:pb-0">
+                <div class="px-5 sm:px-12 py-6 sm:py-10">
+                    <div id="view-container" aria-live="polite">${this._renderLoadingPlaceholder()}</div>
+                </div>
             </main>
+            <div id="toast-notification" class="fixed bottom-20 sm:bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 z-50 pointer-events-none" aria-live="assertive"></div>
         `;
         this.attachEventListeners();
 
@@ -210,9 +193,9 @@ export const App = {
             const viewContainer = document.getElementById('view-container');
             if (viewContainer) {
                 viewContainer.innerHTML = `
-                    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
-                        <p class="text-red-700 dark:text-red-300 font-medium">Fehler beim Laden der Ansicht.</p>
-                        <button onclick="window.location.reload()" class="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                    <div class="bg-ds-danger-bg border border-ds-danger-border rounded-ds p-6 text-center">
+                        <p class="text-ds-danger font-medium">Fehler beim Laden der Ansicht.</p>
+                        <button onclick="window.location.reload()" class="ds-btn ds-btn-primary mt-3">
                             Seite neu laden
                         </button>
                     </div>`;
@@ -221,42 +204,33 @@ export const App = {
     },
 
     _renderAuthScreen() {
-        const isDark = document.documentElement.classList.contains('dark');
         return `
-            <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4">
+            <div class="min-h-screen flex items-center justify-center bg-ds-bg-muted px-4">
                 <div class="w-full max-w-md">
                     <div class="text-center mb-8">
-                        <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-2">Food Planner</h1>
-                        <p class="text-gray-600 dark:text-gray-400">Dein persönlicher Essenswochenplaner</p>
+                        <h1 class="text-4xl font-bold text-ds-text mb-2">Food Planner</h1>
+                        <p class="text-ds-text-sec">Dein persönlicher Essenswochenplaner</p>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-                        <div id="auth-screen-tabs" class="flex mb-6 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                    <div class="ds-card">
+                        <div id="auth-screen-tabs" class="flex mb-6 bg-ds-bg-subtle rounded-ds p-1">
                             <button class="auth-tab flex-1 py-2 text-sm font-medium rounded-md transition-colors active" data-mode="login">Anmelden</button>
                             <button class="auth-tab flex-1 py-2 text-sm font-medium rounded-md transition-colors" data-mode="register">Registrieren</button>
                         </div>
                         <form id="auth-screen-form" class="space-y-4">
                             <div id="auth-name-field" class="hidden">
                                 <input id="auth-screen-name" type="text" placeholder="Name (optional)"
-                                    class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                                    class="ds-input"/>
                             </div>
                             <input id="auth-screen-email" type="email" placeholder="E-Mail" required
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                                class="ds-input"/>
                             <input id="auth-screen-password" type="password" placeholder="Passwort (Groß-/Kleinbuchstaben + Zahl)" required minlength="8"
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-                            <div id="auth-screen-error" class="text-sm text-red-500 hidden"></div>
+                                class="ds-input"/>
+                            <div id="auth-screen-error" class="text-sm text-ds-danger hidden"></div>
                             <button type="submit" id="auth-screen-submit"
-                                class="w-full py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">
+                                class="ds-btn ds-btn-primary w-full">
                                 Anmelden
                             </button>
                         </form>
-                    </div>
-                    <div class="flex justify-center mt-4">
-                        <button id="auth-dark-toggle" class="p-2 rounded-lg bg-white/50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-600 transition-colors" title="Dark Mode">
-                            <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path class="${isDark ? 'hidden' : ''}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                                <path class="${isDark ? '' : 'hidden'}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-                            </svg>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -283,7 +257,7 @@ export const App = {
 
         // Style active tab
         const style = document.createElement('style');
-        style.textContent = '.auth-tab.active { background: white; color: #1d4ed8; box-shadow: 0 1px 2px rgba(0,0,0,0.1); } .dark .auth-tab.active { background: #374151; color: #60a5fa; }';
+        style.textContent = '.auth-tab.active { background: white; color: #111; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }';
         document.head.appendChild(style);
 
         form.addEventListener('submit', async (e) => {
@@ -310,38 +284,33 @@ export const App = {
             }
         });
 
-        document.getElementById('auth-dark-toggle')?.addEventListener('click', () => {
-            DarkMode.toggle();
-            this.render();
-        });
-
         document.getElementById('auth-screen-email')?.focus();
     },
 
     _renderChangePasswordScreen() {
         return `
-            <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-100 dark:from-gray-900 dark:to-gray-800 px-4">
+            <div class="min-h-screen flex items-center justify-center bg-ds-bg-muted px-4">
                 <div class="w-full max-w-md">
                     <div class="text-center mb-8">
-                        <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-2">Food Planner</h1>
-                        <p class="text-gray-600 dark:text-gray-400">Passwort muss geändert werden</p>
+                        <h1 class="text-4xl font-bold text-ds-text mb-2">Food Planner</h1>
+                        <p class="text-ds-text-sec">Passwort muss geändert werden</p>
                     </div>
-                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-                        <div class="flex items-center gap-3 mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                            <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="ds-card">
+                        <div class="flex items-center gap-3 mb-4 p-3 bg-ds-accent-bg border border-ds-border rounded-ds">
+                            <svg class="w-5 h-5 text-ds-accent flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                             </svg>
-                            <p class="text-sm text-yellow-700 dark:text-yellow-300">Du verwendest ein temporäres Passwort. Bitte vergib ein neues eigenes Passwort.</p>
+                            <p class="text-sm text-ds-text-body">Du verwendest ein temporäres Passwort. Bitte vergib ein neues eigenes Passwort.</p>
                         </div>
                         <form id="change-pw-form" class="space-y-4">
                             <input id="change-pw-current" type="password" placeholder="Temporäres Passwort" required
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                                class="ds-input"/>
                             <input id="change-pw-new" type="password" placeholder="Neues Passwort (Groß-/Kleinbuchstaben + Zahl)" required minlength="8"
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                                class="ds-input"/>
                             <input id="change-pw-confirm" type="password" placeholder="Neues Passwort bestätigen" required minlength="8"
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-                            <div id="change-pw-error" class="text-sm text-red-500 hidden"></div>
-                            <button type="submit" class="w-full py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors">
+                                class="ds-input"/>
+                            <div id="change-pw-error" class="text-sm text-ds-danger hidden"></div>
+                            <button type="submit" class="ds-btn ds-btn-primary w-full">
                                 Passwort ändern
                             </button>
                         </form>
@@ -391,15 +360,15 @@ export const App = {
     _renderLoadingPlaceholder() {
         return `
             <div class="space-y-4 animate-pulse">
-                <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
-                <div class="h-48 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                <div class="h-8 skeleton rounded w-48"></div>
+                <div class="h-48 skeleton rounded"></div>
             </div>
         `;
     },
 
     renderPullToRefresh() {
         return `
-            <div class="pull-to-refresh bg-blue-500 dark:bg-blue-600 text-white">
+            <div class="pull-to-refresh bg-ds-accent text-white">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
@@ -411,246 +380,40 @@ export const App = {
         return AppState.recipes.filter(recipe => recipe.is_favorite);
     },
 
-    _renderAuthButton() {
-        const user = Auth.getUser();
-        if (user) {
-            const initial = (user.name || user.email).charAt(0).toUpperCase();
-            return `<div id="header-auth-btn" class="relative">
-                <button id="user-menu-btn" class="w-8 h-8 rounded-full bg-blue-600 text-white text-xs font-semibold flex items-center justify-center hover:bg-blue-700 transition-colors" title="${escapeHtml(user.email)}" aria-label="Benutzermenü">${initial}</button>
-                <div id="user-dropdown" class="hidden absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50">
-                    <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                        <p class="text-xs font-medium text-gray-900 dark:text-white truncate">${escapeHtml(user.name || '')}${user.role === 'admin' ? ' <span class="ml-1 px-1.5 py-0.5 text-[10px] rounded bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">Admin</span>' : ''}</p>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 truncate">${escapeHtml(user.email)}</p>
-                    </div>
-                    ${user.role === 'admin' ? `
-                    <div class="border-b border-gray-200 dark:border-gray-700">
-                        <button id="user-admin-btn" class="w-full text-left px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                            Benutzerverwaltung
-                        </button>
-                    </div>
-                    ` : ''}
-                    <button id="user-logout-btn" class="w-full text-left px-3 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Abmelden</button>
-                </div>
-            </div>`;
-        }
-        return '';
+    _renderSidebarItems() {
+        const tabs = this._getVisibleTabs();
+        return tabs.map(viewId => `
+            <button class="ds-sidebar-item ${AppState.currentView === viewId ? 'active' : ''}"
+                    data-view="${viewId}" title="${NAV_LABELS[viewId]}" aria-label="${NAV_LABELS[viewId]}">
+                ${NAV_ICONS[viewId]}
+            </button>
+        `).join('');
     },
 
-    _bindAuthButton() {
-        const loginBtn = document.getElementById('header-auth-btn');
-        if (loginBtn && !Auth.isAuthenticated()) {
-            loginBtn.addEventListener('click', () => AuthModal.show('login', () => App.render()));
-        }
-        const menuBtn = document.getElementById('user-menu-btn');
-        const dropdown = document.getElementById('user-dropdown');
-        if (menuBtn && dropdown) {
-            menuBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                dropdown.classList.toggle('hidden');
-            });
-            document.addEventListener('click', () => dropdown.classList.add('hidden'), { once: true });
-        }
-        document.getElementById('user-admin-btn')?.addEventListener('click', () => {
-            dropdown?.classList.add('hidden');
-            AppState.setView('admin');
-        });
-        document.getElementById('user-logout-btn')?.addEventListener('click', async () => {
-            await Auth.logout();
-            // Reset app state
-            AppState.recipes = [];
-            AppState.weekPlan = null;
-            AppState.weekPlansCache = {};
-            AppState.pantryItems = [];
-            this._viewCache = {};
-            App.render();
-            Toast.show('Abgemeldet', { type: 'default', duration: 2000 });
-        });
+    _renderBottomNavItems() {
+        return BOTTOM_NAV_VIEWS.map(viewId => `
+            <button class="ds-bottomnav-item ${AppState.currentView === viewId ? 'active' : ''}"
+                    data-view="${viewId}" aria-label="${NAV_LABELS[viewId]}">
+                ${NAV_ICONS[viewId]}
+                <span>${NAV_LABELS[viewId]}</span>
+            </button>
+        `).join('');
     },
 
-    renderHeader() {
-        const isDark = document.documentElement.classList.contains('dark');
-        const sunIconClass = isDark ? 'hidden' : '';
-        const moonIconClass = isDark ? '' : 'hidden';
-
-        return `
-            <header class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-200 sticky top-0 z-30" role="banner">
-                <div class="container mx-auto px-4 py-3 sm:py-4">
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-3">
-                            <!-- Mobile menu button -->
-                            <button id="mobile-menu-toggle" class="sm:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Menü öffnen">
-                                <svg class="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                                </svg>
-                            </button>
-                            <div>
-                                <h1 class="text-xl sm:text-3xl font-bold text-gray-800 dark:text-white">Food Planner</h1>
-                                <p class="text-xs sm:text-base text-gray-600 dark:text-gray-300 hidden sm:block">Dein persönlicher Essenswochenplaner</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button id="restart-tour-btn" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Tour neu starten" aria-label="Einführungstour neu starten">
-                                <svg class="w-6 h-6 text-gray-800 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            </button>
-                            <button id="dark-mode-toggle" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Dark Mode umschalten">
-                                <svg class="w-6 h-6 text-gray-800 dark:text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path class="${sunIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                                    <path class="${moonIconClass}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-                                </svg>
-                            </button>
-                            ${this._renderAuthButton()}
-                        </div>
-                    </div>
-                </div>
-            </header>
-        `;
-    },
-
-    renderMobileNavigation() {
-        const tabs = [
-            { id: 'planner', label: 'Wochenplan', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-            { id: 'meal-prep', label: 'Meal-Prep', icon: 'M5 13l4 4L19 7m-7-4a9 9 0 110 18 9 9 0 010-18z' },
-            { id: 'recipes', label: 'Rezepte', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
-            { id: 'ai-recipes', label: 'KI Rezepte', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
-            { id: 'parser', label: 'Rezept Parser', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-            { id: 'shopping', label: 'Einkaufsliste', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z' },
-            { id: 'pantry', label: 'Speisekammer', icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4' },
-            { id: 'history', label: 'Kochverlauf', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }
-        ];
-
-        return `
-            <!-- Mobile navigation overlay -->
-            <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
-
-            <!-- Mobile navigation menu -->
-            <nav class="mobile-nav-menu bg-white dark:bg-gray-800">
-                <div class="p-4 border-b dark:border-gray-700">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Menü</h2>
-                        <button id="close-mobile-menu" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                            <svg class="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="py-2">
-                    ${tabs.map(tab => `
-                        <button class="mobile-nav-btn w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                            AppState.currentView === tab.id
-                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-l-4 border-blue-600 dark:border-blue-400'
-                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                        }" data-view="${tab.id}">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${tab.icon}"></path>
-                            </svg>
-                            ${tab.label}
-                        </button>
-                    `).join('')}
-                </div>
-            </nav>
-        `;
-    },
-
-    renderNavigation() {
-        const tabs = [
-            { id: 'planner', label: 'Wochenplan', shortLabel: 'Plan' },
-            { id: 'meal-prep', label: 'Meal-Prep', shortLabel: 'Prep' },
-            { id: 'recipes', label: 'Rezepte', shortLabel: 'Rezepte' },
-            { id: 'ai-recipes', label: 'KI Rezepte', shortLabel: 'KI' },
-            { id: 'parser', label: 'Rezept Parser', shortLabel: 'Parser' },
-            { id: 'shopping', label: 'Einkaufsliste', shortLabel: 'Einkauf' },
-            { id: 'pantry', label: 'Speisekammer', shortLabel: 'Vorrat' },
-            { id: 'history', label: 'Kochverlauf', shortLabel: 'Verlauf' }
-        ];
-
-        // Desktop navigation (hidden on mobile)
-        return `
-            <nav class="hidden sm:block bg-white dark:bg-gray-800 border-b dark:border-gray-700 transition-colors duration-200 overflow-x-auto" role="navigation" aria-label="Hauptnavigation">
-                <div class="container mx-auto px-4">
-                    <div class="flex space-x-1 min-w-max" role="tablist" aria-label="Ansichten">
-                        ${tabs.map((tab, index) => `
-                            <button
-                                class="nav-btn px-3 md:px-6 py-3 font-medium transition-colors whitespace-nowrap text-sm md:text-base ${
-                                    AppState.currentView === tab.id
-                                        ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                                        : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
-                                }"
-                                data-view="${tab.id}"
-                                data-nav="${tab.id}"
-                                role="tab"
-                                aria-selected="${AppState.currentView === tab.id}"
-                                aria-controls="main-content"
-                                tabindex="${AppState.currentView === tab.id ? '0' : '-1'}"
-                                title="Taste ${index + 1} für Schnellzugriff"
-                            >
-                                <span class="hidden md:inline">${tab.label}</span>
-                                <span class="md:hidden">${tab.shortLabel}</span>
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
-            </nav>
-        `;
+    _getVisibleTabs() {
+        const tabs = ['planner', 'recipes', 'shopping', 'pantry', 'history', 'meal-prep', 'ai-recipes', 'parser'];
+        if (Auth.getUser()?.role === 'admin') tabs.push('admin');
+        return tabs;
     },
 
     attachEventListeners() {
-        // Auth button
-        this._bindAuthButton();
-
-        // Dark mode toggle
-        const darkModeToggle = document.getElementById('dark-mode-toggle');
-        if (darkModeToggle) {
-            darkModeToggle.addEventListener('click', () => {
-                DarkMode.toggle();
-                App.render();
-            });
-        }
-
-        // Restart onboarding tour
-        const restartTourBtn = document.getElementById('restart-tour-btn');
-        if (restartTourBtn) {
-            restartTourBtn.addEventListener('click', () => {
-                OnboardingManager.restart();
-            });
-        }
-
-        // Mobile menu toggle
-        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-        if (mobileMenuToggle) {
-            mobileMenuToggle.addEventListener('click', () => this.toggleMobileMenu());
-        }
-
-        // Close mobile menu button
-        const closeMobileMenu = document.getElementById('close-mobile-menu');
-        if (closeMobileMenu) {
-            closeMobileMenu.addEventListener('click', () => this.closeMobileMenu());
-        }
-
-        // Mobile nav overlay click to close
-        const mobileNavOverlay = document.getElementById('mobile-nav-overlay');
-        if (mobileNavOverlay) {
-            mobileNavOverlay.addEventListener('click', () => this.closeMobileMenu());
-        }
-
-        // Mobile navigation buttons
-        document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const view = e.currentTarget.dataset.view;
-                this.closeMobileMenu();
-                AppState.setView(view);
-            });
+        // Sidebar navigation
+        document.querySelectorAll('.ds-sidebar-item[data-view]').forEach(btn => {
+            btn.addEventListener('click', () => AppState.setView(btn.dataset.view));
         });
-
-        // Desktop navigation
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const view = e.currentTarget.dataset.view;
-                AppState.setView(view);
-            });
+        // Bottom nav
+        document.querySelectorAll('.ds-bottomnav-item[data-view]').forEach(btn => {
+            btn.addEventListener('click', () => AppState.setView(btn.dataset.view));
         });
 
         // Pull to refresh setup

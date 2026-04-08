@@ -11,20 +11,20 @@ export const AdminUsersView = {
 
     render() {
         if (Auth.getUser()?.role !== 'admin') {
-            return `<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
-                <p class="text-red-700 dark:text-red-300 font-medium">Kein Zugriff. Administratorrechte erforderlich.</p>
+            return `<div class="bg-ds-danger-bg border border-ds-danger-border rounded-ds p-6 text-center">
+                <p class="text-ds-danger font-medium">Kein Zugriff. Administratorrechte erforderlich.</p>
             </div>`;
         }
 
         return `
             <div class="space-y-4">
                 <div class="flex items-center justify-between flex-wrap gap-2">
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">Benutzerverwaltung</h2>
+                    <h2 class="ds-page-title">Benutzerverwaltung</h2>
                     <div class="flex gap-2">
-                        <button id="admin-create-user-btn" class="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        <button id="admin-create-user-btn" class="ds-btn ds-btn-primary ds-btn-sm">
                             + Benutzer anlegen
                         </button>
-                        <button id="admin-refresh-btn" class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <button id="admin-refresh-btn" class="ds-btn ds-btn-primary ds-btn-sm">
                             Aktualisieren
                         </button>
                     </div>
@@ -40,15 +40,15 @@ export const AdminUsersView = {
 
     _renderLoading() {
         return `<div class="animate-pulse space-y-3">
-            <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            <div class="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            <div class="h-10 bg-ds-bg-subtle rounded"></div>
+            <div class="h-10 bg-ds-bg-subtle rounded"></div>
+            <div class="h-10 bg-ds-bg-subtle rounded"></div>
         </div>`;
     },
 
     _renderTable() {
         if (this.users.length === 0) {
-            return `<p class="text-gray-500 dark:text-gray-400 text-center py-8">Keine Benutzer gefunden.</p>`;
+            return `<p class="text-ds-text-muted text-center py-8">Keine Benutzer gefunden.</p>`;
         }
 
         const sorted = [...this.users].sort((a, b) => {
@@ -73,20 +73,20 @@ export const AdminUsersView = {
         };
 
         return `
-            <div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="overflow-x-auto ds-card">
                 <table class="w-full text-sm">
-                    <thead class="bg-gray-50 dark:bg-gray-700">
+                    <thead class="bg-ds-bg-muted">
                         <tr>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600" data-field="name">Name${sortIcon('name')}</th>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600" data-field="email">E-Mail${sortIcon('email')}</th>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600" data-field="role">Rolle${sortIcon('role')}</th>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600" data-field="is_active">Status${sortIcon('is_active')}</th>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600" data-field="created_at">Erstellt${sortIcon('created_at')}</th>
-                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-600" data-field="last_login_at">Letzter Login${sortIcon('last_login_at')}</th>
-                            <th class="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-300">Aktionen</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="name">Name${sortIcon('name')}</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="email">E-Mail${sortIcon('email')}</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="role">Rolle${sortIcon('role')}</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="is_active">Status${sortIcon('is_active')}</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="created_at">Erstellt${sortIcon('created_at')}</th>
+                            <th class="admin-sort-col px-4 py-3 text-left font-medium text-ds-text-sec cursor-pointer hover:text-ds-accent" data-field="last_login_at">Letzter Login${sortIcon('last_login_at')}</th>
+                            <th class="px-4 py-3 text-left font-medium text-ds-text-sec">Aktionen</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody class="divide-y divide-ds-border">
                         ${sorted.map(user => this._renderRow(user, currentUserId)).join('')}
                     </tbody>
                 </table>
@@ -97,38 +97,38 @@ export const AdminUsersView = {
     _renderRow(user, currentUserId) {
         const isSelf = user.id === currentUserId;
         const statusBadge = user.is_active
-            ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Aktiv</span>'
-            : '<span class="px-2 py-1 text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">Deaktiviert</span>';
+            ? '<span class="ds-badge ds-badge-accent">Aktiv</span>'
+            : '<span class="ds-badge" style="--badge-bg: var(--color-red-100); --badge-text: var(--color-red-700);">Deaktiviert</span>';
         const roleBadge = user.role === 'admin'
-            ? '<span class="px-2 py-1 text-xs rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">Admin</span>'
-            : '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">User</span>';
+            ? '<span class="ds-badge ds-badge-accent">Admin</span>'
+            : '<span class="ds-badge">User</span>';
         const mustChangeBadge = user.must_change_password
-            ? ' <span class="px-1.5 py-0.5 text-[10px] rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">Temp-PW</span>'
+            ? ' <span class="ds-badge">Temp-PW</span>'
             : '';
 
         const formatDate = (d) => d ? new Date(d).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
         return `
-            <tr class="hover:bg-gray-50 dark:hover:bg-gray-750 ${isSelf ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}">
-                <td class="px-4 py-3 text-gray-900 dark:text-white">${escapeHtml(user.name || '—')}${isSelf ? ' <span class="text-xs text-blue-500">(Du)</span>' : ''}</td>
-                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">${escapeHtml(user.email)}${mustChangeBadge}</td>
+            <tr class="hover:bg-ds-bg-muted ${isSelf ? 'bg-ds-accent-bg/50' : ''}">
+                <td class="px-4 py-3 text-ds-text">${escapeHtml(user.name || '—')}${isSelf ? ' <span class="text-xs text-ds-accent">(Du)</span>' : ''}</td>
+                <td class="px-4 py-3 text-ds-text-body">${escapeHtml(user.email)}${mustChangeBadge}</td>
                 <td class="px-4 py-3">${roleBadge}</td>
                 <td class="px-4 py-3">${statusBadge}</td>
-                <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">${formatDate(user.created_at)}</td>
-                <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">${formatDate(user.last_login_at)}</td>
+                <td class="px-4 py-3 text-ds-text-muted text-xs">${formatDate(user.created_at)}</td>
+                <td class="px-4 py-3 text-ds-text-muted text-xs">${formatDate(user.last_login_at)}</td>
                 <td class="px-4 py-3">
                     <div class="flex gap-1 flex-wrap">
-                        ${isSelf ? '<span class="text-xs text-gray-400">—</span>' : `
-                            <button class="admin-toggle-role px-2 py-1 text-xs rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors" data-id="${user.id}" data-current-role="${user.role}">
+                        ${isSelf ? '<span class="text-xs text-ds-text-disabled">—</span>' : `
+                            <button class="admin-toggle-role ds-badge ds-badge-accent cursor-pointer hover:opacity-80 transition-opacity" data-id="${user.id}" data-current-role="${user.role}">
                                 ${user.role === 'admin' ? '→ User' : '→ Admin'}
                             </button>
-                            <button class="admin-toggle-status px-2 py-1 text-xs rounded ${user.is_active ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200' : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200'} transition-colors" data-id="${user.id}" data-active="${user.is_active}">
+                            <button class="admin-toggle-status ds-badge cursor-pointer hover:opacity-80 transition-opacity ${user.is_active ? 'bg-ds-danger-bg text-ds-danger' : 'bg-ds-accent-bg text-ds-accent'}" data-id="${user.id}" data-active="${user.is_active}">
                                 ${user.is_active ? 'Deaktivieren' : 'Aktivieren'}
                             </button>
-                            <button class="admin-reset-pw px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors" data-id="${user.id}" data-email="${escapeHtml(user.email)}">
+                            <button class="admin-reset-pw ds-badge ds-badge-accent cursor-pointer hover:opacity-80 transition-opacity" data-id="${user.id}" data-email="${escapeHtml(user.email)}">
                                 Passwort
                             </button>
-                            <button class="admin-delete-user px-2 py-1 text-xs rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors" data-id="${user.id}" data-email="${escapeHtml(user.email)}">
+                            <button class="admin-delete-user ds-badge cursor-pointer hover:opacity-80 transition-opacity bg-ds-danger-bg text-ds-danger" data-id="${user.id}" data-email="${escapeHtml(user.email)}">
                                 Löschen
                             </button>
                         `}
@@ -141,23 +141,23 @@ export const AdminUsersView = {
     _renderCreateUserModal() {
         return `
             <div id="admin-create-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm mx-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Neuen Benutzer anlegen</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Es wird ein temporäres Passwort generiert. Der Benutzer muss es beim ersten Login ändern.</p>
+                <div class="ds-card shadow-xl p-6 w-full max-w-sm mx-4">
+                    <h3 class="ds-section-title mb-4">Neuen Benutzer anlegen</h3>
+                    <p class="text-sm text-ds-text-muted mb-4">Es wird ein temporäres Passwort generiert. Der Benutzer muss es beim ersten Login ändern.</p>
                     <form id="admin-create-form" class="space-y-3">
                         <input id="admin-create-email" type="email" placeholder="E-Mail-Adresse" required
-                            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            class="ds-input w-full px-3 py-2" />
                         <input id="admin-create-name" type="text" placeholder="Name (optional)"
-                            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            class="ds-input w-full px-3 py-2" />
                         <select id="admin-create-role"
-                            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            class="ds-input w-full px-3 py-2">
                             <option value="user">User</option>
                             <option value="admin">Admin</option>
                         </select>
-                        <div id="admin-create-error" class="text-sm text-red-500 hidden"></div>
+                        <div id="admin-create-error" class="text-sm text-ds-danger hidden"></div>
                         <div class="flex gap-2 justify-end pt-2">
-                            <button type="button" id="admin-create-cancel" class="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">Abbrechen</button>
-                            <button type="submit" class="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">Anlegen</button>
+                            <button type="button" id="admin-create-cancel" class="ds-btn ds-btn-secondary ds-btn-sm">Abbrechen</button>
+                            <button type="submit" class="ds-btn ds-btn-primary ds-btn-sm">Anlegen</button>
                         </div>
                     </form>
                 </div>
@@ -168,18 +168,18 @@ export const AdminUsersView = {
     _renderTempPasswordModal() {
         return `
             <div id="admin-temppw-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm mx-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Temporäres Passwort</h3>
-                    <p id="admin-temppw-email" class="text-sm text-gray-500 dark:text-gray-400 mb-4"></p>
+                <div class="ds-card shadow-xl p-6 w-full max-w-sm mx-4">
+                    <h3 class="ds-section-title mb-2">Temporäres Passwort</h3>
+                    <p id="admin-temppw-email" class="text-sm text-ds-text-muted mb-4"></p>
                     <div class="flex items-center gap-2 mb-4">
-                        <code id="admin-temppw-value" class="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-lg font-mono text-center text-gray-900 dark:text-white tracking-wider select-all"></code>
-                        <button id="admin-temppw-copy" class="px-3 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" title="Kopieren">
+                        <code id="admin-temppw-value" class="flex-1 px-4 py-3 bg-ds-bg-subtle rounded-lg text-lg font-mono text-center text-ds-text tracking-wider select-all"></code>
+                        <button id="admin-temppw-copy" class="ds-btn ds-btn-primary px-3 py-3" title="Kopieren">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                         </button>
                     </div>
-                    <p class="text-xs text-yellow-600 dark:text-yellow-400 mb-4">Der Benutzer muss dieses Passwort beim ersten Login ändern. Notiere es jetzt — es wird nicht erneut angezeigt.</p>
+                    <p class="text-xs text-ds-text-sec mb-4">Der Benutzer muss dieses Passwort beim ersten Login ändern. Notiere es jetzt -- es wird nicht erneut angezeigt.</p>
                     <div class="flex justify-end">
-                        <button id="admin-temppw-close" class="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Schließen</button>
+                        <button id="admin-temppw-close" class="ds-btn ds-btn-secondary ds-btn-sm">Schließen</button>
                     </div>
                 </div>
             </div>
