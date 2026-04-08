@@ -15,6 +15,7 @@ const { downloadVideo, cleanupTempFiles } = require('../utils/video');
 const { classicSearch } = require('../utils/search');
 const { sanitizeForPrompt, sanitizeArrayForPrompt, extractJsonFromAiResponse } = require('../utils/ai-sanitize');
 const { authenticateRequired } = require('../middleware/authenticate');
+const { AI_MODEL, INGREDIENT_CATEGORIES, VALID_VARIANT_TYPES, VARIANT_DESCRIPTIONS } = require('../config/constants');
 
 // ========== HELPER FUNCTIONS ==========
 
@@ -143,7 +144,7 @@ router.post('/generate-recipes', authenticateRequired, aiLimiter, async (req, re
             return res.status(400).json({ error: 'No valid ingredients provided' });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: AI_MODEL });
 
         const prompt = `Du bist ein kreativer Koch-Assistent. Generiere 3 leckere Rezept-Vorschläge basierend auf folgenden Zutaten:
 
@@ -157,7 +158,7 @@ Erstelle für jedes Rezept:
 - Einen kreativen Namen
 - Kategorie (z.B. Hauptgericht, Suppe, Salat, etc.)
 - Anzahl Portionen
-- Liste der Zutaten mit Mengen und Einheiten und Kategorien (Obst & Gemüse, Milchprodukte, Fleisch & Fisch, Trockenwaren, Tiefkühl, Sonstiges)
+- Liste der Zutaten mit Mengen und Einheiten und Kategorien (${INGREDIENT_CATEGORIES.join(', ')})
 - Schritt-für-Schritt Anleitung
 
 WICHTIG: Antworte NUR mit einem validen JSON-Array im folgenden Format, ohne zusätzlichen Text:
@@ -204,8 +205,6 @@ router.post('/categorize-ingredient', authenticateRequired, aiLimiter, async (re
             return res.status(400).json({ error: 'Missing required field: ingredientName' });
         }
 
-        const categories = ['Obst & Gemüse', 'Milchprodukte', 'Fleisch & Fisch', 'Trockenwaren', 'Tiefkühl', 'Sonstiges'];
-
         // Rule-based fallback categorization (fast, works offline)
         const ruleBased = categorizeIngredient(ingredientName.toLowerCase());
 
@@ -216,17 +215,12 @@ router.post('/categorize-ingredient', authenticateRequired, aiLimiter, async (re
 
         // Try AI categorization
         try {
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+            const model = genAI.getGenerativeModel({ model: AI_MODEL });
 
             const prompt = `Kategorisiere die folgende Zutat in genau eine der folgenden Kategorien:
 
 Kategorien:
-- Obst & Gemüse
-- Milchprodukte
-- Fleisch & Fisch
-- Trockenwaren
-- Tiefkühl
-- Sonstiges
+${INGREDIENT_CATEGORIES.map(c => `- ${c}`).join('\n')}
 
 Zutat: "${ingredientName}"
 
@@ -237,7 +231,7 @@ WICHTIG: Antworte NUR mit dem Namen der Kategorie, ohne zusätzlichen Text oder 
             const text = response.text().trim();
 
             // Validate that response is one of the valid categories
-            if (categories.includes(text)) {
+            if (INGREDIENT_CATEGORIES.includes(text)) {
                 return res.json({ category: text, source: 'ai' });
             } else {
                 // AI returned invalid category, use rule-based
@@ -272,7 +266,7 @@ router.post('/scale-portions', authenticateRequired, aiLimiter, async (req, res)
             return res.status(400).json({ error: 'Missing required fields: ingredients, originalServings, newServings' });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: AI_MODEL });
 
         const prompt = `Du bist ein Küchen-Assistent, der bei der Skalierung von Rezepten hilft.
 
@@ -334,7 +328,7 @@ router.post('/analyze-recipe', authenticateRequired, aiLimiter, async (req, res)
         const safeCategory = sanitizeForPrompt(recipe.category, 100);
         const safeInstructions = sanitizeForPrompt(recipe.instructions, 5000);
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: AI_MODEL });
 
         const ingredientsList = recipe.ingredients && recipe.ingredients.length > 0
             ? recipe.ingredients.slice(0, 50).map(i => `- ${sanitizeForPrompt(i.amount, 20)} ${sanitizeForPrompt(i.unit, 20)} ${sanitizeForPrompt(i.name, 100)}`.trim()).join('\n')
@@ -433,10 +427,9 @@ router.post('/generate-variant', authenticateRequired, aiLimiter, async (req, re
             return res.status(400).json({ error: 'Recipe with name is required' });
         }
 
-        const validVariantTypes = ['vegetarisch', 'vegan', 'low-carb', 'glutenfrei', 'laktosefrei', 'schnell', 'kalorienarm'];
-        if (!variantType || !validVariantTypes.includes(variantType)) {
+        if (!variantType || !VALID_VARIANT_TYPES.includes(variantType)) {
             return res.status(400).json({
-                error: `Invalid variant type. Valid types: ${validVariantTypes.join(', ')}`
+                error: `Invalid variant type. Valid types: ${VALID_VARIANT_TYPES.join(', ')}`
             });
         }
 
@@ -444,23 +437,13 @@ router.post('/generate-variant', authenticateRequired, aiLimiter, async (req, re
         const safeCategory = sanitizeForPrompt(recipe.category, 100);
         const safeInstructions = sanitizeForPrompt(recipe.instructions, 5000);
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: AI_MODEL });
 
         const ingredientsList = recipe.ingredients && recipe.ingredients.length > 0
             ? recipe.ingredients.slice(0, 50).map(i => `- ${sanitizeForPrompt(i.amount, 20)} ${sanitizeForPrompt(i.unit, 20)} ${sanitizeForPrompt(i.name, 100)} (${sanitizeForPrompt(i.category, 50) || 'Sonstiges'})`.trim()).join('\n')
             : 'Keine Zutaten angegeben';
 
-        const variantDescriptions = {
-            'vegetarisch': 'eine vegetarische Version (ohne Fleisch und Fisch, aber mit Milchprodukten und Eiern)',
-            'vegan': 'eine vegane Version (komplett ohne tierische Produkte)',
-            'low-carb': 'eine Low-Carb Version (wenig Kohlenhydrate, max 20g pro Portion)',
-            'glutenfrei': 'eine glutenfreie Version (ohne Weizen, Roggen, Gerste, Dinkel)',
-            'laktosefrei': 'eine laktosefreie Version (ohne Milchprodukte oder mit laktosefreien Alternativen)',
-            'schnell': 'eine schnelle Version (Zubereitungszeit unter 30 Minuten)',
-            'kalorienarm': 'eine kalorienarme Version (reduzierte Kalorien durch leichtere Zutaten)'
-        };
-
-        const prompt = `Du bist ein erfahrener Koch und Ernährungsexperte. Erstelle ${variantDescriptions[variantType]} des folgenden Rezepts.
+        const prompt = `Du bist ein erfahrener Koch und Ernährungsexperte. Erstelle ${VARIANT_DESCRIPTIONS[variantType]} des folgenden Rezepts.
 
 ORIGINAL-REZEPT:
 Name: ${safeName}
@@ -496,7 +479,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zu
       "name": "Zutatname",
       "amount": "Menge als String",
       "unit": "Einheit",
-      "category": "Obst & Gemüse|Milchprodukte|Fleisch & Fisch|Trockenwaren|Tiefkühl|Sonstiges",
+      "category": "${INGREDIENT_CATEGORIES.join('|')}",
       "isNew": true,
       "replaces": "Name der ersetzten Zutat oder null"
     }
@@ -572,7 +555,7 @@ router.post('/search', authenticateRequired, aiLimiter, async (req, res) => {
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: AI_MODEL });
 
         // Get current context for better understanding
         const now = new Date();
@@ -735,7 +718,7 @@ router.post('/parse-recipe', authenticateRequired, aiLimiter, async (req, res) =
             }
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: AI_MODEL });
 
         const prompt = `Du bist ein intelligenter Rezept-Parser. Analysiere den folgenden Text und extrahiere ein strukturiertes Rezept daraus.
 
@@ -762,7 +745,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format (ohne Ma
 Regeln:
 - Extrahiere den Rezeptnamen so genau wie möglich
 - Identifiziere alle Zutaten mit Mengen und Einheiten
-- Kategorisiere jede Zutat in eine der Kategorien: "Obst & Gemüse", "Milchprodukte", "Fleisch & Fisch", "Trockenwaren", "Tiefkühl", "Sonstiges"
+- Kategorisiere jede Zutat in eine der Kategorien: ${INGREDIENT_CATEGORIES.map(c => `"${c}"`).join(', ')}
 - Fasse die Zubereitungsschritte in einer klaren Anleitung zusammen
 - Erkenne die Portionsanzahl (Standard: 4)
 - Bestimme eine passende Kategorie für das Rezept
@@ -884,7 +867,7 @@ router.post('/parse-video-recipe', authenticateRequired, aiLimiter, async (req, 
         const videoBase64 = videoBuffer.toString('base64');
 
         // Use Gemini with video
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: AI_MODEL });
 
         const prompt = `Du bist ein intelligenter Rezept-Extraktor für Kochvideos. Analysiere dieses Video und extrahiere das gezeigte Rezept.
 
@@ -908,7 +891,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format:
             "name": "Zutatname",
             "amount": "200",
             "unit": "g",
-            "category": "Obst & Gemüse|Milchprodukte|Fleisch & Fisch|Trockenwaren|Tiefkühl|Sonstiges"
+            "category": "${INGREDIENT_CATEGORIES.join('|')}"
         }
     ],
     "instructions": "Schritt 1: ... \\n\\nSchritt 2: ...",
@@ -1044,7 +1027,7 @@ router.post('/generate-weekplan', authenticateRequired, aiLimiter, async (req, r
             });
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: AI_MODEL });
 
         const dayNames = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
         const selectedDays = dayNames.slice(0, numDays);
@@ -1100,7 +1083,7 @@ WICHTIG: Antworte NUR mit einem validen JSON-Objekt im folgenden Format, ohne zu
 
 Gib nur die ausgewählten Mahlzeiten (${mealTypes.join(', ')}) im JSON zurück.
 Kategorien für Rezepte: Frühstück, Hauptgericht, Suppe, Salat, Snack, Dessert, Beilage, Getränk
-Kategorien für Zutaten: Obst & Gemüse, Milchprodukte, Fleisch & Fisch, Trockenwaren, Tiefkühl, Sonstiges
+Kategorien für Zutaten: ${INGREDIENT_CATEGORIES.join(', ')}
 Einheiten für Zutaten: g, kg, ml, l, Stück, EL, TL, Prise, Bund, Dose, Packung`;
 
         const result = await model.generateContent(prompt);
@@ -1274,7 +1257,7 @@ router.post('/meal-prep-suggestions', authenticateRequired, aiLimiter, async (re
     }
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: AI_MODEL });
 
         const recipeSummaries = eligibleRecipes.map((recipe, index) => {
             const parts = [

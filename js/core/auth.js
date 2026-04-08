@@ -1,6 +1,6 @@
 // Client-side authentication module (JWT + HttpOnly cookie for refresh)
 
-const TOKEN_REFRESH_INTERVAL = 12 * 60 * 1000; // 12 minutes (access token lives 15min)
+import { TOKEN_REFRESH_INTERVAL } from '../config.js';
 
 export const Auth = {
     _token: null,
