@@ -133,7 +133,12 @@ const startServer = async () => {
     }
 };
 
-startServer();
+// Export app for integration testing; start server only when run directly
+module.exports = { app };
+
+if (require.main === module) {
+    startServer();
+}
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
