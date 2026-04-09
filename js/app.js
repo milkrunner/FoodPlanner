@@ -221,8 +221,8 @@ export const App = {
                                 <input id="auth-screen-name" type="text" placeholder="Name (optional)"
                                     class="ds-input"/>
                             </div>
-                            <input id="auth-screen-email" type="email" placeholder="E-Mail" required
-                                class="ds-input"/>
+                            <input id="auth-screen-username" type="text" placeholder="Benutzername" required
+                                class="ds-input" autocomplete="username"/>
                             <input id="auth-screen-password" type="password" placeholder="Passwort (Groß-/Kleinbuchstaben + Zahl)" required minlength="8"
                                 class="ds-input"/>
                             <div id="auth-screen-error" class="text-sm text-ds-danger hidden"></div>
@@ -263,18 +263,18 @@ export const App = {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             errEl.classList.add('hidden');
-            const email = document.getElementById('auth-screen-email').value;
+            const username = document.getElementById('auth-screen-username').value;
             const password = document.getElementById('auth-screen-password').value;
             try {
                 if (mode === 'login') {
-                    await Auth.login(email, password);
+                    await Auth.login(username, password);
                     if (Auth.mustChangePassword()) {
                         this.render();
                         return;
                     }
                 } else {
                     const name = document.getElementById('auth-screen-name')?.value || '';
-                    await Auth.register(email, password, name);
+                    await Auth.register(username, password, name);
                 }
                 await this._initAuthenticated();
                 Toast.show(mode === 'login' ? 'Willkommen zurück!' : 'Erfolgreich registriert!', { type: 'success', duration: 2000 });
@@ -284,7 +284,7 @@ export const App = {
             }
         });
 
-        document.getElementById('auth-screen-email')?.focus();
+        document.getElementById('auth-screen-username')?.focus();
     },
 
     _renderChangePasswordScreen() {
