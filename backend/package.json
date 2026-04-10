@@ -1,6 +1,10 @@
 {
   "name": "food-planner-backend",
-  "version": "2.0.3",
+<<<<<<< HEAD
+  "version": "2.0.4",
+=======
+  "version": "2.0.4",
+>>>>>>> 00fa9c9 (chore: bump version to 2.0.4)
   "description": "Backend API for Food Planner",
   "main": "server.js",
   "scripts": {
