@@ -1,7 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./index.html', './js/**/*.js'],
-  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -23,16 +22,7 @@ module.exports = {
         'ds-danger':        '#CC6B6B',
         'ds-danger-border': '#F0E0E0',
         'ds-heart':         '#E8A0A0',
-        'ds-heart-active':  '#CC6B6B',
-        // Near-black — dark mode surfaces (kept for future dark mode)
-        'ac-night': {
-          50:  '#1E2024',
-          100: '#18191D',
-          200: '#131417',
-          300: '#0E0F11',
-          400: '#09090B',
-          500: '#050506'
-        }
+        'ds-heart-active':  '#CC6B6B'
       },
       borderRadius: {
         'ds':     '10px',
