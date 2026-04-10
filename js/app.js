@@ -1,5 +1,4 @@
 import { AppState, setRenderCallback } from './core/app-state.js';
-import { DarkMode } from './core/dark-mode.js';
 import { Toast } from './core/toast.js';
 import { ActionHistory } from './core/action-history.js';
 import { MobileUtils } from './core/mobile-utils.js';
@@ -57,7 +56,6 @@ export const App = {
 
     async init() {
         Auth.init();
-        DarkMode.init();
         setRenderCallback(() => App.render());
 
         if (!Auth.isAuthenticated()) {
